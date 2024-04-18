@@ -1,123 +1,71 @@
-import { useEffect } from "react";
-import { json } from "@remix-run/node";
-import { useActionData, useNavigation, useSubmit } from "@remix-run/react";
 import {
-  Page,
-  Layout,
+  BlockStack,
   Text,
   Card,
+  Layout,
+  Page,
   Button,
-  BlockStack,
-  Box,
-  List,
-  Link,
-  InlineStack,
-} from "@shopify/polaris";
-import {DataTable} from '@shopify/polaris';
-import React from 'react';
-import { authenticate } from "../shopify.server";
+  FullscreenBar,
+  DataTable,
+  Popover,
+  ActionList,
+  FormLayout,
+  Select,
+  TextField,
+} from '@shopify/polaris';
+import { json } from '@remix-run/node';
+import { useState, useCallback } from 'react';
+import { PageActions } from '@shopify/polaris';
 
-export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-
-  return null;
-};
-
-export const action = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
-  const color = ["Red", "Orange", "Yellow", "Green"][
-    Math.floor(Math.random() * 4)
-  ];
-  const response = await admin.graphql(
-    `#graphql
-      mutation populateProduct($input: ProductInput!) {
-        productCreate(input: $input) {
-          product {
-            id
-            title
-            handle
-            status
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
-                }
-              }
-            }
-          }
-        }
-      }`,
-    {
-      variables: {
-        input: {
-          title: `${color} Snowboard`,
-        },
-      },
-    },
-  );
-  const responseJson = await response.json();
-  const variantId =
-    responseJson.data.productCreate.product.variants.edges[0].node.id;
-  const variantResponse = await admin.graphql(
-    `#graphql
-      mutation updateVariant($input: ProductVariantInput!) {
-        productVariantUpdate(input: $input) {
-          productVariant {
-            id
-            price
-            barcode
-            createdAt
-          }
-        }
-      }`,
-    {
-      variables: {
-        input: {
-          id: variantId,
-          price: Math.random() * 100,
-        },
-      },
-    },
-  );
-  const variantResponseJson = await variantResponse.json();
-
+export async function loader() {
   return json({
-    product: responseJson.data.productCreate.product,
-    variant: variantResponseJson.data.productVariantUpdate.productVariant,
+    ok: true,
   });
-};
+}
+
 
 export default function Index() {
-  const nav = useNavigation();
-  const actionData = useActionData();
-  const submit = useSubmit();
-  const isLoading =
-    ["loading", "submitting"].includes(nav.state) && nav.formMethod === "POST";
-  const productId = actionData?.product?.id.replace(
-    "gid://shopify/Product/",
-    "",
-  );
-
-  useEffect(() => {
-    if (productId) {
-      shopify.toast.show("Product created");
-    }
-  }, [productId]);
-  const generateProduct = () => submit({}, { replace: true, method: "POST" });
-
   const rows = [];
+  const [popoverActive, setPopoverActive] = useState(false);
+  const [tagValue, setTagValue] = useState('');
+
+  const togglePopoverActive = useCallback(
+    () => setPopoverActive((popoverActive) => !popoverActive),
+    [],
+  );
+  const handleActionListClick = () => {
+    setPopoverActive(false);
+  };
+  const handleTagValueChange = useCallback(
+    (value) => setTagValue(value),
+    [],
+  );
+  const activator = (
+    <Button onClick={togglePopoverActive} disclosure>Filter</Button>
+  )
 
 
   return (
     <Page>
       <ui-title-bar title="Order Limit">
-        <button variant="primary">
-          Button
-        </button>
+      <button variant="primary">Add Order Limit</button>
       </ui-title-bar>
+      <div style={{ width: '100%', overflow: 'auto' }}>
+        <div style={{ float: "right", padding: '10px' }}>
+          <Popover
+            active={popoverActive}
+            activator={activator}
+            onClose={togglePopoverActive}
+            ariaHaspopup={false}
+            sectioned
+          >
+            <FormLayout>
+              <Select label="Limit By" options={['Store Wise', 'Product Wise', 'Category Wise']} value={tagValue}
+                onChange={handleTagValueChange} />
+            </FormLayout>
+          </Popover>
+        </div>
+      </div>
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
@@ -138,12 +86,19 @@ export default function Index() {
                   'Net sales',
                 ]}
                 rows={rows}
-                //totals={['', '', '', 255, '$155,830.00']}
               />
-        </Card>
+            </Card>
+          </Layout.Section>
+          <Layout.Section>
+            <PageActions
+              primaryAction={{
+                content: 'Save',
+              }}
+            />
           </Layout.Section>
         </Layout>
       </BlockStack>
     </Page>
   );
 }
+
