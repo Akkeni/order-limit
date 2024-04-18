@@ -3,7 +3,7 @@
 client_id = "02ab6817b4708644340987acd47ac849"
 name = "order-limit"
 handle = "order-limit-9"
-application_url = "https://mapping-public-federation-nuts.trycloudflare.com"
+application_url = "https://chaos-trim-transaction-specified.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://mapping-public-federation-nuts.trycloudflare.com/auth/callback",
-  "https://mapping-public-federation-nuts.trycloudflare.com/auth/shopify/callback",
-  "https://mapping-public-federation-nuts.trycloudflare.com/api/auth/callback"
+  "https://chaos-trim-transaction-specified.trycloudflare.com/auth/callback",
+  "https://chaos-trim-transaction-specified.trycloudflare.com/auth/shopify/callback",
+  "https://chaos-trim-transaction-specified.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
