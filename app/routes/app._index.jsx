@@ -12,6 +12,7 @@ import {
   FormLayout,
   Select,
   TextField,
+  Modal,
 } from '@shopify/polaris';
 import { json } from '@remix-run/node';
 import { useState, useCallback } from 'react';
@@ -27,6 +28,7 @@ export async function loader() {
 export default function Index() {
   const rows = [];
   const [popoverActive, setPopoverActive] = useState(false);
+  const [modalActive, setModalActive] = useState(false);
   const [tagValue, setTagValue] = useState('');
 
   const togglePopoverActive = useCallback(
@@ -36,34 +38,45 @@ export default function Index() {
   const handleActionListClick = () => {
     setPopoverActive(false);
   };
+  const toggleModalActive = useCallback(
+    () => setModalActive((modalActive) => !modalActive),
+    [],
+  );
   const handleTagValueChange = useCallback(
     (value) => setTagValue(value),
     [],
   );
-  const activator = (
-    <Button onClick={togglePopoverActive} disclosure>Filter</Button>
-  )
+  /*const activator = (
+    <Button onClick={togglePopoverActive} disclosure>Add Order Limit</Button>
+  )*/
 
 
   return (
     <Page>
-      <ui-title-bar title="Order Limit">
-      <button variant="primary">Add Order Limit</button>
-      </ui-title-bar>
+      <ui-title-bar title="Order Limit"></ui-title-bar>
+      <Modal
+        open={modalActive}
+        onClose={toggleModalActive}
+        title="Limit By"
+        primaryAction={{
+          content: 'Close',
+          onAction: toggleModalActive,
+        }}
+      >
+        <Modal.Section>
+          <FormLayout>
+            <Select
+              label="Limit By"
+              options={['Store Wise', 'Product Wise', 'Category Wise']}
+              value={tagValue}
+              onChange={handleTagValueChange}
+            />
+          </FormLayout>
+        </Modal.Section>
+      </Modal>
       <div style={{ width: '100%', overflow: 'auto' }}>
-        <div style={{ float: "right", padding: '10px' }}>
-          <Popover
-            active={popoverActive}
-            activator={activator}
-            onClose={togglePopoverActive}
-            ariaHaspopup={false}
-            sectioned
-          >
-            <FormLayout>
-              <Select label="Limit By" options={['Store Wise', 'Product Wise', 'Category Wise']} value={tagValue}
-                onChange={handleTagValueChange} />
-            </FormLayout>
-          </Popover>
+        <div style={{ float: 'right', padding: '10px' }}>
+          <Button onClick={toggleModalActive}>Add Order Limit</Button>
         </div>
       </div>
       <BlockStack gap="500">
