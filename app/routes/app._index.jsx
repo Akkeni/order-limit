@@ -14,9 +14,11 @@ import {
   TextField,
   Modal,
 } from '@shopify/polaris';
-import { json } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import { useState, useCallback } from 'react';
 import { PageActions } from '@shopify/polaris';
+import { useNavigate, useSubmit } from '@remix-run/react';
+import db from "../db.server";
 
 export async function loader() {
   return json({
@@ -24,32 +26,68 @@ export async function loader() {
   });
 }
 
+export async function action({ request, params }) {
+
+  console.log('action');
+  const formData = await request.formData();
+  console.log(formData.get('choice'));
+
+  if (formData.get('choice') === 'Store Wise') {
+    const data = {
+      type: 'store_wise',
+      status: 'active',
+    };
+
+    await db.order_Limit.create({ data });
+  }
+  return redirect('/app/');
+}
+
 
 export default function Index() {
   const rows = [];
-  const [popoverActive, setPopoverActive] = useState(false);
   const [modalActive, setModalActive] = useState(false);
-  const [tagValue, setTagValue] = useState('');
+  const [tagValue, setTagValue] = useState('Store Wise');
+  const navigate = useNavigate();
 
-  const togglePopoverActive = useCallback(
-    () => setPopoverActive((popoverActive) => !popoverActive),
-    [],
-  );
-  const handleActionListClick = () => {
-    setPopoverActive(false);
-  };
   const toggleModalActive = useCallback(
     () => setModalActive((modalActive) => !modalActive),
     [],
   );
+
+  async function selectProduct() {
+    const products = await window.shopify.resourcePicker({
+      type: "product",
+      action: "select", // customized action verb, either 'select' or 'add',
+    });
+
+    if (products) {
+      const { images, id, variants, title, handle } = products[0];
+    }
+
+  }
+
+
+  const handleDropdown = (value) => {
+    if (value == 'Category Wise') {
+      selectProduct();
+    }
+  }
+
   const handleTagValueChange = useCallback(
-    (value) => setTagValue(value),
+    (value) => {
+      setTagValue(value);
+      handleDropdown(value);
+    },
     [],
   );
-  /*const activator = (
-    <Button onClick={togglePopoverActive} disclosure>Add Order Limit</Button>
-  )*/
 
+  
+  const submit = useSubmit();
+  const handleSave = () => {
+    submit({ choice: tagValue }, { method: 'post' });
+    toggleModalActive();
+  }
 
   return (
     <Page>
@@ -59,9 +97,15 @@ export default function Index() {
         onClose={toggleModalActive}
         title="Limit By"
         primaryAction={{
-          content: 'Close',
-          onAction: toggleModalActive,
+          content: 'save',
+          onAction: handleSave,
         }}
+        secondaryActions={[
+          {
+            content: 'Close',
+            onAction: toggleModalActive,
+          },
+        ]}
       >
         <Modal.Section>
           <FormLayout>
@@ -114,4 +158,3 @@ export default function Index() {
     </Page>
   );
 }
-
