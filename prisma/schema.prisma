@@ -29,7 +29,7 @@ model Order_Limit {
   type        String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  productId   Int?     // Nullable field to store the product ID
-  categoryId  Int?     // Nullable field to store the category ID
+  productId   String?     // Nullable field to store the product ID
+  categoryId  String?     // Nullable field to store the category ID
   status      String
 }

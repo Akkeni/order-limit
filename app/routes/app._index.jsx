@@ -40,6 +40,14 @@ export async function action({ request, params }) {
 
     await db.order_Limit.create({ data });
   }
+  else if(formData.get('choice') === 'Product Wise') {
+    const data = {
+      type: 'product_wise',
+      productId: formData.get('id'),
+      status: 'active',
+    }
+    await db.order_Limit.create({data});
+  }
   return redirect('/app/');
 }
 
@@ -49,6 +57,7 @@ export default function Index() {
   const [modalActive, setModalActive] = useState(false);
   const [tagValue, setTagValue] = useState('Store Wise');
   const navigate = useNavigate();
+  const submit = useSubmit();
 
   const toggleModalActive = useCallback(
     () => setModalActive((modalActive) => !modalActive),
@@ -63,13 +72,15 @@ export default function Index() {
 
     if (products) {
       const { images, id, variants, title, handle } = products[0];
+      submit({choice: 'Product Wise', id: id}, {method: 'post'});
+      toggleModalActive();
     }
 
   }
 
 
   const handleDropdown = (value) => {
-    if (value == 'Category Wise') {
+    if (value == 'Product Wise') {
       selectProduct();
     }
   }
@@ -83,7 +94,7 @@ export default function Index() {
   );
 
   
-  const submit = useSubmit();
+  
   const handleSave = () => {
     submit({ choice: tagValue }, { method: 'post' });
     toggleModalActive();
