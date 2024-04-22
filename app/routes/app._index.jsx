@@ -33,6 +33,17 @@ export async function action({ request, params }) {
   console.log(formData.get('choice'));
 
   if (formData.get('choice') === 'Store Wise') {
+    
+    const orderLimit = await db.order_Limit.findFirst({
+      where: {
+        type: 'store_wise',
+      },
+    });
+
+    if(orderLimit !== null) {
+      return redirect('/app/')
+    }
+
     const data = {
       type: 'store_wise',
       status: 'active',
@@ -40,6 +51,7 @@ export async function action({ request, params }) {
 
     await db.order_Limit.create({ data });
   }
+
   else if(formData.get('choice') === 'Product Wise') {
     const data = {
       type: 'product_wise',
@@ -47,6 +59,15 @@ export async function action({ request, params }) {
       status: 'active',
     }
     await db.order_Limit.create({data});
+  }
+  else if(formData.get('choice') === 'Category Wise') {
+    const data = {
+      type: 'category_wise',
+      categoryId: formData.get('id'),
+      status: 'active',
+    };
+
+    await db.order_Limit.create({ data });
   }
   return redirect('/app/');
 }
@@ -73,15 +94,30 @@ export default function Index() {
     if (products) {
       const { images, id, variants, title, handle } = products[0];
       submit({choice: 'Product Wise', id: id}, {method: 'post'});
-      toggleModalActive();
+      
     }
+  }
 
+  async function selectCategory() {
+    const collections = await window.shopify.resourcePicker({
+      type: "collection",
+      action: "select", // customized action verb, either 'select' or 'add',
+    });
+    if(collections) {
+      const {id} = collections[0];
+      submit({choice: 'Category Wise', id: id}, {method: 'post'});
+    }
   }
 
 
   const handleDropdown = (value) => {
     if (value == 'Product Wise') {
       selectProduct();
+      toggleModalActive();
+    }
+    else if(value == 'Category Wise') {
+      selectCategory();
+      toggleModalActive();
     }
   }
 
@@ -106,7 +142,7 @@ export default function Index() {
       <Modal
         open={modalActive}
         onClose={toggleModalActive}
-        title="Limit By"
+        title="Limiters"
         primaryAction={{
           content: 'save',
           onAction: handleSave,
@@ -129,11 +165,13 @@ export default function Index() {
           </FormLayout>
         </Modal.Section>
       </Modal>
+
       <div style={{ width: '100%', overflow: 'auto' }}>
         <div style={{ float: 'right', padding: '10px' }}>
           <Button onClick={toggleModalActive}>Add Order Limit</Button>
         </div>
-      </div>
+      </div>      
+      
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
