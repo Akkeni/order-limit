@@ -2,6 +2,11 @@ import {
   BlockStack,
   Text,
   Card,
+  Bleed,
+  Divider,
+  InlineStack,
+  InlineError,
+  Thumbnail,
   Layout,
   Page,
   Button,
@@ -33,15 +38,15 @@ export async function action({ request, params }) {
   console.log(formData.get('choice'));
 
   if (formData.get('choice') === 'Store Wise') {
-    
+
     const orderLimit = await db.order_Limit.findFirst({
       where: {
         type: 'store_wise',
       },
     });
 
-    if(orderLimit !== null) {
-      return redirect('/app/')
+    if (orderLimit !== null) {
+      return redirect('/app/');
     }
 
     const data = {
@@ -52,15 +57,15 @@ export async function action({ request, params }) {
     await db.order_Limit.create({ data });
   }
 
-  else if(formData.get('choice') === 'Product Wise') {
+  else if (formData.get('choice') === 'Product Wise') {
     const data = {
       type: 'product_wise',
       productId: formData.get('id'),
       status: 'active',
     }
-    await db.order_Limit.create({data});
+    await db.order_Limit.create({ data });
   }
-  else if(formData.get('choice') === 'Category Wise') {
+  else if (formData.get('choice') === 'Category Wise') {
     const data = {
       type: 'category_wise',
       categoryId: formData.get('id'),
@@ -77,6 +82,14 @@ export default function Index() {
   const rows = [];
   const [modalActive, setModalActive] = useState(false);
   const [tagValue, setTagValue] = useState('Store Wise');
+  const [formState, setFormState] = useState({
+    productId: '',
+    productVariantId: '',
+    productTitle: '',
+    productHandle: '',
+    productAlt: '',
+    productImage: '',
+  });
   const navigate = useNavigate();
   const submit = useSubmit();
 
@@ -93,8 +106,17 @@ export default function Index() {
 
     if (products) {
       const { images, id, variants, title, handle } = products[0];
-      submit({choice: 'Product Wise', id: id}, {method: 'post'});
-      
+      setFormState({
+        ...formState,
+        productId: id,
+        productVariantId: variants[0].id,
+        productTitle: title,
+        productHandle: handle,
+        productAlt: images[0]?.altText,
+        productImage: images[0]?.originalSrc,
+      });
+      submit({ choice: 'Product Wise', id: id }, { method: 'post' });
+      toggleModalActive();
     }
   }
 
@@ -103,9 +125,10 @@ export default function Index() {
       type: "collection",
       action: "select", // customized action verb, either 'select' or 'add',
     });
-    if(collections) {
-      const {id} = collections[0];
-      submit({choice: 'Category Wise', id: id}, {method: 'post'});
+    if (collections) {
+      const { id } = collections[0];
+      submit({ choice: 'Category Wise', id: id }, { method: 'post' });
+      toggleModalActive();
     }
   }
 
@@ -115,7 +138,7 @@ export default function Index() {
       selectProduct();
       toggleModalActive();
     }
-    else if(value == 'Category Wise') {
+    else if (value == 'Category Wise') {
       selectCategory();
       toggleModalActive();
     }
@@ -129,8 +152,8 @@ export default function Index() {
     [],
   );
 
-  
-  
+
+
   const handleSave = () => {
     submit({ choice: tagValue }, { method: 'post' });
     toggleModalActive();
@@ -163,6 +186,44 @@ export default function Index() {
               onChange={handleTagValueChange}
             />
           </FormLayout>
+          {tagValue === 'Product Wise' && (
+            <Card>
+              <BlockStack gap="500">
+                <InlineStack align="space-between">
+                  <Text as={"h2"} variant="headingLg">
+                    Product
+                  </Text>
+                  {formState.productId ? (
+                    <Button variant="plain" Primary onClick={() => selectProduct(formState, setFormState)}>
+                      Change product
+                    </Button>
+                  ) : null}
+                </InlineStack>
+                {formState.productId ? (
+
+                  <InlineStack blockAlign="center" gap="500">
+                    <Thumbnail
+                      source={formState.productImage || ImageIcon}
+                      alt={formState.productAlt}
+                    />
+                    <Text as="span" variant="headingMd" fontWeight="semibold">
+                      {formState.productTitle}
+                    </Text>
+                    <input type="hidden" name="productForm" value={formState.productId} />
+                  </InlineStack>
+                ) : (
+                  <BlockStack gap="200">
+                    <Button onClick={() => selectProduct(formState, setFormState)} id="select-product">
+                      Select product
+                    </Button>
+                  </BlockStack>
+                )}
+                <Bleed marginInlineStart="200" marginInlineEnd="200">
+                  <Divider />
+                </Bleed>
+              </BlockStack>
+            </Card>
+          )}
         </Modal.Section>
       </Modal>
 
@@ -170,8 +231,8 @@ export default function Index() {
         <div style={{ float: 'right', padding: '10px' }}>
           <Button onClick={toggleModalActive}>Add Order Limit</Button>
         </div>
-      </div>      
-      
+      </div>
+
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
