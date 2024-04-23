@@ -20,14 +20,33 @@ import {
   Modal,
 } from '@shopify/polaris';
 import { json, redirect } from '@remix-run/node';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { PageActions } from '@shopify/polaris';
-import { useNavigate, useSubmit } from '@remix-run/react';
+import { useNavigate, useSubmit, useLoaderData } from '@remix-run/react';
 import db from "../db.server";
+import {authenticate} from '../shopify.server';
 
-export async function loader() {
+export async function loader({request}) {
+  const {admin, session} = await authenticate.admin(request);
+  const response = await admin.graphql(
+    `{
+      shop {
+       allProductCategories {
+         productTaxonomyNode {
+           fullName
+           name
+           id
+         }
+       }
+     }
+     }
+    `
+  );
+  const data = await response.json();
+  console.log(data);
   return json({
     ok: true,
+    data,
   });
 }
 
@@ -58,6 +77,17 @@ export async function action({ request, params }) {
   }
 
   else if (formData.get('choice') === 'Product Wise') {
+
+    const orderLimit = await db.order_Limit.findFirst({
+      where: {
+        productId: formData.get('id'),
+      }
+    });
+
+    if(orderLimit !== null) {
+      return redirect('/app/');
+    }
+
     const data = {
       type: 'product_wise',
       productId: formData.get('id'),
@@ -65,7 +95,19 @@ export async function action({ request, params }) {
     }
     await db.order_Limit.create({ data });
   }
+
   else if (formData.get('choice') === 'Category Wise') {
+
+    const orderLimit = await db.order_Limit.findFirst({
+      where: {
+        categoryId: formData.get('id'),
+      }
+    });
+
+    if(orderLimit !== null) {
+      return redirect('/app/');
+    }
+
     const data = {
       type: 'category_wise',
       categoryId: formData.get('id'),
@@ -79,9 +121,21 @@ export async function action({ request, params }) {
 
 
 export default function Index() {
+  const loaderData = useLoaderData();
+  const categoryOptions = [];
+  const categoryIds = [];
+  const allProductCategories = loaderData.data.data.shop.allProductCategories;
+
+  for (const category of allProductCategories) {
+    const productTaxonomyNode = category.productTaxonomyNode;
+    categoryOptions.push(productTaxonomyNode.name);
+    categoryIds.push(productTaxonomyNode.id);
+  }
+
   const rows = [];
   const [modalActive, setModalActive] = useState(false);
   const [tagValue, setTagValue] = useState('Store Wise');
+  const [categoryValue, setCategoryValue] = useState(categoryOptions[0]);
   const [formState, setFormState] = useState({
     productId: '',
     productVariantId: '',
@@ -92,6 +146,9 @@ export default function Index() {
   });
   const navigate = useNavigate();
   const submit = useSubmit();
+
+
+  
 
   const toggleModalActive = useCallback(
     () => setModalActive((modalActive) => !modalActive),
@@ -115,31 +172,16 @@ export default function Index() {
         productAlt: images[0]?.altText,
         productImage: images[0]?.originalSrc,
       });
-      submit({ choice: 'Product Wise', id: id }, { method: 'post' });
-      toggleModalActive();
+      //submit({ choice: 'Product Wise', id: id }, { method: 'post' });
     }
+    toggleModalActive();
   }
 
-  async function selectCategory() {
-    const collections = await window.shopify.resourcePicker({
-      type: "collection",
-      action: "select", // customized action verb, either 'select' or 'add',
-    });
-    if (collections) {
-      const { id } = collections[0];
-      submit({ choice: 'Category Wise', id: id }, { method: 'post' });
-      toggleModalActive();
-    }
-  }
 
 
   const handleDropdown = (value) => {
     if (value == 'Product Wise') {
       selectProduct();
-      toggleModalActive();
-    }
-    else if (value == 'Category Wise') {
-      selectCategory();
       toggleModalActive();
     }
   }
@@ -152,10 +194,22 @@ export default function Index() {
     [],
   );
 
-
+  const handleCategoryValueChange = useCallback(
+    (value) => {
+      setCategoryValue(value);
+    },
+    [],
+  );
 
   const handleSave = () => {
-    submit({ choice: tagValue }, { method: 'post' });
+    let id = ''
+    if(tagValue === 'Category Wise') {
+      const indexId = categoryOptions.indexOf(categoryValue);
+      id = categoryIds[indexId];
+    } else if(tagValue === 'Product Wise') {
+      id = formState.productId;
+    }
+    submit({ choice: tagValue, id: id }, { method: 'post' });
     toggleModalActive();
   }
 
@@ -186,21 +240,22 @@ export default function Index() {
               onChange={handleTagValueChange}
             />
           </FormLayout>
-          {tagValue === 'Product Wise' && (
+          {tagValue === 'Product Wise' && formState.productId && (    
             <Card>
               <BlockStack gap="500">
                 <InlineStack align="space-between">
+                {formState.productId ? (
+                  <>
                   <Text as={"h2"} variant="headingLg">
                     Product
                   </Text>
-                  {formState.productId ? (
-                    <Button variant="plain" Primary onClick={() => selectProduct(formState, setFormState)}>
+                    <Button variant="plain" Primary onClick={() => {selectProduct(formState, setFormState); toggleModalActive();}}>
                       Change product
                     </Button>
+                    </>
                   ) : null}
                 </InlineStack>
                 {formState.productId ? (
-
                   <InlineStack blockAlign="center" gap="500">
                     <Thumbnail
                       source={formState.productImage || ImageIcon}
@@ -211,18 +266,22 @@ export default function Index() {
                     </Text>
                     <input type="hidden" name="productForm" value={formState.productId} />
                   </InlineStack>
-                ) : (
-                  <BlockStack gap="200">
-                    <Button onClick={() => selectProduct(formState, setFormState)} id="select-product">
-                      Select product
-                    </Button>
-                  </BlockStack>
-                )}
+                ) : null}
                 <Bleed marginInlineStart="200" marginInlineEnd="200">
                   <Divider />
                 </Bleed>
               </BlockStack>
             </Card>
+          )}
+          {tagValue === 'Category Wise' && (
+            <FormLayout>
+            <Select
+              label="Categories"
+              options={categoryOptions}
+              value={categoryValue}
+              onChange={handleCategoryValueChange}
+            />
+          </FormLayout>
           )}
         </Modal.Section>
       </Modal>
