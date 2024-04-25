@@ -26,11 +26,14 @@ import { useNavigate, useSubmit, useLoaderData } from '@remix-run/react';
 import db from "../db.server";
 import { ImageIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
+//import {getProductTitle} from '../models/Limiter.server';
 
 //fetches the category data
 export async function loader({ request }) {
   const { admin, session } = await authenticate.admin(request);
   try {
+    const orderLimit = await db.order_Limit.findMany();
+
     const response = await admin.graphql(
       `{
       shop {
@@ -46,10 +49,51 @@ export async function loader({ request }) {
     `
     );
     const data = await response.json();
+    const allProductCategories = data.data.shop.allProductCategories;
+  const rows = [];
+  for(const limiter of orderLimit){
+
+    let row = [];
+    row.push(limiter.id);
+
+    if(limiter.type === 'store_wise') {
+      row.push('StoreWise');
+      row.push('Store Name');
+    } else if (limiter.type === 'product_wise') {
+      row.push('ProductWise');
+      let productResponse = await admin.graphql(
+        `query Title($id:ID!){
+            product(id: $id) {
+              title
+            }
+          }`,
+        {
+            variables: {
+                id: limiter.productId,
+            },
+        }
+      );
+      let productData = await productResponse.json();
+      let productTitle = productData.data.product.title;
+      row.push(productTitle);
+    } else {
+      row.push('CategoryWise');
+      let categoryName = allProductCategories.find(category => category.productTaxonomyNode.id === limiter.categoryId)?.productTaxonomyNode.name;
+      row.push(categoryName);
+    }
+
+    // Convert createdAt to a Date object if it's not already
+    const createdAt = limiter.createdAt instanceof Date ? limiter.createdAt : new Date(limiter.createdAt).toLocaleDateString();
+    row.push(createdAt);
+    rows.push(row);
+  }
 
     return json({
       ok: true,
       data,
+      orderLimit,
+      rows,
+      graphql: admin.graphql,
     });
   } catch (error) {
     console.error('Error fetching Categories data:', error);
@@ -142,6 +186,8 @@ try{
 
 export default function Index() {
   const loaderData = useLoaderData();
+  const orderLimit = loaderData.orderLimit;
+  const graphql = loaderData.graphql;
   const categoryOptions = [];
   const categoryIds = [];
   const allProductCategories = loaderData.data.data.shop.allProductCategories;
@@ -158,7 +204,7 @@ export default function Index() {
     categoryOptions.push('No Categories');
   } 
 
-  const rows = [];
+  const rows = loaderData.rows;
   const [modalActive, setModalActive] = useState(false);
   const [tagValue, setTagValue] = useState('Store Wise');
   const [categoryValue, setCategoryValue] = useState(categoryOptions[0]);
@@ -172,8 +218,35 @@ export default function Index() {
   });
   const navigate = useNavigate();
   const submit = useSubmit();
+  const [productTitle, setProductTitle] = useState('');
 
+  
+  console.log(loaderData.orderLimit);
+  //to populate table rows
+  /*for(const limiter of orderLimit){
 
+    let row = [];
+    row.push(limiter.id);
+
+    if(limiter.type === 'store_wise') {
+      row.push('StoreWise');
+      row.push('Store Name');
+    } else if (limiter.type === 'product_wise') {
+      row.push('ProductWise');
+      getProductTitle(limiter.id, graphql);
+      row.push(productTitle);
+    } else {
+      row.push('CategoryWise');
+      const idIndex = categoryIds.indexOf(limiter.categoryId);
+      const categoryName = categoryOptions[idIndex];
+      row.push(categoryName);
+    }
+
+    // Convert createdAt to a Date object if it's not already
+    const createdAt = limiter.createdAt instanceof Date ? limiter.createdAt : new Date(limiter.createdAt).toLocaleDateString();
+    row.push(createdAt);
+    rows.push(row);
+  }*/
 
   //responsible for opening and closing the Modal
   const toggleModalActive = useCallback(
@@ -335,18 +408,16 @@ export default function Index() {
             <Card>
               <DataTable
                 columnContentTypes={[
+                  'numeric',
                   'text',
-                  'numeric',
-                  'numeric',
-                  'numeric',
-                  'numeric',
+                  'text',
+                  'text',
                 ]}
                 headings={[
-                  'Product',
-                  'Price',
-                  'SKU Number',
-                  'Net quantity',
-                  'Net sales',
+                  'Id',
+                  'Type',
+                  'Name',
+                  'Created Date',
                 ]}
                 rows={rows}
               />
