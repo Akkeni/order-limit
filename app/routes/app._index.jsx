@@ -10,6 +10,7 @@ import {
   Layout,
   Page,
   Button,
+  ButtonGroup,
   FullscreenBar,
   DataTable,
   Popover,
@@ -26,6 +27,7 @@ import { useNavigate, useSubmit, useLoaderData } from '@remix-run/react';
 import db from "../db.server";
 import { ImageIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
+import React from 'react';
 //import {getProductTitle} from '../models/Limiter.server';
 
 //fetches the category data
@@ -50,43 +52,48 @@ export async function loader({ request }) {
     );
     const data = await response.json();
     const allProductCategories = data.data.shop.allProductCategories;
-  const rows = [];
-  for(const limiter of orderLimit){
+    const rows = [];
+    for (const limiter of orderLimit) {
+      let row = {};
 
-    let row = [];
-    row.push(limiter.id);
+      row.id = limiter.id;
 
-    if(limiter.type === 'store_wise') {
-      row.push('StoreWise');
-      row.push('Store Name');
-    } else if (limiter.type === 'product_wise') {
-      row.push('ProductWise');
-      let productResponse = await admin.graphql(
-        `query Title($id:ID!){
-            product(id: $id) {
-              title
-            }
-          }`,
-        {
+      if (limiter.type === 'store_wise') {
+        row.type = 'StoreWise';
+        row.name = 'Store Name';
+      } else if (limiter.type === 'product_wise') {
+        row.type = 'ProductWise';
+        let productResponse = await admin.graphql(
+          `query Title($id:ID!){
+              product(id: $id) {
+                title
+              }
+            }`,
+          {
             variables: {
-                id: limiter.productId,
+              id: limiter.productId,
             },
-        }
-      );
-      let productData = await productResponse.json();
-      let productTitle = productData.data.product.title;
-      row.push(productTitle);
-    } else {
-      row.push('CategoryWise');
-      let categoryName = allProductCategories.find(category => category.productTaxonomyNode.id === limiter.categoryId)?.productTaxonomyNode.name;
-      row.push(categoryName);
-    }
+          }
+        );
+        let productData = await productResponse.json();
+        let productTitle = productData.data.product.title;
+        row.name = productTitle;
+      } else {
+        row.type = 'CategoryWise';
+        let categoryName = allProductCategories.find(
+          (category) => category.productTaxonomyNode.id === limiter.categoryId
+        )?.productTaxonomyNode.name;
+        row.name = categoryName;
+      }
 
-    // Convert createdAt to a Date object if it's not already
-    const createdAt = limiter.createdAt instanceof Date ? limiter.createdAt : new Date(limiter.createdAt).toLocaleDateString();
-    row.push(createdAt);
-    rows.push(row);
-  }
+      // Convert createdAt to a Date object if it's not already
+      let createdAt = new Date(limiter.createdAt).toLocaleString();
+      createdAt = new Date(createdAt.toLocaleString());
+      createdAt = createdAt.getFullYear() + '-' + (createdAt.getMonth() + 1) + '-' + createdAt.getDate() + ' ' + createdAt.getHours() + ':' + createdAt.getMinutes() + ':' + createdAt.getSeconds();
+
+      row.createdAt = createdAt;
+      rows.push(row);
+    }
 
     return json({
       ok: true,
@@ -107,80 +114,89 @@ export async function loader({ request }) {
 //for storing records into database according to the type
 export async function action({ request, params }) {
 
-try{
-  const formData = await request.formData();
+  try {
+    const formData = await request.formData();
 
+    console.log(formData.get('action', formData.get('id')));
+    if(formData.get('action') == 'delete') {
+      await db.order_Limit.delete({ 
+        where: {
+           id: Number(formData.get('id')),
+          } 
+        });
+      return redirect('/app/');
+    }
 
-  if (formData.get('choice') === 'Store Wise') {
+    if (formData.get('choice') === 'Store Wise') {
 
-    const orderLimit = await db.order_Limit.findFirst({
-      where: {
+      const orderLimit = await db.order_Limit.findFirst({
+        where: {
+          type: 'store_wise',
+        },
+      });
+
+      if (orderLimit !== null) {
+        return redirect('/app/');
+      }
+
+      const data = {
         type: 'store_wise',
-      },
-    });
+        status: 'active',
+      };
 
-    if (orderLimit !== null) {
-      return redirect('/app/');
+      await db.order_Limit.create({ data });
     }
 
-    const data = {
-      type: 'store_wise',
-      status: 'active',
-    };
+    else if (formData.get('choice') === 'Product Wise') {
 
-    await db.order_Limit.create({ data });
-  }
+      const orderLimit = await db.order_Limit.findFirst({
+        where: {
+          productId: formData.get('id'),
+        }
+      });
 
-  else if (formData.get('choice') === 'Product Wise') {
+      if (orderLimit !== null) {
+        return redirect('/app/');
+      }
 
-    const orderLimit = await db.order_Limit.findFirst({
-      where: {
+      const data = {
+        type: 'product_wise',
         productId: formData.get('id'),
+        status: 'active',
       }
-    });
-
-    if (orderLimit !== null) {
-      return redirect('/app/');
+      await db.order_Limit.create({ data });
     }
 
-    const data = {
-      type: 'product_wise',
-      productId: formData.get('id'),
-      status: 'active',
-    }
-    await db.order_Limit.create({ data });
-  }
+    else if (formData.get('choice') === 'Category Wise') {
 
-  else if (formData.get('choice') === 'Category Wise') {
+      const orderLimit = await db.order_Limit.findFirst({
+        where: {
+          categoryId: formData.get('id'),
+        }
+      });
 
-    const orderLimit = await db.order_Limit.findFirst({
-      where: {
+      if (orderLimit !== null) {
+        return redirect('/app/');
+      }
+
+      const data = {
+        type: 'category_wise',
         categoryId: formData.get('id'),
-      }
-    });
+        status: 'active',
+      };
 
-    if (orderLimit !== null) {
-      return redirect('/app/');
+      await db.order_Limit.create({ data });
     }
 
-    const data = {
-      type: 'category_wise',
-      categoryId: formData.get('id'),
-      status: 'active',
-    };
+    return redirect('/app/');
 
-    await db.order_Limit.create({ data });
+  } catch (error) {
+    console.error('Error storing records:', error);
+    return json({
+      ok: false,
+      error: 'Error storing records',
+    });
   }
-
-  return redirect('/app/');
-
-} catch (error) {
-  console.error('Error storing records:', error);
-  return json({
-    ok: false,
-    error: 'Error storing records',
-  });
-}
 }
 
 
@@ -199,12 +215,24 @@ export default function Index() {
     categoryIds.push(productTaxonomyNode.id);
   }
   //abscent of categories in the store
-  if(!(categoryOptions.length)){
+  if (!(categoryOptions.length)) {
     console.log('no categories');
     categoryOptions.push('No Categories');
-  } 
+  }
 
   const rows = loaderData.rows;
+  const actionRows = rows ? rows.map(row => [
+    row.id,
+    row.type,
+    row.name,
+    row.createdAt,
+      <ButtonGroup gap="200">
+        <Button onClick={() => handleEdit(row.id)}>Edit</Button>
+        <Button onClick={() => handleDelete(row.id)}>Delete</Button>
+      </ButtonGroup>
+    ]) : [];
+
+  console.log('rows', rows)
   const [modalActive, setModalActive] = useState(false);
   const [tagValue, setTagValue] = useState('Store Wise');
   const [categoryValue, setCategoryValue] = useState(categoryOptions[0]);
@@ -220,7 +248,7 @@ export default function Index() {
   const submit = useSubmit();
   const [productTitle, setProductTitle] = useState('');
 
-  
+
   console.log(loaderData.orderLimit);
   //to populate table rows
   /*for(const limiter of orderLimit){
@@ -254,12 +282,12 @@ export default function Index() {
     [],
   );
 
-  async function selectProduct() {    
-      const products = await window.shopify.resourcePicker({
-        type: "product",
-        action: "select",
-      });
-    
+  async function selectProduct() {
+    const products = await window.shopify.resourcePicker({
+      type: "product",
+      action: "select",
+    });
+
     if (products) {
       const { images, id, variants, title, handle } = products[0];
       setFormState({
@@ -301,6 +329,16 @@ export default function Index() {
     },
     [],
   );
+
+
+  const handleEdit = (id) => {
+    console.log(id + 'in edit');
+  }
+
+  const handleDelete = (id) => {
+    console.log(id + 'in delete');
+    submit({action: 'delete', id: id}, {method: 'post'});
+  }
 
   const handleSave = () => {
     let id = ''
@@ -412,23 +450,25 @@ export default function Index() {
                   'text',
                   'text',
                   'text',
+                  'text'
+                ]}
+                columnWidths={[
+                  '1fr',
+                  '1fr',
+                  '1fr',
+                  '1fr',
+                  '2fr' // Make the last column span two columns
                 ]}
                 headings={[
                   'Id',
                   'Type',
                   'Name',
                   'Created Date',
+                  'Action',
                 ]}
-                rows={rows}
+                rows={actionRows}
               />
             </Card>
-          </Layout.Section>
-          <Layout.Section>
-            <PageActions
-              primaryAction={{
-                content: 'Save',
-              }}
-            />
           </Layout.Section>
         </Layout>
       </BlockStack>
