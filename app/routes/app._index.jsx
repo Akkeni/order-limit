@@ -117,13 +117,50 @@ export async function action({ request, params }) {
   try {
     const formData = await request.formData();
 
-    console.log(formData.get('action', formData.get('id')));
+    console.log(formData.get('action', formData.get('pk')));
     if(formData.get('action') == 'delete') {
       await db.order_Limit.delete({ 
         where: {
-           id: Number(formData.get('id')),
+           id: Number(formData.get('pk')),
           } 
         });
+      return redirect('/app/');
+    }
+
+    if(formData.get('action') === 'update') {
+      if(formData.get('choice') === 'Product Wise'){
+        const updateLimiter = await db.order_Limit.update({
+          where: {
+            id: Number(formData.get('pk')),
+          },
+          data: {
+            type: 'product_wise',
+            productId: formData.get('id'),
+            status: formData.get('status'),
+          },
+        });
+      } else if (formData.get('choice') === 'Category Wise'){
+        const updateLimiter = await db.order_Limit.update({
+          where: {
+            id: Number(formData.get('pk')),
+          },
+          data: {
+            type: 'category_wise',
+            categoryId: formData.get('id'),
+            status: formData.get('status'),
+          },
+        });
+      }else if (formData.get('choice') === 'Store Wise'){
+        const updateLimiter = await db.order_Limit.update({
+          where: {
+            id: Number(formData.get('pk')),
+          },
+          data: {
+            type: 'store_wise',
+            status: formData.get('status'),
+          },
+        });
+      }
       return redirect('/app/');
     }
 
@@ -141,7 +178,7 @@ export async function action({ request, params }) {
 
       const data = {
         type: 'store_wise',
-        status: 'active',
+        status: formData.get('status'),
       };
 
       await db.order_Limit.create({ data });
@@ -162,7 +199,7 @@ export async function action({ request, params }) {
       const data = {
         type: 'product_wise',
         productId: formData.get('id'),
-        status: 'active',
+        status: formData.get('status'),
       }
       await db.order_Limit.create({ data });
     }
@@ -182,7 +219,7 @@ export async function action({ request, params }) {
       const data = {
         type: 'category_wise',
         categoryId: formData.get('id'),
-        status: 'active',
+        status: formData.get('status'),
       };
 
       await db.order_Limit.create({ data });
@@ -227,14 +264,17 @@ export default function Index() {
     row.name,
     row.createdAt,
       <ButtonGroup gap="200">
-        <Button onClick={() => handleEdit(row.id)}>Edit</Button>
+        <Button onClick={() => handleEdit(row.id, row.type)}>Edit</Button>
         <Button onClick={() => handleDelete(row.id)}>Delete</Button>
       </ButtonGroup>
     ]) : [];
 
   console.log('rows', rows)
   const [modalActive, setModalActive] = useState(false);
+  const [isUpdate, setIsUpdate] = useState(false);
+  const [pk, setPk] = useState(0);
   const [tagValue, setTagValue] = useState('Store Wise');
+  const [statusValue, setStatusValue] = useState('Active');
   const [categoryValue, setCategoryValue] = useState(categoryOptions[0]);
   const [formState, setFormState] = useState({
     productId: '',
@@ -250,35 +290,16 @@ export default function Index() {
 
 
   console.log(loaderData.orderLimit);
-  //to populate table rows
-  /*for(const limiter of orderLimit){
-
-    let row = [];
-    row.push(limiter.id);
-
-    if(limiter.type === 'store_wise') {
-      row.push('StoreWise');
-      row.push('Store Name');
-    } else if (limiter.type === 'product_wise') {
-      row.push('ProductWise');
-      getProductTitle(limiter.id, graphql);
-      row.push(productTitle);
-    } else {
-      row.push('CategoryWise');
-      const idIndex = categoryIds.indexOf(limiter.categoryId);
-      const categoryName = categoryOptions[idIndex];
-      row.push(categoryName);
-    }
-
-    // Convert createdAt to a Date object if it's not already
-    const createdAt = limiter.createdAt instanceof Date ? limiter.createdAt : new Date(limiter.createdAt).toLocaleDateString();
-    row.push(createdAt);
-    rows.push(row);
-  }*/
+  
 
   //responsible for opening and closing the Modal
   const toggleModalActive = useCallback(
     () => setModalActive((modalActive) => !modalActive),
+    [],
+  );
+
+  const toggleIsUpdate = useCallback(
+    () => setIsUpdate((isUpdate) => !isUpdate),
     [],
   );
 
@@ -330,14 +351,46 @@ export default function Index() {
     [],
   );
 
+  const handleStatusValueChange = useCallback(
+    (value) => {
+      setStatusValue(value);
+    },
+    [],
+  );
 
-  const handleEdit = (id) => {
+
+  const handleAdd = () => {
+    setIsUpdate(false);
+    toggleModalActive();
+  }
+
+  const handleEdit = (id, type) => {
     console.log(id + 'in edit');
+    setPk(id);
+    setIsUpdate(true);
+    toggleModalActive();
   }
 
   const handleDelete = (id) => {
     console.log(id + 'in delete');
-    submit({action: 'delete', id: id}, {method: 'post'});
+    submit({action: 'delete', pk: id}, {method: 'post'});
+  }
+
+  const handleUpdate = () => {
+    let id = '';
+
+    if (tagValue === 'Category Wise') {
+      const indexId = categoryOptions.indexOf(categoryValue);
+      id = categoryIds[indexId];
+    } else if (tagValue === 'Product Wise') {
+      console.log('in handleSave', formState.productId);
+      id = formState.productId;
+    }
+
+    //triggers the action function. Makes the post request
+    submit({ action: 'update', choice: tagValue, id: id, status: statusValue, pk: pk }, { method: 'post' });
+    toggleIsUpdate();
+    toggleModalActive();
   }
 
   const handleSave = () => {
@@ -352,7 +405,7 @@ export default function Index() {
     }
 
     //triggers the action function. Makes the post request
-    submit({ choice: tagValue, id: id }, { method: 'post' });
+    submit({ choice: tagValue, id: id, status: statusValue }, { method: 'post' });
     toggleModalActive();
   }
 
@@ -365,8 +418,8 @@ export default function Index() {
         onClose={toggleModalActive}
         title="Limiters"
         primaryAction={{
-          content: 'save',
-          onAction: handleSave,
+          content: isUpdate ? 'update' : 'save', // Conditional primary action content
+          onAction: isUpdate ? handleUpdate : handleSave, // Conditional primary action handler
         }}
         secondaryActions={[
           {
@@ -384,6 +437,16 @@ export default function Index() {
               onChange={handleTagValueChange}
             />
           </FormLayout>
+          <div style={{ marginTop: '1rem' }}>
+            <FormLayout>
+              <Select
+                label="Status"
+                options={['Active', 'Inactive']}
+                value={statusValue}
+                onChange={handleStatusValueChange}
+              />
+            </FormLayout>
+          </div>
           {tagValue === 'Product Wise' && formState.productId && (
             <div style={{ marginTop: '1rem' }}>
               <Card>
@@ -436,7 +499,7 @@ export default function Index() {
 
       <div style={{ width: '100%', overflow: 'auto' }}>
         <div style={{ float: 'right', padding: '10px' }}>
-          <Button onClick={toggleModalActive}>Add Order Limit</Button>
+          <Button onClick={handleAdd}>Add Order Limit</Button>
         </div>
       </div>
 
