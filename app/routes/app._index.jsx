@@ -49,8 +49,22 @@ export async function loader({ request }) {
        }
      }
      }
-    `
+    `);
+
+    const res = await admin.graphql(
+      `query AllProducts{
+        products(first: 250) {
+            edges {
+              node{
+                category {
+                  name
+                }
+              }
+            }
+        }
+      }`
     );
+    const allProductsData = await res.json();
     const data = await response.json();
     const allProductCategories = data.data.shop.allProductCategories;
     const rows = [];
@@ -60,14 +74,20 @@ export async function loader({ request }) {
       row.id = limiter.id;
 
       if (limiter.type === 'store_wise') {
-        row.type = 'StoreWise';
+        row.type = 'Store';
         row.name = 'Store Name';
+        const quantityLimit = allProductsData.data.products.edges.length;
+        row.quantityLimit = quantityLimit;
+        row.status = limiter.status;
       } else if (limiter.type === 'product_wise') {
-        row.type = 'ProductWise';
+        row.type = 'Product';
         let productResponse = await admin.graphql(
           `query Title($id:ID!){
               product(id: $id) {
                 title
+                availablePublicationsCount{
+                  count
+                }
               }
             }`,
           {
@@ -78,13 +98,28 @@ export async function loader({ request }) {
         );
         let productData = await productResponse.json();
         let productTitle = productData.data.product.title;
+        const quantityLimit = productData.data.product.availablePublicationsCount.count;
         row.name = productTitle;
+        row.quantityLimit = quantityLimit;
+        row.status = limiter.status;
       } else {
-        row.type = 'CategoryWise';
+        row.type = 'Category';
+        let quantityLimit = 0;
         let categoryName = allProductCategories.find(
           (category) => category.productTaxonomyNode.id === limiter.categoryId
         )?.productTaxonomyNode.name;
         row.name = categoryName;
+
+        for (const edge of allProductsData.data.products.edges) {
+          const productCategory = edge.node.category ? edge.node.category.name : null;
+  
+          // If the product category matches the current category, increment the count
+          if (productCategory === row.name) {
+              quantityLimit++;
+          }
+        }
+        row.quantityLimit = quantityLimit;
+        row.status = limiter.status;
       }
 
       // Convert createdAt to a Date object if it's not already
@@ -268,6 +303,8 @@ export default function Index() {
     row.id,
     row.type,
     row.name,
+    row.quantityLimit,
+    row.status,
     row.createdAt,
     <ButtonGroup gap="200">
       <Button onClick={() => handleEdit(row.id, row.type)}>Edit</Button>
@@ -289,6 +326,7 @@ export default function Index() {
     productHandle: '',
     productAlt: '',
     productImage: '',
+    availablePublicationCount: 0,
   });
   const navigate = useNavigate();
   const submit = useSubmit();
@@ -317,7 +355,7 @@ export default function Index() {
 
     if (products) {
       console.log('products selected', products[0]);
-      const { images, id, variants, title, handle } = products[0];
+      const { images, id, variants, title, handle, availablePublicationCount } = products[0];
       setFormState({
         ...formState,
         productId: id,
@@ -326,9 +364,10 @@ export default function Index() {
         productHandle: handle,
         productAlt: images[0]?.altText,
         productImage: images[0]?.originalSrc,
+        availablePublicationCount: availablePublicationCount,
       });
     }
-    console.log('in selectproduct', formState.productId);
+    console.log('in selectproduct', formState.productId, formState.availablePublicationCount);
 
     toggleModalActive();
   }
@@ -486,6 +525,13 @@ export default function Index() {
                     <Divider />
                   </Bleed>
                 </BlockStack>
+                <BlockStack>
+                <TextField
+                    value={formState.availablePublicationCount}
+                    label="Quantity Limit"
+                    type="number"
+                />
+                </BlockStack>
               </Card>
             </div>
           )}
@@ -519,10 +565,14 @@ export default function Index() {
                   'numeric',
                   'text',
                   'text',
+                  'numeric',
+                  'numeric',
                   'text',
-                  'text'
+                  'text',
                 ]}
                 columnWidths={[
+                  '1fr',
+                  '1fr',
                   '1fr',
                   '1fr',
                   '1fr',
@@ -533,6 +583,8 @@ export default function Index() {
                   'Id',
                   'Type',
                   'Name',
+                  'Quantity Limit',
+                  'Status',
                   'Created Date',
                   'Action',
                 ]}
