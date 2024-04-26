@@ -30,6 +30,7 @@ import { authenticate } from '../shopify.server';
 import React from 'react';
 //import {getProductTitle} from '../models/Limiter.server';
 
+
 //fetches the category data
 export async function loader({ request }) {
   const { admin, session } = await authenticate.admin(request);
@@ -117,18 +118,20 @@ export async function action({ request, params }) {
   try {
     const formData = await request.formData();
 
+    //to delete a record from a database
     console.log(formData.get('action', formData.get('pk')));
-    if(formData.get('action') == 'delete') {
-      await db.order_Limit.delete({ 
+    if (formData.get('action') == 'delete') {
+      await db.order_Limit.delete({
         where: {
-           id: Number(formData.get('pk')),
-          } 
-        });
+          id: Number(formData.get('pk')),
+        }
+      });
       return redirect('/app/');
     }
 
-    if(formData.get('action') === 'update') {
-      if(formData.get('choice') === 'Product Wise'){
+    //to update records in database
+    if (formData.get('action') === 'update') {
+      if (formData.get('choice') === 'Product Wise') {
         const updateLimiter = await db.order_Limit.update({
           where: {
             id: Number(formData.get('pk')),
@@ -139,7 +142,7 @@ export async function action({ request, params }) {
             status: formData.get('status'),
           },
         });
-      } else if (formData.get('choice') === 'Category Wise'){
+      } else if (formData.get('choice') === 'Category Wise') {
         const updateLimiter = await db.order_Limit.update({
           where: {
             id: Number(formData.get('pk')),
@@ -150,7 +153,7 @@ export async function action({ request, params }) {
             status: formData.get('status'),
           },
         });
-      }else if (formData.get('choice') === 'Store Wise'){
+      } else if (formData.get('choice') === 'Store Wise') {
         const updateLimiter = await db.order_Limit.update({
           where: {
             id: Number(formData.get('pk')),
@@ -164,6 +167,7 @@ export async function action({ request, params }) {
       return redirect('/app/');
     }
 
+    //to add new records to database
     if (formData.get('choice') === 'Store Wise') {
 
       const orderLimit = await db.order_Limit.findFirst({
@@ -258,16 +262,18 @@ export default function Index() {
   }
 
   const rows = loaderData.rows;
+
+  //to add buttons to the rows
   const actionRows = rows ? rows.map(row => [
     row.id,
     row.type,
     row.name,
     row.createdAt,
-      <ButtonGroup gap="200">
-        <Button onClick={() => handleEdit(row.id, row.type)}>Edit</Button>
-        <Button onClick={() => handleDelete(row.id)}>Delete</Button>
-      </ButtonGroup>
-    ]) : [];
+    <ButtonGroup gap="200">
+      <Button onClick={() => handleEdit(row.id, row.type)}>Edit</Button>
+      <Button onClick={() => handleDelete(row.id)}>Delete</Button>
+    </ButtonGroup>
+  ]) : [];
 
   console.log('rows', rows)
   const [modalActive, setModalActive] = useState(false);
@@ -290,7 +296,7 @@ export default function Index() {
 
 
   console.log(loaderData.orderLimit);
-  
+
 
   //responsible for opening and closing the Modal
   const toggleModalActive = useCallback(
@@ -310,6 +316,7 @@ export default function Index() {
     });
 
     if (products) {
+      console.log('products selected', products[0]);
       const { images, id, variants, title, handle } = products[0];
       setFormState({
         ...formState,
@@ -373,7 +380,7 @@ export default function Index() {
 
   const handleDelete = (id) => {
     console.log(id + 'in delete');
-    submit({action: 'delete', pk: id}, {method: 'post'});
+    submit({ action: 'delete', pk: id }, { method: 'post' });
   }
 
   const handleUpdate = () => {
