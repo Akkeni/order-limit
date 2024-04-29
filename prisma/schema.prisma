@@ -25,11 +25,11 @@ model Session {
 }
 
 model Order_Limit {
-  id          Int      @id @default(autoincrement())
-  type        String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  productId   String?     
-  categoryId  String?    
-  status      String
+  id            Int      @id @default(autoincrement())
+  type          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  typeId        String?
+  quantityLimit Int
+  status        String
 }

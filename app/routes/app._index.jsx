@@ -19,15 +19,17 @@ import {
   Select,
   TextField,
   Modal,
+  Icon,
 } from '@shopify/polaris';
 import { json, redirect } from '@remix-run/node';
 import { useState, useCallback, useEffect } from 'react';
 import { PageActions } from '@shopify/polaris';
 import { useNavigate, useSubmit, useLoaderData } from '@remix-run/react';
 import db from "../db.server";
-import { ImageIcon } from '@shopify/polaris-icons';
+import { ImageIcon, EditIcon, DeleteIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
 import React from 'react';
+import { exit } from 'process';
 //import {getProductTitle} from '../models/Limiter.server';
 
 
@@ -76,9 +78,8 @@ export async function loader({ request }) {
       if (limiter.type === 'store_wise') {
         row.type = 'Store';
         row.name = 'Store Name';
-        const quantityLimit = allProductsData.data.products.edges.length;
-        row.quantityLimit = quantityLimit;
-        row.status = limiter.status;
+        /*const quantityLimit = allProductsData.data.products.edges.length;*/
+        row.quantityLimit = limiter.quantityLimit;
       } else if (limiter.type === 'product_wise') {
         row.type = 'Product';
         let productResponse = await admin.graphql(
@@ -92,36 +93,35 @@ export async function loader({ request }) {
             }`,
           {
             variables: {
-              id: limiter.productId,
+              id: limiter.typeId,
             },
           }
         );
         let productData = await productResponse.json();
         let productTitle = productData.data.product.title;
-        const quantityLimit = productData.data.product.availablePublicationsCount.count;
+        /*const quantityLimit = productData.data.product.availablePublicationsCount.count;*/
         row.name = productTitle;
-        row.quantityLimit = quantityLimit;
-        row.status = limiter.status;
+        row.quantityLimit = limiter.quantityLimit;
       } else {
         row.type = 'Category';
-        let quantityLimit = 0;
         let categoryName = allProductCategories.find(
-          (category) => category.productTaxonomyNode.id === limiter.categoryId
+          (category) => category.productTaxonomyNode.id === limiter.typeId
         )?.productTaxonomyNode.name;
         row.name = categoryName;
 
-        for (const edge of allProductsData.data.products.edges) {
+        /*for (const edge of allProductsData.data.products.edges) {
           const productCategory = edge.node.category ? edge.node.category.name : null;
   
           // If the product category matches the current category, increment the count
           if (productCategory === row.name) {
               quantityLimit++;
           }
-        }
-        row.quantityLimit = quantityLimit;
-        row.status = limiter.status;
+        }*/
+        row.quantityLimit = limiter.quantityLimit;
       }
 
+      row.status = limiter.status.charAt(0).toUpperCase() + limiter.status.slice(1);
+      
       // Convert createdAt to a Date object if it's not already
       let createdAt = new Date(limiter.createdAt).toLocaleString();
       createdAt = new Date(createdAt.toLocaleString());
@@ -150,7 +150,25 @@ export async function loader({ request }) {
 //for storing records into database according to the type
 export async function action({ request, params }) {
 
+  const { admin, session } = await authenticate.admin(request);
   try {
+
+    const res = await admin.graphql(
+      `query AllProducts{
+        products(first: 250) {
+            edges {
+              node{
+                category {
+                  name
+                }
+              }
+            }
+        }
+      }`
+    );
+    const allProductsData = await res.json();
+
+
     const formData = await request.formData();
 
     //to delete a record from a database
@@ -173,22 +191,34 @@ export async function action({ request, params }) {
           },
           data: {
             type: 'product_wise',
-            productId: formData.get('id'),
+            typeId: formData.get('id'),
             status: formData.get('status'),
+            quantityLimit: Number(formData.get('quantityLimit')),
           },
         });
       } else if (formData.get('choice') === 'Category Wise') {
+        let quantityLimit = 0;
+      for (const edge of allProductsData.data.products.edges) {
+        const productCategory = edge.node.category ? edge.node.category.name : null;
+
+        // If the product category matches the current category, increment the count
+        if (productCategory === formData.get('name')) {
+            quantityLimit++;
+        }
+      }
         const updateLimiter = await db.order_Limit.update({
           where: {
             id: Number(formData.get('pk')),
           },
           data: {
             type: 'category_wise',
-            categoryId: formData.get('id'),
+            typeId: formData.get('id'),
             status: formData.get('status'),
+            quantityLimit: quantityLimit,
           },
         });
       } else if (formData.get('choice') === 'Store Wise') {
+        const quantityLimit = allProductsData.data.products.edges.length;
         const updateLimiter = await db.order_Limit.update({
           where: {
             id: Number(formData.get('pk')),
@@ -196,6 +226,7 @@ export async function action({ request, params }) {
           data: {
             type: 'store_wise',
             status: formData.get('status'),
+            quantityLimit: quantityLimit,
           },
         });
       }
@@ -212,12 +243,17 @@ export async function action({ request, params }) {
       });
 
       if (orderLimit !== null) {
-        return redirect('/app/');
+        return json({
+          exist: true
+        });
       }
+
+      const quantityLimit = allProductsData.data.products.edges.length;
 
       const data = {
         type: 'store_wise',
         status: formData.get('status'),
+        quantityLimit: quantityLimit,
       };
 
       await db.order_Limit.create({ data });
@@ -227,7 +263,7 @@ export async function action({ request, params }) {
 
       const orderLimit = await db.order_Limit.findFirst({
         where: {
-          productId: formData.get('id'),
+          typeId: formData.get('id'),
         }
       });
 
@@ -237,8 +273,9 @@ export async function action({ request, params }) {
 
       const data = {
         type: 'product_wise',
-        productId: formData.get('id'),
+        typeId: formData.get('id'),
         status: formData.get('status'),
+        quantityLimit: Number(formData.get('quantityLimit')),
       }
       await db.order_Limit.create({ data });
     }
@@ -247,18 +284,28 @@ export async function action({ request, params }) {
 
       const orderLimit = await db.order_Limit.findFirst({
         where: {
-          categoryId: formData.get('id'),
+          typeId: formData.get('id'),
         }
       });
 
       if (orderLimit !== null) {
         return redirect('/app/');
       }
+      let quantityLimit = 0;
+      for (const edge of allProductsData.data.products.edges) {
+        const productCategory = edge.node.category ? edge.node.category.name : null;
+
+        // If the product category matches the current category, increment the count
+        if (productCategory === formData.get('name')) {
+            quantityLimit++;
+        }
+      }
 
       const data = {
         type: 'category_wise',
-        categoryId: formData.get('id'),
+        typeId: formData.get('id'),
         status: formData.get('status'),
+        quantityLimit: quantityLimit,
       };
 
       await db.order_Limit.create({ data });
@@ -307,8 +354,18 @@ export default function Index() {
     row.status,
     row.createdAt,
     <ButtonGroup gap="200">
-      <Button onClick={() => handleEdit(row.id, row.type)}>Edit</Button>
-      <Button onClick={() => handleDelete(row.id)}>Delete</Button>
+      <Button onClick={() => handleEdit(row.id, row.type)}>
+        <Icon
+          source={EditIcon}
+          tone="base"
+        />
+      </Button>
+      <Button onClick={() => handleDelete(row.id)}>
+        <Icon
+          source={DeleteIcon}
+          tone="base"
+        />
+      </Button>
     </ButtonGroup>
   ]) : [];
 
@@ -424,34 +481,43 @@ export default function Index() {
 
   const handleUpdate = () => {
     let id = '';
+    let quantityLimit = 0;
+    let name = ''
 
     if (tagValue === 'Category Wise') {
       const indexId = categoryOptions.indexOf(categoryValue);
       id = categoryIds[indexId];
+      name = categoryValue;
     } else if (tagValue === 'Product Wise') {
       console.log('in handleSave', formState.productId);
       id = formState.productId;
+      quantityLimit = formState.availablePublicationCount;
     }
 
     //triggers the action function. Makes the post request
-    submit({ action: 'update', choice: tagValue, id: id, status: statusValue, pk: pk }, { method: 'post' });
+    submit({ action: 'update', choice: tagValue, name: name, id: id, status: statusValue.toLowerCase(), pk: pk, quantityLimit: quantityLimit }, { method: 'post' });
     toggleIsUpdate();
     toggleModalActive();
   }
 
   const handleSave = () => {
-    let id = ''
+    let id = '';
+    let quantityLimit = 0;
+    let name = '';
 
     if (tagValue === 'Category Wise') {
       const indexId = categoryOptions.indexOf(categoryValue);
       id = categoryIds[indexId];
+      name = categoryValue;
     } else if (tagValue === 'Product Wise') {
       console.log('in handleSave', formState.productId);
       id = formState.productId;
+      quantityLimit = formState.availablePublicationCount;
     }
 
+
     //triggers the action function. Makes the post request
-    submit({ choice: tagValue, id: id, status: statusValue }, { method: 'post' });
+    submit({ choice: tagValue, id: id, status: statusValue.toLowerCase(), quantityLimit: quantityLimit, name: name }, { method: 'post' });
     toggleModalActive();
   }
 
