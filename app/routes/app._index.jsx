@@ -24,7 +24,7 @@ import {
 import { json, redirect } from '@remix-run/node';
 import { useState, useCallback, useEffect } from 'react';
 import { PageActions } from '@shopify/polaris';
-import { useNavigate, useSubmit, useLoaderData } from '@remix-run/react';
+import { useNavigate, useSubmit, useLoaderData, useActionData } from '@remix-run/react';
 import db from "../db.server";
 import { ImageIcon, EditIcon, DeleteIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
@@ -68,6 +68,22 @@ export async function loader({ request }) {
     const allProductsData = await res.json();
     const data = await response.json();
     const allProductCategories = data.data.shop.allProductCategories;
+
+    const categoryLimits = {}
+    for (const category of allProductCategories) {
+      const productTaxonomyNode = category.productTaxonomyNode;
+      let quantityLimit = 0;
+      let name = productTaxonomyNode.name
+      for (const edge of allProductsData.data.products.edges) {
+        const productCategory = edge.node.category ? edge.node.category.name : null;
+        // If the product category matches the current category, increment the count
+        if (productCategory === productTaxonomyNode.name) {
+          quantityLimit++;
+        }
+      }
+      categoryLimits[name] = quantityLimit;
+    }
+
     const rows = [];
     for (const limiter of orderLimit) {
       let row = {};
@@ -108,14 +124,6 @@ export async function loader({ request }) {
         )?.productTaxonomyNode.name;
         row.name = categoryName;
 
-        /*for (const edge of allProductsData.data.products.edges) {
-          const productCategory = edge.node.category ? edge.node.category.name : null;
-  
-          // If the product category matches the current category, increment the count
-          if (productCategory === row.name) {
-              quantityLimit++;
-          }
-        }*/
         row.quantityLimit = limiter.quantityLimit;
       }
 
@@ -135,6 +143,7 @@ export async function loader({ request }) {
       data,
       orderLimit,
       rows,
+      categoryLimits,
       graphql: admin.graphql,
     });
   } catch (error) {
@@ -242,7 +251,9 @@ export async function action({ request, params }) {
       });
 
       if (orderLimit !== null) {
-        return redirect('/app/');
+        return json({
+          exist: true,
+        });
       }
 
       const quantityLimit = allProductsData.data.products.edges.length;
@@ -265,7 +276,9 @@ export async function action({ request, params }) {
       });
 
       if (orderLimit !== null) {
-        return redirect('/app/');
+        return json({
+          exist: true,
+        });
       }
 
       const data = {
@@ -286,7 +299,9 @@ export async function action({ request, params }) {
       });
 
       if (orderLimit !== null) {
-        return redirect('/app/');
+        return json({
+          exist: true,
+        });
       }
       let quantityLimit = 0;
       for (const edge of allProductsData.data.products.edges) {
@@ -322,8 +337,11 @@ export async function action({ request, params }) {
 
 export default function Index() {
   const loaderData = useLoaderData();
+  const actionData = useActionData();
+
   const orderLimit = loaderData.orderLimit;
   const graphql = loaderData.graphql;
+  const categoryLimits = loaderData.categoryLimits;
   const categoryOptions = [];
   const categoryIds = [];
   const allProductCategories = loaderData.data.data.shop.allProductCategories;
@@ -369,10 +387,12 @@ export default function Index() {
   console.log('rows', rows)
   const [modalActive, setModalActive] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
+  const [alert, setAlert] = useState(false);
   const [pk, setPk] = useState(0);
   const [tagValue, setTagValue] = useState('Store Wise');
   const [statusValue, setStatusValue] = useState('Active');
   const [categoryValue, setCategoryValue] = useState(categoryOptions[0]);
+  const [categoryLimit, setCategoryLimit] = useState(categoryLimits[categoryValue]);
   const [formState, setFormState] = useState({
     productId: '',
     productVariantId: '',
@@ -384,7 +404,7 @@ export default function Index() {
   });
   const navigate = useNavigate();
   const submit = useSubmit();
-  const [productTitle, setProductTitle] = useState('');
+
 
 
   console.log(loaderData.orderLimit);
@@ -400,6 +420,20 @@ export default function Index() {
     () => setIsUpdate((isUpdate) => !isUpdate),
     [],
   );
+
+  const toggleAlert = useCallback( 
+    () => setAlert((alert) => !alert),
+    [],
+  );
+    
+
+  useEffect(() => {
+    if(actionData?.exist) {
+      console.log('exist', actionData?.exist);
+      toggleAlert();
+    }
+  }, [actionData]);
+ 
 
   async function selectProduct() {
     const products = await window.shopify.resourcePicker({
@@ -428,13 +462,6 @@ export default function Index() {
 
 
 
-  const handleDropdown = (value) => {
-    if (value == 'Product Wise' && formState.productId === '') {
-      console.log('in handledropdown ', formState.productId);
-      selectProduct();
-      toggleModalActive();
-    }
-  }
 
   const handleTagValueChange = useCallback((value) => {
     setTagValue(value);
@@ -447,6 +474,7 @@ export default function Index() {
   const handleCategoryValueChange = useCallback(
     (value) => {
       setCategoryValue(value);
+      setCategoryLimit(categoryLimits[value]);
     },
     [],
   );
@@ -608,8 +636,38 @@ export default function Index() {
                   onChange={handleCategoryValueChange}
                 />
               </FormLayout>
+              <div style={{ marginTop: '1rem' }}>
+                <BlockStack>
+                  <TextField
+                      value={categoryLimit}
+                      label="Quantity Limit for Category"
+                      type="number"
+                  />
+                </BlockStack>
+              </div>
             </div>
           )}
+        </Modal.Section>
+      </Modal>
+
+     {/* Alert message */}
+     {/*exist && (
+        <div>
+          <p>Record already exists!</p>
+          <button onClick={() => handleAlertClose()}>Close</button>
+        </div>
+      )*/}
+     <Modal
+        open={alert}
+        onClose={toggleAlert}
+        title="Record Already Exists"
+        primaryAction={{
+          content: 'Close',
+          onAction: toggleAlert,
+        }}
+      >
+        <Modal.Section>
+          <p>A record with the same data already exists.</p>
         </Modal.Section>
       </Modal>
 
@@ -657,6 +715,8 @@ export default function Index() {
           </Layout.Section>
         </Layout>
       </BlockStack>
+
+
     </Page>
   );
 }
