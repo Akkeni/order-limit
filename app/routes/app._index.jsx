@@ -128,7 +128,7 @@ export async function loader({ request }) {
       }
 
       row.status = limiter.status.charAt(0).toUpperCase() + limiter.status.slice(1);
-      
+
       // Convert createdAt to a Date object if it's not already
       let createdAt = new Date(limiter.createdAt).toLocaleString();
       createdAt = new Date(createdAt.toLocaleString());
@@ -206,14 +206,14 @@ export async function action({ request, params }) {
         });
       } else if (formData.get('choice') === 'Category Wise') {
         let quantityLimit = 0;
-      for (const edge of allProductsData.data.products.edges) {
-        const productCategory = edge.node.category ? edge.node.category.name : null;
+        for (const edge of allProductsData.data.products.edges) {
+          const productCategory = edge.node.category ? edge.node.category.name : null;
 
-        // If the product category matches the current category, increment the count
-        if (productCategory === formData.get('name')) {
+          // If the product category matches the current category, increment the count
+          if (productCategory === formData.get('name')) {
             quantityLimit++;
+          }
         }
-      }
         const updateLimiter = await db.order_Limit.update({
           where: {
             id: Number(formData.get('pk')),
@@ -242,88 +242,93 @@ export async function action({ request, params }) {
     }
 
     //to add new records to database
-    if (formData.get('choice') === 'Store Wise') {
+    if (formData.get('action') === 'create') {
+      if (formData.get('choice') === 'Store Wise') {
 
-      const orderLimit = await db.order_Limit.findFirst({
-        where: {
+        const orderLimit = await db.order_Limit.findFirst({
+          where: {
+            type: 'store_wise',
+          },
+        });
+
+        if (orderLimit !== null) {
+          return json({
+            exist: true,
+          });
+        }
+
+        const quantityLimit = allProductsData.data.products.edges.length;
+
+        const data = {
           type: 'store_wise',
-        },
-      });
+          status: formData.get('status'),
+          quantityLimit: quantityLimit,
+        };
 
-      if (orderLimit !== null) {
-        return json({
-          exist: true,
-        });
+        await db.order_Limit.create({ data });
       }
 
-      const quantityLimit = allProductsData.data.products.edges.length;
+      else if (formData.get('choice') === 'Product Wise') {
 
-      const data = {
-        type: 'store_wise',
-        status: formData.get('status'),
-        quantityLimit: quantityLimit,
-      };
+        const orderLimit = await db.order_Limit.findFirst({
+          where: {
+            typeId: formData.get('id'),
+          }
+        });
 
-      await db.order_Limit.create({ data });
-    }
-
-    else if (formData.get('choice') === 'Product Wise') {
-
-      const orderLimit = await db.order_Limit.findFirst({
-        where: {
-          typeId: formData.get('id'),
+        if (orderLimit !== null) {
+          return json({
+            exist: true,
+          });
         }
-      });
 
-      if (orderLimit !== null) {
-        return json({
-          exist: true,
-        });
-      }
-
-      const data = {
-        type: 'product_wise',
-        typeId: formData.get('id'),
-        status: formData.get('status'),
-        quantityLimit: Number(formData.get('quantityLimit')),
-      }
-      await db.order_Limit.create({ data });
-    }
-
-    else if (formData.get('choice') === 'Category Wise') {
-
-      const orderLimit = await db.order_Limit.findFirst({
-        where: {
+        const data = {
+          type: 'product_wise',
           typeId: formData.get('id'),
+          status: formData.get('status'),
+          quantityLimit: Number(formData.get('quantityLimit')),
         }
-      });
-
-      if (orderLimit !== null) {
-        return json({
-          exist: true,
-        });
+        await db.order_Limit.create({ data });
       }
-      let quantityLimit = 0;
-      for (const edge of allProductsData.data.products.edges) {
-        const productCategory = edge.node.category ? edge.node.category.name : null;
 
-        // If the product category matches the current category, increment the count
-        if (productCategory === formData.get('name')) {
+      else if (formData.get('choice') === 'Category Wise') {
+
+        const orderLimit = await db.order_Limit.findFirst({
+          where: {
+            typeId: formData.get('id'),
+          }
+        });
+
+        if (orderLimit !== null) {
+          return json({
+            exist: true,
+          });
+        }
+        let quantityLimit = 0;
+        for (const edge of allProductsData.data.products.edges) {
+          const productCategory = edge.node.category ? edge.node.category.name : null;
+
+          // If the product category matches the current category, increment the count
+          if (productCategory === formData.get('name')) {
             quantityLimit++;
+          }
         }
+
+        const data = {
+          type: 'category_wise',
+          typeId: formData.get('id'),
+          status: formData.get('status'),
+          quantityLimit: quantityLimit,
+        };
+
+        await db.order_Limit.create({ data });
       }
-
-      const data = {
-        type: 'category_wise',
-        typeId: formData.get('id'),
-        status: formData.get('status'),
-        quantityLimit: quantityLimit,
-      };
-
-      await db.order_Limit.create({ data });
+      return json({
+        created: true,
+      });
     }
 
-    return json({created: true});
+    return redirect('/app/');
 
   } catch (error) {
     console.error('Error storing records:', error);
@@ -422,26 +427,26 @@ export default function Index() {
     [],
   );
 
-  const toggleAlert = useCallback( 
+  const toggleAlert = useCallback(
     () => setAlert((alert) => !alert),
     [],
   );
-  const toggleSuccess = useCallback( 
+  const toggleSuccess = useCallback(
     () => setSuccess((success) => !success),
     [],
   );
-    
+
 
   useEffect(() => {
-    if(actionData?.exist) {
+    if (actionData?.exist) {
       console.log('exist', actionData?.exist);
       toggleAlert();
     }
-    if(actionData?.created){
+    if (actionData?.created) {
       toggleSuccess();
     }
   }, [actionData]);
- 
+
 
   async function selectProduct() {
     const products = await window.shopify.resourcePicker({
@@ -550,7 +555,7 @@ export default function Index() {
 
 
     //triggers the action function. Makes the post request
-    submit({ choice: tagValue, id: id, status: statusValue.toLowerCase(), quantityLimit: quantityLimit, name: name }, { method: 'post' });
+    submit({ action: 'create', choice: tagValue, id: id, status: statusValue.toLowerCase(), quantityLimit: quantityLimit, name: name }, { method: 'post' });
     toggleModalActive();
   }
 
@@ -625,11 +630,11 @@ export default function Index() {
                   </Bleed>
                 </BlockStack>
                 <BlockStack>
-                <TextField
+                  <TextField
                     value={formState.availablePublicationCount}
                     label="Quantity Limit"
                     type="number"
-                />
+                  />
                 </BlockStack>
               </Card>
             </div>
@@ -647,9 +652,9 @@ export default function Index() {
               <div style={{ marginTop: '1rem' }}>
                 <BlockStack>
                   <TextField
-                      value={categoryLimit}
-                      label="Quantity Limit for Category"
-                      type="number"
+                    value={categoryLimit}
+                    label="Quantity Limit for Category"
+                    type="number"
                   />
                 </BlockStack>
               </div>
@@ -658,14 +663,14 @@ export default function Index() {
         </Modal.Section>
       </Modal>
 
-     {/* Alert message */}
-     {/*exist && (
+      {/* Alert message */}
+      {/*exist && (
         <div>
           <p>Record already exists!</p>
           <button onClick={() => handleAlertClose()}>Close</button>
         </div>
       )*/}
-     <Modal
+      <Modal
         open={alert}
         onClose={toggleAlert}
         title="Record Already Exists"
@@ -678,7 +683,7 @@ export default function Index() {
           <p>A record with the same data already exists.</p>
         </Modal.Section>
       </Modal>
-      
+
       <Modal
         open={success}
         onClose={toggleSuccess}
