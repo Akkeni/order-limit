@@ -323,7 +323,7 @@ export async function action({ request, params }) {
       await db.order_Limit.create({ data });
     }
 
-    return redirect('/app/');
+    return json({created: true});
 
   } catch (error) {
     console.error('Error storing records:', error);
@@ -388,6 +388,7 @@ export default function Index() {
   const [modalActive, setModalActive] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
   const [alert, setAlert] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [pk, setPk] = useState(0);
   const [tagValue, setTagValue] = useState('Store Wise');
   const [statusValue, setStatusValue] = useState('Active');
@@ -425,12 +426,19 @@ export default function Index() {
     () => setAlert((alert) => !alert),
     [],
   );
+  const toggleSuccess = useCallback( 
+    () => setSuccess((success) => !success),
+    [],
+  );
     
 
   useEffect(() => {
     if(actionData?.exist) {
       console.log('exist', actionData?.exist);
       toggleAlert();
+    }
+    if(actionData?.created){
+      toggleSuccess();
     }
   }, [actionData]);
  
@@ -668,6 +676,20 @@ export default function Index() {
       >
         <Modal.Section>
           <p>A record with the same data already exists.</p>
+        </Modal.Section>
+      </Modal>
+      
+      <Modal
+        open={success}
+        onClose={toggleSuccess}
+        title="Record Created"
+        primaryAction={{
+          content: 'Close',
+          onAction: toggleSuccess,
+        }}
+      >
+        <Modal.Section>
+          <p>A record is created.</p>
         </Modal.Section>
       </Modal>
 
