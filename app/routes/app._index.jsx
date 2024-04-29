@@ -29,7 +29,6 @@ import db from "../db.server";
 import { ImageIcon, EditIcon, DeleteIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
 import React from 'react';
-import { exit } from 'process';
 //import {getProductTitle} from '../models/Limiter.server';
 
 
@@ -243,9 +242,7 @@ export async function action({ request, params }) {
       });
 
       if (orderLimit !== null) {
-        return json({
-          exist: true
-        });
+        return redirect('/app/');
       }
 
       const quantityLimit = allProductsData.data.products.edges.length;
