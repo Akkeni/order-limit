@@ -187,12 +187,25 @@ export async function action({ request, params }) {
           id: Number(formData.get('pk')),
         }
       });
-      return redirect('/app/');
+      return json({deleted: true});
     }
 
     //to update records in database
     if (formData.get('action') === 'update') {
       if (formData.get('choice') === 'Product Wise') {
+
+        const orderLimit = await db.order_Limit.findFirst({
+          where: {
+            typeId: formData.get('id'),
+          }
+        });
+
+        if (orderLimit !== null) {
+          return json({
+            exist: true,
+          });
+        }
+
         const updateLimiter = await db.order_Limit.update({
           where: {
             id: Number(formData.get('pk')),
@@ -205,6 +218,19 @@ export async function action({ request, params }) {
           },
         });
       } else if (formData.get('choice') === 'Category Wise') {
+
+        const orderLimit = await db.order_Limit.findFirst({
+          where: {
+            typeId: formData.get('id'),
+          }
+        });
+
+        if (orderLimit !== null) {
+          return json({
+            exist: true,
+          });
+        }
+
         let quantityLimit = 0;
         for (const edge of allProductsData.data.products.edges) {
           const productCategory = edge.node.category ? edge.node.category.name : null;
@@ -226,6 +252,19 @@ export async function action({ request, params }) {
           },
         });
       } else if (formData.get('choice') === 'Store Wise') {
+
+        const orderLimit = await db.order_Limit.findFirst({
+          where: {
+            type: 'store_wise',
+          },
+        });
+
+        if (orderLimit !== null) {
+          return json({
+            exist: true,
+          });
+        }
+
         const quantityLimit = allProductsData.data.products.edges.length;
         const updateLimiter = await db.order_Limit.update({
           where: {
@@ -238,7 +277,9 @@ export async function action({ request, params }) {
           },
         });
       }
-      return redirect('/app/');
+      return json({
+        updated: true,
+      });
     }
 
     //to add new records to database
@@ -442,7 +483,7 @@ export default function Index() {
       console.log('exist', actionData?.exist);
       toggleAlert();
     }
-    if (actionData?.created) {
+    if (actionData?.created || actionData?.updated || actionData?.deleted) {
       toggleSuccess();
     }
   }, [actionData]);
@@ -687,14 +728,14 @@ export default function Index() {
       <Modal
         open={success}
         onClose={toggleSuccess}
-        title="Record Created"
+        title="Sucess"
         primaryAction={{
           content: 'Close',
           onAction: toggleSuccess,
         }}
       >
         <Modal.Section>
-          <p>A record is created.</p>
+          <p>Sucess</p>
         </Modal.Section>
       </Modal>
 
