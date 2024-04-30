@@ -454,7 +454,21 @@ export default function Index() {
   const navigate = useNavigate();
   const submit = useSubmit();
 
+  const [sortColumn, setSortColumn] = useState('');
+  const [selectedSortColumn, setSelectedSortColumn] = useState('id');
+  const [sortDirection, setSortDirection] = useState('ascending');
+  const [sortDropdownVisible, setSortDropdownVisible] = useState(false);
+  const [tableRows, setTableRows] = useState([]);
 
+  const headings = [
+    { title: 'Id' },
+    { title: 'Type' },
+    { title: 'Name' },
+    { title: 'Quantity Limit' },
+    { title: 'Status' },
+    { title: 'Created Date' },
+    { title: 'Action' },
+  ];
 
   console.log(loaderData.orderLimit);
 
@@ -464,6 +478,52 @@ export default function Index() {
       value.toString().toLowerCase().includes(searchValue.toLowerCase())
     )
   );
+
+  // Sort filtered rows based on the current sort column and direction
+const sortedFilteredRows =  filteredRows.sort((a, b) => {
+    const aValue = a[selectedSortColumn];
+    const bValue = b[selectedSortColumn];
+    console.log('sortedfiletered', rows);
+    if (aValue === bValue) return 0;
+    return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
+  });
+
+
+  const handleSort = (column) => {
+    console.log('handleSort');
+    if (selectedSortColumn === column) {
+      setSortDirection((prevDirection) =>
+        prevDirection === 'ascending' ? 'descending' : 'ascending'
+      );
+    } else {
+      setSelectedSortColumn(column);
+      setSortDirection('ascending');
+    }
+    //filteredRows = sortedFilteredRows(filteredRows);
+  };
+
+
+
+
+const renderSortDropdown = () => {
+  return (
+    <Select
+      label="Sort By"
+      options={[
+        { label: 'Id', value: 'id' },
+        { label: 'Type', value: 'type' },
+        { label: 'Name', value: 'name' },
+        { label: 'Quantity Limit', value: 'quantityLimit' },
+        { label: 'Status', value: 'status' },
+        { label: 'Created Date', value: 'createdAt' },
+      ]}
+      value={selectedSortColumn}
+      onChange={(value) => handleSort(value)}
+    />
+  );
+};
+
+
 
 
   //responsible for opening and closing the Modal
@@ -483,6 +543,11 @@ export default function Index() {
   );
   const toggleSuccess = useCallback(
     () => setSuccess((success) => !success),
+    [],
+  );
+
+  const toggleDropdownVisible = useCallback(
+    () => setSortDropdownVisible((sortDropdownVisible) => !sortDropdownVisible),
     [],
   );
 
@@ -752,59 +817,60 @@ export default function Index() {
         <div style={{ float: 'right', padding: '10px' }}>
           <Button onClick={handleAdd}>Add Order Limit</Button>
         </div>
-        <div style={{ float: 'left', padding: '10px' }}>
+      </div>
+
+      <BlockStack style= {{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <InlineStack gap="500">
           <TextField
             label="Search"
             value={searchValue}
             onChange={setSearchValue}
             prefix={<Icon source="search" color="skyDark" />}
           />
-        </div>
-      </div>
+      </InlineStack>
+      <InlineStack>
+        <Button onClick={() => toggleDropdownVisible()}>Sort</Button>
+        {sortDropdownVisible && renderSortDropdown()}
+      </InlineStack>
+      </BlockStack>
 
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
             <Card>
             <IndexTable
-                headings={[
-                  {title: 'Id'},
-                  {title: 'Type'},
-                  {title: 'Name'},
-                  {title: 'Quantity Limit'},
-                  {title: 'Status'},
-                  {title: 'Created Date'},
-                  {title: 'Action'},
-                ]}
-                itemCount={filteredRows.length}
-                selectable={false}
-              >
-                {filteredRows.map((row, index) => (
-                  <IndexTable.Row key={index}>
-                    {Object.values(row).map((cell, cellIndex) => (
-                      <IndexTable.Cell key={cellIndex}>
-                        {cell}
-                      </IndexTable.Cell>
-                    ))}
-                    <IndexTable.Cell>
-                      <ButtonGroup gap="200">
-                        <Button onClick={() => handleEdit(row.id, row.type)}>
-                          <Icon
-                            source={EditIcon}
-                            tone="base"
-                          />
-                        </Button>
-                        <Button onClick={() => handleDelete(row.id)}>
-                          <Icon
-                            source={DeleteIcon}
-                            tone="base"
-                          />
-                        </Button>
-                      </ButtonGroup>
-                    </IndexTable.Cell>
-                  </IndexTable.Row>
-                ))}
-              </IndexTable>
+            headings={[
+              { title: 'Id', onClick: () => handleSort('id') },
+              { title: 'Type', onClick: () => handleSort('type') },
+              { title: 'Name', onClick: () => handleSort('name') },
+              { title: 'Quantity Limit', onClick: () => handleSort('quantityLimit') },
+              { title: 'Status', onClick: () => handleSort('status') },
+              { title: 'Created Date', onClick: () => handleSort('createdAt') },
+              {title: 'Action'},
+            ]}
+              itemCount={sortedFilteredRows.length}
+              selectable={false}
+            >
+        {/* Render rows with sorted and filtered data */}
+        { sortedFilteredRows.map((row, index) => (
+    <IndexTable.Row key={index}>
+      {Object.values(row).map((cell, cellIndex) => (
+        <IndexTable.Cell key={cellIndex}>{cell}</IndexTable.Cell>
+      ))}
+      <IndexTable.Cell>
+        <ButtonGroup gap="200">
+          <Button onClick={() => handleEdit(row.id, row.type)}>
+            <Icon source={EditIcon} tone="base" />
+          </Button>
+          <Button onClick={() => handleDelete(row.id)}>
+            <Icon source={DeleteIcon} tone="base" />
+          </Button>
+        </ButtonGroup>
+      </IndexTable.Cell>
+    </IndexTable.Row>
+  ))
+  }
+      </IndexTable>
             </Card>
           </Layout.Section>
         </Layout>
