@@ -27,7 +27,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { PageActions } from '@shopify/polaris';
 import { useNavigate, useSubmit, useLoaderData, useActionData } from '@remix-run/react';
 import db from "../db.server";
-import { ImageIcon, EditIcon, DeleteIcon } from '@shopify/polaris-icons';
+import { ImageIcon, EditIcon, DeleteIcon, ArrowDownIcon, ArrowUpIcon, ArrowsOutHorizontalIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
 import React from 'react';
 //import {getProductTitle} from '../models/Limiter.server';
@@ -188,7 +188,7 @@ export async function action({ request, params }) {
           id: Number(formData.get('pk')),
         }
       });
-      return json({deleted: true});
+      return json({ deleted: true });
     }
 
     //to update records in database
@@ -480,13 +480,16 @@ export default function Index() {
   );
 
   // Sort filtered rows based on the current sort column and direction
-const sortedFilteredRows =  filteredRows.sort((a, b) => {
+  const sortedFilteredRows = filteredRows.sort((a, b) => {
     const aValue = a[selectedSortColumn];
     const bValue = b[selectedSortColumn];
     console.log('sortedfiletered', rows);
     if (aValue === bValue) return 0;
     return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
   });
+
+
+
 
 
   const handleSort = (column) => {
@@ -499,29 +502,14 @@ const sortedFilteredRows =  filteredRows.sort((a, b) => {
       setSelectedSortColumn(column);
       setSortDirection('ascending');
     }
+    console.log('direction', sortDirection);
     //filteredRows = sortedFilteredRows(filteredRows);
   };
 
 
 
 
-const renderSortDropdown = () => {
-  return (
-    <Select
-      label="Sort By"
-      options={[
-        { label: 'Id', value: 'id' },
-        { label: 'Type', value: 'type' },
-        { label: 'Name', value: 'name' },
-        { label: 'Quantity Limit', value: 'quantityLimit' },
-        { label: 'Status', value: 'status' },
-        { label: 'Created Date', value: 'createdAt' },
-      ]}
-      value={selectedSortColumn}
-      onChange={(value) => handleSort(value)}
-    />
-  );
-};
+
 
 
 
@@ -546,10 +534,7 @@ const renderSortDropdown = () => {
     [],
   );
 
-  const toggleDropdownVisible = useCallback(
-    () => setSortDropdownVisible((sortDropdownVisible) => !sortDropdownVisible),
-    [],
-  );
+
 
 
   useEffect(() => {
@@ -614,6 +599,10 @@ const renderSortDropdown = () => {
     [],
   );
 
+  const handleSortChange = (column) => {
+    handleSort(column);
+  }
+
 
   const handleAdd = () => {
     setIsUpdate(false);
@@ -675,7 +664,7 @@ const renderSortDropdown = () => {
   }
 
   return (
-    <Page>
+    <Page fullWidth={true}>
       <ui-title-bar title="Order Limit"></ui-title-bar>
 
       <Modal
@@ -819,58 +808,76 @@ const renderSortDropdown = () => {
         </div>
       </div>
 
-      <BlockStack style= {{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-      <InlineStack gap="500">
+      <BlockStack style={{ MarginBottom:'1rem', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <InlineStack gap="500">
           <TextField
             label="Search"
             value={searchValue}
             onChange={setSearchValue}
             prefix={<Icon source="search" color="skyDark" />}
           />
-      </InlineStack>
-      <InlineStack>
-        <Button onClick={() => toggleDropdownVisible()}>Sort</Button>
-        {sortDropdownVisible && renderSortDropdown()}
-      </InlineStack>
+        </InlineStack>
       </BlockStack>
 
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
             <Card>
-            <IndexTable
-            headings={[
-              { title: 'Id', onClick: () => handleSort('id') },
-              { title: 'Type', onClick: () => handleSort('type') },
-              { title: 'Name', onClick: () => handleSort('name') },
-              { title: 'Quantity Limit', onClick: () => handleSort('quantityLimit') },
-              { title: 'Status', onClick: () => handleSort('status') },
-              { title: 'Created Date', onClick: () => handleSort('createdAt') },
-              {title: 'Action'},
-            ]}
-              itemCount={sortedFilteredRows.length}
-              selectable={false}
-            >
-        {/* Render rows with sorted and filtered data */}
-        { sortedFilteredRows.map((row, index) => (
-    <IndexTable.Row key={index}>
-      {Object.values(row).map((cell, cellIndex) => (
-        <IndexTable.Cell key={cellIndex}>{cell}</IndexTable.Cell>
-      ))}
-      <IndexTable.Cell>
-        <ButtonGroup gap="200">
-          <Button onClick={() => handleEdit(row.id, row.type)}>
-            <Icon source={EditIcon} tone="base" />
-          </Button>
-          <Button onClick={() => handleDelete(row.id)}>
-            <Icon source={DeleteIcon} tone="base" />
-          </Button>
-        </ButtonGroup>
-      </IndexTable.Cell>
-    </IndexTable.Row>
-  ))
-  }
-      </IndexTable>
+              <IndexTable
+                headings={[
+                  { title: 'Id' },
+                  { title: 'Type' },
+                  { title: 'Name' },
+                  { title: 'Quantity Limit' },
+                  { title: 'Status' },
+                  { title: 'Created Date' },
+                  { title: 'Action' },
+                  {
+                    title: (
+                      <ButtonGroup gap='200'>
+                        <Select
+                        options={[
+                          { label: 'Id', value: 'id' },
+                          { label: 'Type', value: 'type' },
+                          { label: 'Name', value: 'name' },
+                          { label: 'Quantity Limit', value: 'quantityLimit' },
+                          { label: 'Status', value: 'status' },
+                          { label: 'Created Date', value: 'createdAt' },
+                        ]}
+                        value={selectedSortColumn}
+                        onChange={handleSortChange}
+                      />
+                      <Button onClick={ () => handleSort(selectedSortColumn)}>
+                        <Icon source={ArrowsOutHorizontalIcon}/>
+                      </Button>
+                      </ButtonGroup>
+                      
+                    )
+                  },
+                ]}
+                itemCount={sortedFilteredRows.length}
+                selectable={false}
+              >
+                {/* Render rows with sorted and filtered data */}
+                {sortedFilteredRows.map((row, index) => (
+                  <IndexTable.Row key={index}>
+                    {Object.values(row).map((cell, cellIndex) => (
+                      <IndexTable.Cell key={cellIndex}>{cell}</IndexTable.Cell>
+                    ))}
+                    <IndexTable.Cell>
+                      <ButtonGroup gap="200">
+                        <Button onClick={() => handleEdit(row.id, row.type)}>
+                          <Icon source={EditIcon} tone="base" />
+                        </Button>
+                        <Button onClick={() => handleDelete(row.id)}>
+                          <Icon source={DeleteIcon} tone="base" />
+                        </Button>
+                      </ButtonGroup>
+                    </IndexTable.Cell>
+                  </IndexTable.Row>
+                ))
+                }
+              </IndexTable>
             </Card>
           </Layout.Section>
         </Layout>
