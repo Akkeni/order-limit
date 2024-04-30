@@ -13,6 +13,7 @@ import {
   ButtonGroup,
   FullscreenBar,
   DataTable,
+  IndexTable,
   Popover,
   ActionList,
   FormLayout,
@@ -430,7 +431,8 @@ export default function Index() {
     </ButtonGroup>
   ]) : [];
 
-  console.log('rows', rows)
+  console.log('rows', rows);
+  const [searchValue, setSearchValue] = useState('');
   const [modalActive, setModalActive] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
   const [alert, setAlert] = useState(false);
@@ -455,6 +457,13 @@ export default function Index() {
 
 
   console.log(loaderData.orderLimit);
+
+  // Filter rows based on search value
+  const filteredRows = rows.filter(row =>
+    Object.values(row).some(value =>
+      value.toString().toLowerCase().includes(searchValue.toLowerCase())
+    )
+  );
 
 
   //responsible for opening and closing the Modal
@@ -743,42 +752,59 @@ export default function Index() {
         <div style={{ float: 'right', padding: '10px' }}>
           <Button onClick={handleAdd}>Add Order Limit</Button>
         </div>
+        <div style={{ float: 'left', padding: '10px' }}>
+          <TextField
+            label="Search"
+            value={searchValue}
+            onChange={setSearchValue}
+            prefix={<Icon source="search" color="skyDark" />}
+          />
+        </div>
       </div>
 
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
             <Card>
-              <DataTable
-                columnContentTypes={[
-                  'numeric',
-                  'text',
-                  'text',
-                  'numeric',
-                  'numeric',
-                  'text',
-                  'text',
-                ]}
-                columnWidths={[
-                  '1fr',
-                  '1fr',
-                  '1fr',
-                  '1fr',
-                  '1fr',
-                  '1fr',
-                  '2fr' // Make the last column span two columns
-                ]}
+            <IndexTable
                 headings={[
-                  'Id',
-                  'Type',
-                  'Name',
-                  'Quantity Limit',
-                  'Status',
-                  'Created Date',
-                  'Action',
+                  {title: 'Id'},
+                  {title: 'Type'},
+                  {title: 'Name'},
+                  {title: 'Quantity Limit'},
+                  {title: 'Status'},
+                  {title: 'Created Date'},
+                  {title: 'Action'},
                 ]}
-                rows={actionRows}
-              />
+                itemCount={filteredRows.length}
+                selectable={false}
+              >
+                {filteredRows.map((row, index) => (
+                  <IndexTable.Row key={index}>
+                    {Object.values(row).map((cell, cellIndex) => (
+                      <IndexTable.Cell key={cellIndex}>
+                        {cell}
+                      </IndexTable.Cell>
+                    ))}
+                    <IndexTable.Cell>
+                      <ButtonGroup gap="200">
+                        <Button onClick={() => handleEdit(row.id, row.type)}>
+                          <Icon
+                            source={EditIcon}
+                            tone="base"
+                          />
+                        </Button>
+                        <Button onClick={() => handleDelete(row.id)}>
+                          <Icon
+                            source={DeleteIcon}
+                            tone="base"
+                          />
+                        </Button>
+                      </ButtonGroup>
+                    </IndexTable.Cell>
+                  </IndexTable.Row>
+                ))}
+              </IndexTable>
             </Card>
           </Layout.Section>
         </Layout>
