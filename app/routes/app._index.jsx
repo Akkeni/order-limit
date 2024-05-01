@@ -223,186 +223,7 @@ export async function action({ request, params }) {
     }
 
 
-    /*//to update records in database
-    if (formData.get('action') === 'update') {
-      if (formData.get('choice') === 'Product Wise') {
-
-        const orderLimit = await db.order_Limit.findFirst({
-          where: {
-            typeId: formData.get('id'),
-          }
-        });
-
-        if (orderLimit !== null) {
-          return json({
-            exist: true,
-          });
-        }
-
-        const updateLimiter = await db.order_Limit.update({
-          where: {
-            id: Number(formData.get('pk')),
-          },
-          data: {
-            type: 'product_wise',
-            typeId: formData.get('id'),
-            status: formData.get('status'),
-            quantityLimit: Number(formData.get('quantityLimit')),
-          },
-        });
-      } else if (formData.get('choice') === 'Category Wise') {
-
-        const orderLimit = await db.order_Limit.findFirst({
-          where: {
-            typeId: formData.get('id'),
-          }
-        });
-
-        if (orderLimit !== null) {
-          return json({
-            exist: true,
-          });
-        }
-
-        let quantityLimit = 0;
-        for (const edge of allProductsData.data.products.edges) {
-          const productCategory = edge.node.category ? edge.node.category.name : null;
-
-          // If the product category matches the current category, increment the count
-          if (productCategory === formData.get('name')) {
-            quantityLimit++;
-          }
-        }
-        const updateLimiter = await db.order_Limit.update({
-          where: {
-            id: Number(formData.get('pk')),
-          },
-          data: {
-            type: 'category_wise',
-            typeId: formData.get('id'),
-            status: formData.get('status'),
-            quantityLimit: quantityLimit,
-          },
-        });
-      } else if (formData.get('choice') === 'Store Wise') {
-
-        const orderLimit = await db.order_Limit.findFirst({
-          where: {
-            type: 'store_wise',
-          },
-        });
-
-        if (orderLimit !== null) {
-          return json({
-            exist: true,
-          });
-        }
-
-        const quantityLimit = allProductsData.data.products.edges.length;
-        const updateLimiter = await db.order_Limit.update({
-          where: {
-            id: Number(formData.get('pk')),
-          },
-          data: {
-            type: 'store_wise',
-            status: formData.get('status'),
-            quantityLimit: quantityLimit,
-          },
-        });
-      }
-      return json({
-        updated: true,
-      });
-    }
-
-    //to add new records to database
-    if (formData.get('action') === 'create') {
-      if (formData.get('choice') === 'Store Wise') {
-
-        const orderLimit = await db.order_Limit.findFirst({
-          where: {
-            type: 'store_wise',
-          },
-        });
-
-        if (orderLimit !== null) {
-          return json({
-            exist: true,
-          });
-        }
-
-        const quantityLimit = allProductsData.data.products.edges.length;
-
-        const data = {
-          type: 'store_wise',
-          status: formData.get('status'),
-          quantityLimit: quantityLimit,
-        };
-
-        await db.order_Limit.create({ data });
-      }
-
-      else if (formData.get('choice') === 'Product Wise') {
-
-        const orderLimit = await db.order_Limit.findFirst({
-          where: {
-            typeId: formData.get('id'),
-          }
-        });
-
-        if (orderLimit !== null) {
-          return json({
-            exist: true,
-          });
-        }
-
-        const data = {
-          type: 'product_wise',
-          typeId: formData.get('id'),
-          status: formData.get('status'),
-          quantityLimit: Number(formData.get('quantityLimit')),
-        }
-        await db.order_Limit.create({ data });
-      }
-
-      else if (formData.get('choice') === 'Category Wise') {
-
-        const orderLimit = await db.order_Limit.findFirst({
-          where: {
-            typeId: formData.get('id'),
-          }
-        });
-
-        if (orderLimit !== null) {
-          return json({
-            exist: true,
-          });
-        }
-        let quantityLimit = 0;
-        for (const edge of allProductsData.data.products.edges) {
-          const productCategory = edge.node.category ? edge.node.category.name : null;
-
-          // If the product category matches the current category, increment the count
-          if (productCategory === formData.get('name')) {
-            quantityLimit++;
-          }
-        }
-
-        const data = {
-          type: 'category_wise',
-          typeId: formData.get('id'),
-          status: formData.get('status'),
-          quantityLimit: quantityLimit,
-        };
-
-        await db.order_Limit.create({ data });
-      }
-      return json({
-        created: true,
-      });
-    }
-
-    return redirect('/app/');*/
+    
 
   } catch (error) {
     console.error('Error storing records:', error);
@@ -621,9 +442,7 @@ const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPag
     [],
   );
 
-  const handleSortChange = (column) => {
-    handleSort(column);
-  }
+  
 
 
   const handleAdd = () => {
@@ -826,7 +645,7 @@ const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPag
         </Modal.Section>
       </Modal>
 
-      <div style={{ width: '100%', overflow: 'auto' }}>
+      <div style={{ width: '100%', overflow: 'auto', marginLeft: '1rem' }}>
       
         <InlineStack gap="500">
           <TextField
