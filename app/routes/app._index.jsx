@@ -30,6 +30,7 @@ import db from "../db.server";
 import { ImageIcon, EditIcon, DeleteIcon, CaretUpIcon, CaretDownIcon, SelectIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
 import React from 'react';
+import {updateLimiter, addLimiter} from '../models/Limiter.server';
 //import {getProductTitle} from '../models/Limiter.server';
 
 
@@ -181,7 +182,7 @@ export async function action({ request, params }) {
     const formData = await request.formData();
 
     //to delete a record from a database
-    console.log(formData.get('action', formData.get('pk')));
+    console.log(formData.get('action'), formData.get('pk'));
     if (formData.get('action') == 'delete') {
       await db.order_Limit.delete({
         where: {
@@ -191,7 +192,38 @@ export async function action({ request, params }) {
       return json({ deleted: true });
     }
 
-    //to update records in database
+    if (formData.get('action') === 'update') {
+      const result = await updateLimiter(formData, allProductsData);
+      console.log('result in update', result);
+      if(result?.exist === true) {
+        return json({
+          exist: true,
+        });
+      } else if(result?.updated === true) {
+        return json({
+          updated: true,
+        });
+      } else {
+        return redirect('/app/');
+      }
+    } else if(formData.get('action') === 'create') {
+      const result = await addLimiter(formData, allProductsData);
+      console.log('res in add', result);
+      if(result?.exist === true) {
+        return json({
+          exist: true,
+        });
+      } else if(result?.created === true) {
+        return json({
+          created: true,
+        });
+      } else {
+        return redirect('/app/');
+      }
+    }
+
+
+    /*//to update records in database
     if (formData.get('action') === 'update') {
       if (formData.get('choice') === 'Product Wise') {
 
@@ -370,7 +402,7 @@ export async function action({ request, params }) {
       });
     }
 
-    return redirect('/app/');
+    return redirect('/app/');*/
 
   } catch (error) {
     console.error('Error storing records:', error);
@@ -454,11 +486,10 @@ export default function Index() {
   const navigate = useNavigate();
   const submit = useSubmit();
 
-  const [sortColumn, setSortColumn] = useState('');
+
   const [selectedSortColumn, setSelectedSortColumn] = useState('id');
   const [sortDirection, setSortDirection] = useState('ascending');
-  const [sortDropdownVisible, setSortDropdownVisible] = useState(false);
-  const [tableRows, setTableRows] = useState([]);
+
 
 
   console.log(loaderData.orderLimit);
@@ -621,6 +652,7 @@ export default function Index() {
       const indexId = categoryOptions.indexOf(categoryValue);
       id = categoryIds[indexId];
       name = categoryValue;
+      quantityLimit = categoryLimit;
     } else if (tagValue === 'Product Wise') {
       console.log('in handleSave', formState.productId);
       id = formState.productId;
@@ -642,6 +674,7 @@ export default function Index() {
       const indexId = categoryOptions.indexOf(categoryValue);
       id = categoryIds[indexId];
       name = categoryValue;
+      quantityLimit = categoryLimit;
     } else if (tagValue === 'Product Wise') {
       console.log('in handleSave', formState.productId);
       id = formState.productId;
