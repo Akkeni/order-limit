@@ -415,6 +415,7 @@ export async function action({ request, params }) {
 
 
 export default function Index() {
+
   const loaderData = useLoaderData();
   const actionData = useActionData();
 
@@ -486,11 +487,11 @@ export default function Index() {
   const navigate = useNavigate();
   const submit = useSubmit();
 
-
   const [selectedSortColumn, setSelectedSortColumn] = useState('id');
   const [sortDirection, setSortDirection] = useState('ascending');
 
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 5;
 
   console.log(loaderData.orderLimit);
 
@@ -501,7 +502,7 @@ export default function Index() {
     )
   );
 
-  // Sort filtered rows based on the current sort column and direction
+  // Sort the filtered rows based on the current sort column and direction and page
   const sortedFilteredRows = filteredRows.sort((a, b) => {
     const aValue = a[selectedSortColumn];
     const bValue = b[selectedSortColumn];
@@ -510,9 +511,15 @@ export default function Index() {
     return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
   });
 
+// Slice the sorted rows to get records for the current page
+const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage);
 
+  // Handle pagination
+  const handleNextPage = () => setCurrentPage(currentPage + 1);
+  const handlePreviousPage = () => setCurrentPage(currentPage - 1);
 
-
+  const totalRecords = rows.length;
+  const totalPages = Math.ceil(totalRecords / recordsPerPage);
 
   const handleSort = (column) => {
     console.log('handleSort');
@@ -527,13 +534,6 @@ export default function Index() {
     console.log('direction', sortDirection);
     //filteredRows = sortedFilteredRows(filteredRows);
   };
-
-
-
-
-
-
-
 
 
   //responsible for opening and closing the Modal
@@ -915,9 +915,16 @@ export default function Index() {
                 ]}
                 itemCount={sortedFilteredRows.length}
                 selectable={false}
+                pagination={{
+                  hasNext: currentPage < totalPages, /* Whether there is a next page */
+                  hasPrevious: currentPage > 1, /* Whether there is a previous page */
+                  onNext: handleNextPage,
+                  onPrevious: handlePreviousPage,
+                  label: `Page ${currentPage}`, // Label to provide more context in between the arrow buttons
+                }}
               >
                 {/* Render rows with sorted and filtered data */}
-                {sortedFilteredRows.map((row, index) => (
+                {paginatedRows.map((row, index) => (
                   <IndexTable.Row key={index}>
                     {Object.values(row).map((cell, cellIndex) => (
                       <IndexTable.Cell key={cellIndex}>{cell}</IndexTable.Cell>
