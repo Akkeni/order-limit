@@ -27,10 +27,10 @@ import { useState, useCallback, useEffect } from 'react';
 import { PageActions } from '@shopify/polaris';
 import { useNavigate, useSubmit, useLoaderData, useActionData } from '@remix-run/react';
 import db from "../db.server";
-import { ImageIcon, EditIcon, DeleteIcon, CaretUpIcon, CaretDownIcon, SelectIcon } from '@shopify/polaris-icons';
+import { ImageIcon, EditIcon, DeleteIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
 import React from 'react';
-import {updateLimiter, addLimiter} from '../models/Limiter.server';
+import { updateLimiter, addLimiter } from '../models/Limiter.server';
 //import {getProductTitle} from '../models/Limiter.server';
 
 
@@ -195,25 +195,25 @@ export async function action({ request, params }) {
     if (formData.get('action') === 'update') {
       const result = await updateLimiter(formData, allProductsData);
       console.log('result in update', result);
-      if(result?.exist === true) {
+      if (result?.exist === true) {
         return json({
           exist: true,
         });
-      } else if(result?.updated === true) {
+      } else if (result?.updated === true) {
         return json({
           updated: true,
         });
       } else {
         return redirect('/app/');
       }
-    } else if(formData.get('action') === 'create') {
+    } else if (formData.get('action') === 'create') {
       const result = await addLimiter(formData, allProductsData);
       console.log('res in add', result);
-      if(result?.exist === true) {
+      if (result?.exist === true) {
         return json({
           exist: true,
         });
-      } else if(result?.created === true) {
+      } else if (result?.created === true) {
         return json({
           created: true,
         });
@@ -223,7 +223,7 @@ export async function action({ request, params }) {
     }
 
 
-    
+
 
   } catch (error) {
     console.error('Error storing records:', error);
@@ -240,8 +240,6 @@ export default function Index() {
   const loaderData = useLoaderData();
   const actionData = useActionData();
 
-  const orderLimit = loaderData.orderLimit;
-  const graphql = loaderData.graphql;
   const categoryLimits = loaderData.categoryLimits;
   const categoryOptions = [];
   const categoryIds = [];
@@ -261,7 +259,7 @@ export default function Index() {
 
   const rows = loaderData.rows;
 
-  //to add buttons to the rows
+  /*//to add buttons to the rows
   const actionRows = rows ? rows.map(row => [
     row.id,
     row.type,
@@ -283,7 +281,7 @@ export default function Index() {
         />
       </Button>
     </ButtonGroup>
-  ]) : [];
+  ]) : [];*/
 
   console.log('rows', rows);
   const [searchValue, setSearchValue] = useState('');
@@ -314,7 +312,7 @@ export default function Index() {
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 5;
 
-  console.log(loaderData.orderLimit);
+  //console.log(loaderData.orderLimit);
 
   // Filter rows based on search value
   const filteredRows = rows.filter(row =>
@@ -323,7 +321,7 @@ export default function Index() {
     )
   );
 
-  // Sort the filtered rows based on the current sort column and direction and page
+  // Sort the filtered rows based on the current sort column and direction
   const sortedFilteredRows = filteredRows.sort((a, b) => {
     const aValue = a[selectedSortColumn];
     const bValue = b[selectedSortColumn];
@@ -332,8 +330,8 @@ export default function Index() {
     return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
   });
 
-// Slice the sorted rows to get records for the current page
-const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage);
+  // Slice the sorted rows to get records for the current page
+  const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage);
 
   // Handle pagination
   const handleNextPage = () => setCurrentPage(currentPage + 1);
@@ -342,6 +340,7 @@ const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPag
   const totalRecords = rows.length;
   const totalPages = Math.ceil(totalRecords / recordsPerPage);
 
+  //handle sorting
   const handleSort = (column) => {
     console.log('handleSort');
     if (selectedSortColumn === column) {
@@ -398,7 +397,7 @@ const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPag
     });
 
     if (products) {
-      console.log('products selected', products[0]);
+      //console.log('products selected', products[0]);
       const { images, id, variants, title, handle, availablePublicationCount } = products[0];
       setFormState({
         ...formState,
@@ -411,7 +410,7 @@ const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPag
         availablePublicationCount: availablePublicationCount,
       });
     }
-    console.log('in selectproduct', formState.productId, formState.availablePublicationCount);
+    //console.log('in selectproduct', formState.productId, formState.availablePublicationCount);
 
     toggleModalActive();
   }
@@ -442,7 +441,7 @@ const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPag
     [],
   );
 
-  
+
 
 
   const handleAdd = () => {
@@ -645,23 +644,23 @@ const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPag
         </Modal.Section>
       </Modal>
 
-      <div style={{ width: '100%', overflow: 'auto', marginLeft: '1rem' }}>
-      
-        <InlineStack gap="500">
-          <TextField
-            label="Search"
-            value={searchValue}
-            onChange={setSearchValue}
-            prefix={<Icon source="search" color="skyDark" />}
-          />
-        </InlineStack>
-     
+      <div style={{ width: '100%', overflow: 'auto' }}>
+        <div style={{ marginLeft: '0.5rem' }}>
+          <InlineStack gap="500">
+            <TextField
+              label="Search"
+              value={searchValue}
+              onChange={setSearchValue}
+              prefix={<Icon source={SearchIcon} color="skyDark" />}
+            />
+          </InlineStack>
+        </div>
         <div style={{ float: 'right', padding: '10px' }}>
           <Button onClick={handleAdd}>Add Order Limit</Button>
         </div>
       </div>
 
-      
+
 
       <BlockStack gap="500">
         <Layout>
@@ -669,78 +668,88 @@ const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPag
             <Card>
               <IndexTable
                 headings={[
-                  { title: (
-                    <ButtonGroup>
-                      <Button onClick={() => handleSort('id')} variant="tertiary">
-                        Id
-                      </Button>
-                      <Button onClick={() => handleSort('id')} variant="tertiary">
-                        <Icon source={SelectIcon}/>
-                      </Button>
-                    </ButtonGroup>
-                    ) 
+                  {
+                    title: (
+                      <ButtonGroup>
+                        <Button onClick={() => handleSort('id')} variant="tertiary">
+                          Id
+                        </Button>
+                        <Button onClick={() => handleSort('id')} variant="tertiary">
+                          <Icon source={SelectIcon} />
+                        </Button>
+                      </ButtonGroup>
+                    ),
+                    alignment: "center"
                   },
-                  { title: (
-                    <ButtonGroup>
-                    <Button onClick={() => handleSort('type')} variant="tertiary">
-                      Type
-                      </Button>
-                      <Button onClick={() => handleSort('type')} variant="tertiary">
-                        <Icon source={SelectIcon}/>
-                      </Button>
-                    </ButtonGroup>
-                    )  },
-                  { title: (
-                    <ButtonGroup>
-                    <Button onClick={() => handleSort('name')} variant="tertiary">
-                      Name
-                      </Button>
-                      <Button onClick={() => handleSort('name')} variant="tertiary">
-                        <Icon source={SelectIcon}/>
-                      </Button>
-                    </ButtonGroup>
-                    )  },
-                  { title: (
-                    <ButtonGroup>
-                    <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
-                      Quantity
-                      </Button>
-                      <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
-                        <Icon source={SelectIcon}/>
-                      </Button>
-                    </ButtonGroup>
-                    )  },
-                  { title: (
-                    <ButtonGroup>
-                    <Button onClick={() => handleSort('status')} variant="tertiary">
-                      Status
-                      </Button>
-                      <Button onClick={() => handleSort('status')} variant="tertiary">
-                        <Icon source={SelectIcon}/>
-                      </Button>
-                    </ButtonGroup>
-                    )  },
-                  { title: (
-                    <ButtonGroup>
-                    <Button onClick={ () => handleSort('createdAt')} variant="tertiary">
-                      Created At
-                      </Button>
-                      <Button onClick={() => handleSort('createdAt')} variant="tertiary">
-                        <Icon source={SelectIcon}/>
-                      </Button>
-                    </ButtonGroup>
-                    )  },
-                  { title: (<b>Action</b>  )},
+                  {
+                    title: (
+                      <ButtonGroup>
+                        <Button onClick={() => handleSort('type')} variant="tertiary">
+                          Type
+                        </Button>
+                        <Button onClick={() => handleSort('type')} variant="tertiary">
+                          <Icon source={SelectIcon} />
+                        </Button>
+                      </ButtonGroup>
+                    ),
+                    alignment: "center"
+                  },
+                  {
+                    title: (
+                      <ButtonGroup>
+                        <Button onClick={() => handleSort('name')} variant="tertiary">
+                          Name
+                        </Button>
+                        <Button onClick={() => handleSort('name')} variant="tertiary">
+                          <Icon source={SelectIcon} />
+                        </Button>
+                      </ButtonGroup>
+                    ),
+                    alignment: "center"
+                  },
+                  {
+                    title: (
+                      <ButtonGroup>
+                        <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
+                          Quantity
+                        </Button>
+                        <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
+                          <Icon source={SelectIcon} />
+                        </Button>
+                      </ButtonGroup>
+                    ),
+                    alignment: "center"
+                  },
+                  {
+                    title: (
+                      <ButtonGroup>
+                        <Button onClick={() => handleSort('status')} variant="tertiary">
+                          Status
+                        </Button>
+                        <Button onClick={() => handleSort('status')} variant="tertiary">
+                          <Icon source={SelectIcon} />
+                        </Button>
+                      </ButtonGroup>
+                    ),
+                    alignment: "center"
+                  },
+                  {
+                    title: (
+                      <ButtonGroup>
+                        <Button onClick={() => handleSort('createdAt')} variant="tertiary">
+                          Created At
+                        </Button>
+                        <Button onClick={() => handleSort('createdAt')} variant="tertiary">
+                          <Icon source={SelectIcon} />
+                        </Button>
+                      </ButtonGroup>
+                    ),
+                    alignment: "center"
+                  },
+                  { title: (<b>Action</b>) },
                 ]}
                 itemCount={sortedFilteredRows.length}
                 selectable={false}
-                pagination={{
-                  hasNext: currentPage < totalPages, /* Whether there is a next page */
-                  hasPrevious: currentPage > 1, /* Whether there is a previous page */
-                  onNext: handleNextPage,
-                  onPrevious: handlePreviousPage,
-                  label: `Page ${currentPage}`, // Label to provide more context in between the arrow buttons
-                }}
               >
                 {/* Render rows with sorted and filtered data */}
                 {paginatedRows.map((row, index) => (
@@ -762,9 +771,16 @@ const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPag
                 ))
                 }
               </IndexTable>
+              {/* Pagination component */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <Button icon={ChevronLeftIcon} accessibilityLabel="Previous Page" disabled={currentPage === 1} onClick={handlePreviousPage} />
+                <span style={{ padding: '0.5rem', margin: '0.5rem' }}> Page {currentPage}</span>
+                <Button icon={ChevronRightIcon} accessibilityLabel="Next Page" disabled={currentPage === totalPages} onClick={handleNextPage} />
+              </div>
             </Card>
           </Layout.Section>
         </Layout>
+
       </BlockStack>
 
 
