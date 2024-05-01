@@ -27,7 +27,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { PageActions } from '@shopify/polaris';
 import { useNavigate, useSubmit, useLoaderData, useActionData } from '@remix-run/react';
 import db from "../db.server";
-import { ImageIcon, EditIcon, DeleteIcon, ArrowDownIcon, ArrowUpIcon, ArrowsOutHorizontalIcon } from '@shopify/polaris-icons';
+import { ImageIcon, EditIcon, DeleteIcon, CaretUpIcon, CaretDownIcon, SelectIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
 import React from 'react';
 //import {getProductTitle} from '../models/Limiter.server';
@@ -460,15 +460,6 @@ export default function Index() {
   const [sortDropdownVisible, setSortDropdownVisible] = useState(false);
   const [tableRows, setTableRows] = useState([]);
 
-  const headings = [
-    { title: 'Id' },
-    { title: 'Type' },
-    { title: 'Name' },
-    { title: 'Quantity Limit' },
-    { title: 'Status' },
-    { title: 'Created Date' },
-    { title: 'Action' },
-  ];
 
   console.log(loaderData.orderLimit);
 
@@ -803,12 +794,7 @@ export default function Index() {
       </Modal>
 
       <div style={{ width: '100%', overflow: 'auto' }}>
-        <div style={{ float: 'right', padding: '10px' }}>
-          <Button onClick={handleAdd}>Add Order Limit</Button>
-        </div>
-      </div>
-
-      <BlockStack style={{ MarginBottom:'1rem', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      
         <InlineStack gap="500">
           <TextField
             label="Search"
@@ -817,7 +803,13 @@ export default function Index() {
             prefix={<Icon source="search" color="skyDark" />}
           />
         </InlineStack>
-      </BlockStack>
+     
+        <div style={{ float: 'right', padding: '10px' }}>
+          <Button onClick={handleAdd}>Add Order Limit</Button>
+        </div>
+      </div>
+
+      
 
       <BlockStack gap="500">
         <Layout>
@@ -825,35 +817,68 @@ export default function Index() {
             <Card>
               <IndexTable
                 headings={[
-                  { title: 'Id' },
-                  { title: 'Type' },
-                  { title: 'Name' },
-                  { title: 'Quantity Limit' },
-                  { title: 'Status' },
-                  { title: 'Created Date' },
-                  { title: 'Action' },
-                  {
-                    title: (
-                      <ButtonGroup gap='200'>
-                        <Select
-                        options={[
-                          { label: 'Id', value: 'id' },
-                          { label: 'Type', value: 'type' },
-                          { label: 'Name', value: 'name' },
-                          { label: 'Quantity Limit', value: 'quantityLimit' },
-                          { label: 'Status', value: 'status' },
-                          { label: 'Created Date', value: 'createdAt' },
-                        ]}
-                        value={selectedSortColumn}
-                        onChange={handleSortChange}
-                      />
-                      <Button onClick={ () => handleSort(selectedSortColumn)}>
-                        <Icon source={ArrowsOutHorizontalIcon}/>
+                  { title: (
+                    <ButtonGroup>
+                      <Button onClick={() => handleSort('id')} variant="tertiary">
+                        Id
                       </Button>
-                      </ButtonGroup>
-                      
-                    )
+                      <Button onClick={() => handleSort('id')} variant="tertiary">
+                        <Icon source={SelectIcon}/>
+                      </Button>
+                    </ButtonGroup>
+                    ) 
                   },
+                  { title: (
+                    <ButtonGroup>
+                    <Button onClick={() => handleSort('type')} variant="tertiary">
+                      Type
+                      </Button>
+                      <Button onClick={() => handleSort('type')} variant="tertiary">
+                        <Icon source={SelectIcon}/>
+                      </Button>
+                    </ButtonGroup>
+                    )  },
+                  { title: (
+                    <ButtonGroup>
+                    <Button onClick={() => handleSort('name')} variant="tertiary">
+                      Name
+                      </Button>
+                      <Button onClick={() => handleSort('name')} variant="tertiary">
+                        <Icon source={SelectIcon}/>
+                      </Button>
+                    </ButtonGroup>
+                    )  },
+                  { title: (
+                    <ButtonGroup>
+                    <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
+                      Quantity
+                      </Button>
+                      <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
+                        <Icon source={SelectIcon}/>
+                      </Button>
+                    </ButtonGroup>
+                    )  },
+                  { title: (
+                    <ButtonGroup>
+                    <Button onClick={() => handleSort('status')} variant="tertiary">
+                      Status
+                      </Button>
+                      <Button onClick={() => handleSort('status')} variant="tertiary">
+                        <Icon source={SelectIcon}/>
+                      </Button>
+                    </ButtonGroup>
+                    )  },
+                  { title: (
+                    <ButtonGroup>
+                    <Button onClick={ () => handleSort('createdAt')} variant="tertiary">
+                      Created At
+                      </Button>
+                      <Button onClick={() => handleSort('createdAt')} variant="tertiary">
+                        <Icon source={SelectIcon}/>
+                      </Button>
+                    </ButtonGroup>
+                    )  },
+                  { title: (<b>Action</b>  )},
                 ]}
                 itemCount={sortedFilteredRows.length}
                 selectable={false}
