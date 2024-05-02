@@ -203,10 +203,17 @@ export async function action({ request, params }) {
         return json({
           updated: true,
         });
+      } else if(result?.ok === false) {
+        return json({
+          ok: false,
+          error: result.error,
+        });
       } else {
         return redirect('/app/');
       }
-    } else if (formData.get('action') === 'create') {
+    } 
+    
+    else if (formData.get('action') === 'create') {
       const result = await addLimiter(formData, allProductsData);
       console.log('res in add', result);
       if (result?.exist === true) {
@@ -216,6 +223,11 @@ export async function action({ request, params }) {
       } else if (result?.created === true) {
         return json({
           created: true,
+        });
+      } else if(result?.ok === false) {
+        return json({
+          ok: false,
+          error: result.error,
         });
       } else {
         return redirect('/app/');
@@ -240,10 +252,42 @@ export default function Index() {
   const loaderData = useLoaderData();
   const actionData = useActionData();
 
+  const [error, setError] = useState(null); // State to handle loader errors
+  
+  /*// useEffect to handle loader errors
+  useEffect(() => {
+    if (!loaderData?.ok) {
+      setError(loaderData?.error || 'Unknown error occurred');
+    }
+  }, [loaderData]);
+  
+  // Handling action errors
+  useEffect(() => {
+    if (!actionData?.ok) {
+      setError(actionData?.error || 'Unknown error occurred');
+    }
+  }, [actionData]);
+
+  // Rendering error message if error exists
+  if (error) {
+    return (
+      <Page>
+        <Layout>
+          <Layout.Section>
+            <Card sectioned>
+              <InlineError message={error} />
+            </Card>
+          </Layout.Section>
+        </Layout>
+      </Page>
+    );
+  }*/
+
   const categoryLimits = loaderData.categoryLimits;
   const categoryOptions = [];
   const categoryIds = [];
   const allProductCategories = loaderData.data.data.shop.allProductCategories;
+  const orderLimit = loaderData.orderLimit;
 
   //to populate the category arrays
   for (const category of allProductCategories) {
@@ -260,7 +304,7 @@ export default function Index() {
   const rows = loaderData.rows;
 
   /*//to add buttons to the rows
-  const actionRows = rows ? rows.map(row => [
+  const rows = allFieldRows ? rows.map(row => [
     row.id,
     row.type,
     row.name,
@@ -283,7 +327,7 @@ export default function Index() {
     </ButtonGroup>
   ]) : [];*/
 
-  console.log('rows', rows);
+  //console.log('rows', rows);
   const [searchValue, setSearchValue] = useState('');
   const [modalActive, setModalActive] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
@@ -312,7 +356,7 @@ export default function Index() {
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 5;
 
-  //console.log(loaderData.orderLimit);
+  console.log(loaderData.orderLimit);
 
   // Filter rows based on search value
   const filteredRows = rows.filter(row =>
@@ -325,7 +369,7 @@ export default function Index() {
   const sortedFilteredRows = filteredRows.sort((a, b) => {
     const aValue = a[selectedSortColumn];
     const bValue = b[selectedSortColumn];
-    console.log('sortedfiletered', rows);
+    //console.log('sortedfiletered', rows);
     if (aValue === bValue) return 0;
     return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
   });
@@ -446,11 +490,39 @@ export default function Index() {
 
   const handleAdd = () => {
     setIsUpdate(false);
+    setTagValue('Store Wise');
     toggleModalActive();
   }
 
   const handleEdit = (id, type) => {
     console.log(id + 'in edit');
+    for(const row of orderLimit) {
+      console.log('row id and edit id', row.id);
+      if(row.id == id) {
+        if(row.type === 'product_wise'){
+          setFormState({
+            ...formState,
+            productId: row.typeId,
+            productTitle: rows.find(
+              (record) => record.id === row.id
+            )?.name,
+            availablePublicationCount: row.quantityLimit
+          });
+          setTagValue('Product Wise');
+          setStatusValue(row.status);
+        } else if(row.type === 'category_wise') {
+          setTagValue('Category Wise');
+          setCategoryLimit(row.quantityLimit);
+          setStatusValue(row.status);
+          setCategoryValue(rows.find(
+            (record) => record.id === row.id
+          )?.name);
+        } else {
+          setTagValue('Store Wise');
+          setStatusValue(row.status);
+        }
+      }
+    }
     setPk(id);
     setIsUpdate(true);
     toggleModalActive();
@@ -531,6 +603,7 @@ export default function Index() {
               options={['Store Wise', 'Product Wise', 'Category Wise']}
               value={tagValue}
               onChange={handleTagValueChange}
+              onClick={() => handleTagValueChange(tagValue)}
             />
           </FormLayout>
           <div style={{ marginTop: '1rem' }}>
