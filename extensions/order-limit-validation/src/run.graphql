@@ -1,0 +1,23 @@
+query RunInput {
+  cart {
+    lines {
+      quantity
+      id
+      merchandise {
+        __typename
+        ... on CustomProduct {
+          customProductTitle: title
+          # Include other fields specific to CustomProduct if needed
+        }
+        ... on ProductVariant {
+          id
+          product {
+            id
+          }
+          productVariantTitle: title
+          # Include other fields specific to ProductVariant if needed
+        }
+      }
+    }
+  }
+}
