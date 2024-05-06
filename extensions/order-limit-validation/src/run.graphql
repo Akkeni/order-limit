@@ -13,6 +13,28 @@ query RunInput {
           id
           product {
             id
+            storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
+              value
+            }
+            storeStatusField: metafield(namespace: "storeStatus", key: "storeStatus") {
+              value
+            }
+            categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
+              value
+            }
+            categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+              value
+            }
+            categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
+              value
+            }
+            productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+              value
+            }
+            productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
+              value
+            }
+            
           }
           productVariantTitle: title
           # Include other fields specific to ProductVariant if needed

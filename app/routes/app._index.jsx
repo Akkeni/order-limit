@@ -59,6 +59,7 @@ export async function loader({ request }) {
         products(first: 250) {
             edges {
               node{
+                id
                 category {
                   name
                 }
@@ -86,6 +87,103 @@ export async function loader({ request }) {
       categoryLimits[name] = quantityLimit;
     }
 
+
+    for(const orderLimiter of orderLimit) {
+      if(orderLimiter.type === 'product_wise') {
+        //console.log('store limit in metafields', orderLimit.find((item) => item.type === 'store_wise')?.quantityLimit);
+
+        const categoryName = allProductsData.data.products.edges.find(
+          (product) => product.node.id === orderLimiter.typeId
+        )?.node?.category?.name;
+
+        const categoryId = allProductCategories.find(
+          (category) => category.productTaxonomyNode.name === categoryName
+        )?.productTaxonomyNode.id
+
+        const metaResponse = await admin.graphql(
+          `mutation productUpdate($input: ProductInput!) {
+            productUpdate(input: $input) {
+              product {
+                id
+                title
+                metafields(first: 10) {
+                  edges {
+                    node {
+                      id
+                      namespace
+                      key
+                      value
+                    }
+                  }
+                }
+              }
+              userErrors {
+                field
+                message
+              }
+            }
+          }`,
+          {
+            variables: {
+              input: {
+                id: orderLimiter.typeId,
+                metafields: [
+                  {
+                    "namespace": "productLimit",
+                    "key": `productLimit`,
+                    "type": "string",
+                    "value": `${orderLimit.quantityLimit}`
+                  },
+                  {
+                    "namespace": "productStatus",
+                    "key": "productStatus",
+                    "type": "string",
+                    "value": `${orderLimiter.status}`,
+                  },
+                  {
+                    "namespace": "categoryName",
+                    "key": "categoryName",
+                    "type": "string",
+                    "value": `${categoryName}`
+                  },
+                  {
+                    "namespace": "categoryLimit",
+                    "key": "categoryLimit",
+                    "value": `${orderLimit.find(
+                      (item) => item.typeId === categoryId
+                  )?.quantityLimit}`,
+                    "type": "string"
+                  },
+                  {
+                    "namespace": "categoryStatus",
+                    "key": "categoryStatus",
+                    "value": `${orderLimit.find(
+                      (item) => item.typeId === categoryId
+                  )?.status}`,
+                    "type": "string"
+                  },
+                  {
+                    "namespace": "storeLimit",
+                    "key": "storeLimit",
+                    "value": `${orderLimit.find((item) => item.type === 'store_wise')?.quantityLimit}`,
+                    "type": "string"
+                  },
+                  {
+                    "namespace": "storeStatus",
+                    "key": "storeStatus",
+                    "value":`${ orderLimit.find((item) => item.type === 'store_wise')?.status}`,
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          }
+        );
+        const metaData = await metaResponse.json();
+       // console.log(metaData.data.productUpdate.product , metaData.data.productUpdate.userErrors);
+      }
+    }
+
     const rows = [];
     for (const limiter of orderLimit) {
       let row = {};
@@ -95,7 +193,6 @@ export async function loader({ request }) {
       if (limiter.type === 'store_wise') {
         row.type = 'Store';
         row.name = 'Store Name';
-        /*const quantityLimit = allProductsData.data.products.edges.length;*/
         row.quantityLimit = limiter.quantityLimit;
       } else if (limiter.type === 'product_wise') {
         row.type = 'Product';
@@ -168,6 +265,7 @@ export async function action({ request, params }) {
         products(first: 250) {
             edges {
               node{
+                id
                 category {
                   name
                 }
@@ -203,16 +301,11 @@ export async function action({ request, params }) {
         return json({
           updated: true,
         });
-      } else if(result?.ok === false) {
-        return json({
-          ok: false,
-          error: result.error,
-        });
-      } else {
+      }  else {
         return redirect('/app/');
       }
-    } 
-    
+    }
+
     else if (formData.get('action') === 'create') {
       const result = await addLimiter(formData, allProductsData);
       console.log('res in add', result);
@@ -224,18 +317,10 @@ export async function action({ request, params }) {
         return json({
           created: true,
         });
-      } else if(result?.ok === false) {
-        return json({
-          ok: false,
-          error: result.error,
-        });
       } else {
         return redirect('/app/');
       }
     }
-
-
-
 
   } catch (error) {
     console.error('Error storing records:', error);
@@ -253,7 +338,7 @@ export default function Index() {
   const actionData = useActionData();
 
   const [error, setError] = useState(null); // State to handle loader errors
-  
+
   /*// useEffect to handle loader errors
   useEffect(() => {
     if (!loaderData?.ok) {
@@ -356,7 +441,7 @@ export default function Index() {
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 5;
 
-  console.log(loaderData.orderLimit);
+  //console.log(loaderData.orderLimit);
 
   // Filter rows based on search value
   const filteredRows = rows.filter(row =>
@@ -496,10 +581,10 @@ export default function Index() {
 
   const handleEdit = (id, type) => {
     console.log(id + 'in edit');
-    for(const row of orderLimit) {
+    for (const row of orderLimit) {
       console.log('row id and edit id', row.id);
-      if(row.id == id) {
-        if(row.type === 'product_wise'){
+      if (row.id == id) {
+        if (row.type === 'product_wise') {
           setFormState({
             ...formState,
             productId: row.typeId,
@@ -510,7 +595,7 @@ export default function Index() {
           });
           setTagValue('Product Wise');
           setStatusValue(row.status);
-        } else if(row.type === 'category_wise') {
+        } else if (row.type === 'category_wise') {
           setTagValue('Category Wise');
           setCategoryLimit(row.quantityLimit);
           setStatusValue(row.status);
