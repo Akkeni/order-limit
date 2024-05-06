@@ -88,8 +88,8 @@ export async function loader({ request }) {
     }
 
 
-    for(const orderLimiter of orderLimit) {
-      if(orderLimiter.type === 'product_wise') {
+    for (const orderLimiter of orderLimit) {
+      if (orderLimiter.type === 'product_wise') {
         //console.log('store limit in metafields', orderLimit.find((item) => item.type === 'store_wise')?.quantityLimit);
 
         const categoryName = allProductsData.data.products.edges.find(
@@ -100,87 +100,136 @@ export async function loader({ request }) {
           (category) => category.productTaxonomyNode.name === categoryName
         )?.productTaxonomyNode.id
 
-        const metaResponse = await admin.graphql(
-          `mutation productUpdate($input: ProductInput!) {
-            productUpdate(input: $input) {
-              product {
-                id
-                title
-                metafields(first: 10) {
-                  edges {
-                    node {
-                      id
-                      namespace
-                      key
-                      value
-                    }
+        const mutationQuery = `mutation productUpdate($input: ProductInput!) {
+          productUpdate(input: $input) {
+            product {
+              id
+              title
+              metafields(first: 10) {
+                edges {
+                  node {
+                    id
+                    namespace
+                    key
+                    value
                   }
                 }
               }
-              userErrors {
-                field
-                message
-              }
             }
-          }`,
-          {
-            variables: {
-              input: {
-                id: orderLimiter.typeId,
-                metafields: [
-                  {
-                    "namespace": "productLimit",
-                    "key": `productLimit`,
-                    "type": "string",
-                    "value": `${orderLimit.quantityLimit}`
-                  },
-                  {
-                    "namespace": "productStatus",
-                    "key": "productStatus",
-                    "type": "string",
-                    "value": `${orderLimiter.status}`,
-                  },
-                  {
-                    "namespace": "categoryName",
-                    "key": "categoryName",
-                    "type": "string",
-                    "value": `${categoryName}`
-                  },
-                  {
-                    "namespace": "categoryLimit",
-                    "key": "categoryLimit",
-                    "value": `${orderLimit.find(
-                      (item) => item.typeId === categoryId
-                  )?.quantityLimit}`,
-                    "type": "string"
-                  },
-                  {
-                    "namespace": "categoryStatus",
-                    "key": "categoryStatus",
-                    "value": `${orderLimit.find(
-                      (item) => item.typeId === categoryId
-                  )?.status}`,
-                    "type": "string"
-                  },
-                  {
-                    "namespace": "storeLimit",
-                    "key": "storeLimit",
-                    "value": `${orderLimit.find((item) => item.type === 'store_wise')?.quantityLimit}`,
-                    "type": "string"
-                  },
-                  {
-                    "namespace": "storeStatus",
-                    "key": "storeStatus",
-                    "value":`${ orderLimit.find((item) => item.type === 'store_wise')?.status}`,
-                    "type": "string"
-                  }
-                ]
-              }
+            userErrors {
+              field
+              message
             }
           }
-        );
+        }`;
+
+        const variables = {
+          variables: {
+            input: {
+              id: orderLimiter.typeId,
+              metafields: [
+                {
+                  "namespace": "productLimit",
+                  "key": `productLimit`,
+                  "type": "string",
+                  "value": `${orderLimiter.quantityLimit}`
+                },
+                {
+                  "namespace": "productStatus",
+                  "key": "productStatus",
+                  "type": "string",
+                  "value": `${orderLimiter.status}`,
+                },
+                {
+                  "namespace": "categoryName",
+                  "key": "categoryName",
+                  "type": "string",
+                  "value": `${categoryName}`
+                },
+                {
+                  "namespace": "categoryLimit",
+                  "key": "categoryLimit",
+                  "value": `${orderLimit.find(
+                    (item) => item.typeId === categoryId
+                  )?.quantityLimit}`,
+                  "type": "string"
+                },
+                {
+                  "namespace": "categoryStatus",
+                  "key": "categoryStatus",
+                  "value": `${orderLimit.find(
+                    (item) => item.typeId === categoryId
+                  )?.status}`,
+                  "type": "string"
+                },
+                {
+                  "namespace": "storeLimit",
+                  "key": "storeLimit",
+                  "value": `${orderLimit.find((item) => item.type === 'store_wise')?.quantityLimit}`,
+                  "type": "string"
+                },
+                {
+                  "namespace": "storeStatus",
+                  "key": "storeStatus",
+                  "value": `${orderLimit.find((item) => item.type === 'store_wise')?.status}`,
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        };
+
+        const metaResponse = await admin.graphql(mutationQuery, variables);
         const metaData = await metaResponse.json();
-       // console.log(metaData.data.productUpdate.product , metaData.data.productUpdate.userErrors);
+        const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
+
+        const errorMessages = metaData.data.productUpdate.userErrors;
+
+        console.log('existingrecords', existingMetafields);
+
+        if (errorMessages && errorMessages.length > 0) {
+
+          // Delete metafields one by one based on the given keys
+          const keysToDelete = [
+            'productLimit', 'productStatus', 'categoryLimit', 'categoryStatus', 'categoryName', 'storeLimit', 'storeStatus'
+          ];
+
+          const deletePromises = keysToDelete.map(async key => {
+            // Find the corresponding metafield ID in the existing metafields
+            const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
+            console.log('metafield', existingMetafield);
+
+            if (existingMetafield) {
+              // Delete the conflicting metafield
+              await admin.graphql(
+                `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+                  metafieldDelete(input: $input) {
+                    userErrors {
+                      field
+                      message
+                    }
+                  }
+                }`,
+                {
+                  variables: {
+                    input: {
+                      id: `${existingMetafield.id}`
+                    }
+                  }
+                }
+              );
+            }
+          });
+
+          // Wait for all delete operations to complete
+          await Promise.all(deletePromises);
+
+          // Now, execute the updateProduct query with the updated metafields
+          const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
+          const updatedMetaData = await updatedMetaResponse.json();
+        }
+
+        // console.log(metaData.data.productUpdate.product , metaData.data.productUpdate.userErrors);
       }
     }
 
@@ -301,7 +350,7 @@ export async function action({ request, params }) {
         return json({
           updated: true,
         });
-      }  else {
+      } else {
         return redirect('/app/');
       }
     }
