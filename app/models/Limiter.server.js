@@ -73,7 +73,7 @@ export async function updateLimiter(formData, allProductsData) {
                     return result;
                 }
 
-                const quantityLimit = allProductsData.data.products.edges.length;
+                //const quantityLimit = allProductsData.data.products.edges.length;
                 const updateLimiter = await db.order_Limit.update({
                     where: {
                         id: Number(formData.get('pk')),
@@ -81,7 +81,7 @@ export async function updateLimiter(formData, allProductsData) {
                     data: {
                         type: 'store_wise',
                         status: formData.get('status'),
-                        quantityLimit: quantityLimit,
+                        quantityLimit:  Number(formData.get('quantityLimit')),
                     },
                 });
             }
@@ -115,12 +115,12 @@ export async function addLimiter( formData, allProductsData) {
                     return result;
                 }
 
-                const quantityLimit = allProductsData.data.products.edges.length;
+                //const quantityLimit = allProductsData.data.products.edges.length;
 
                 const data = {
                     type: 'store_wise',
                     status: formData.get('status'),
-                    quantityLimit: quantityLimit,
+                    quantityLimit: Number(formData.get('quantityLimit')),
                 };
 
                 await db.order_Limit.create({ data });

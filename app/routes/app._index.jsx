@@ -71,6 +71,7 @@ export async function loader({ request }) {
     const allProductsData = await res.json();
     const data = await response.json();
     const allProductCategories = data.data.shop.allProductCategories;
+    const storeLimit = allProductsData.data.products.edges.length;
 
     const categoryLimits = {}
     for (const category of allProductCategories) {
@@ -185,7 +186,7 @@ export async function loader({ request }) {
 
         const errorMessages = metaData.data.productUpdate.userErrors;
 
-        console.log('existingrecords', existingMetafields);
+        //console.log('existingrecords', existingMetafields);
 
         if (errorMessages && errorMessages.length > 0) {
 
@@ -197,7 +198,7 @@ export async function loader({ request }) {
           const deletePromises = keysToDelete.map(async key => {
             // Find the corresponding metafield ID in the existing metafields
             const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
-            console.log('metafield', existingMetafield);
+            //console.log('metafield', existingMetafield);
 
             if (existingMetafield) {
               // Delete the conflicting metafield
@@ -292,13 +293,14 @@ export async function loader({ request }) {
       orderLimit,
       rows,
       categoryLimits,
+      storeLimit,
       graphql: admin.graphql,
     });
   } catch (error) {
-    console.error('Error fetching Categories data:', error);
+    console.error('Error in loader:', error);
     return json({
       ok: false,
-      error: 'Error fetching Categories data',
+      error: error,
     });
   }
 }
@@ -350,6 +352,12 @@ export async function action({ request, params }) {
         return json({
           updated: true,
         });
+      } else if(result?.ok === false) {
+        console.log('error while storing records', result?.error);
+        return json({
+          ok: false,
+          error: error,
+        });
       } else {
         return redirect('/app/');
       }
@@ -366,6 +374,12 @@ export async function action({ request, params }) {
         return json({
           created: true,
         });
+      } else if(result?.ok === false) {
+        console.log('error while storing records', result?.error);
+        return json({
+          ok: false,
+          error: error,
+        });
       } else {
         return redirect('/app/');
       }
@@ -375,7 +389,7 @@ export async function action({ request, params }) {
     console.error('Error storing records:', error);
     return json({
       ok: false,
-      error: 'Error storing records',
+      error: error,
     });
   }
 }
@@ -386,9 +400,9 @@ export default function Index() {
   const loaderData = useLoaderData();
   const actionData = useActionData();
 
-  const [error, setError] = useState(null); // State to handle loader errors
+  const [error, setError] = useState(false); // State to handle loader errors
 
-  /*// useEffect to handle loader errors
+  // useEffect to handle loader errors
   useEffect(() => {
     if (!loaderData?.ok) {
       setError(loaderData?.error || 'Unknown error occurred');
@@ -402,8 +416,8 @@ export default function Index() {
     }
   }, [actionData]);
 
-  // Rendering error message if error exists
-  if (error) {
+  // Helper function to render error message
+  const renderErrorMessage = () => {
     return (
       <Page>
         <Layout>
@@ -415,7 +429,12 @@ export default function Index() {
         </Layout>
       </Page>
     );
-  }*/
+  };
+
+// Render error message if error exists
+  if(error) {
+    <renderErrorMessage/>
+  }
 
   const categoryLimits = loaderData.categoryLimits;
   const categoryOptions = [];
@@ -471,6 +490,7 @@ export default function Index() {
   const [tagValue, setTagValue] = useState('Store Wise');
   const [statusValue, setStatusValue] = useState('Active');
   const [categoryValue, setCategoryValue] = useState(categoryOptions[0]);
+  const [quantityLimit, setQuantityLimit] = useState(loaderData.storeLimit);
   const [categoryLimit, setCategoryLimit] = useState(categoryLimits[categoryValue]);
   const [formState, setFormState] = useState({
     productId: '',
@@ -587,6 +607,7 @@ export default function Index() {
         productImage: images[0]?.originalSrc,
         availablePublicationCount: availablePublicationCount,
       });
+      setQuantityLimit(availablePublicationCount);
     }
     //console.log('in selectproduct', formState.productId, formState.availablePublicationCount);
 
@@ -607,7 +628,8 @@ export default function Index() {
   const handleCategoryValueChange = useCallback(
     (value) => {
       setCategoryValue(value);
-      setCategoryLimit(categoryLimits[value]);
+      //setCategoryLimit(categoryLimits[value]);
+      setQuantityLimit(categoryLimits[value]);
     },
     [],
   );
@@ -619,6 +641,12 @@ export default function Index() {
     [],
   );
 
+  const handleQuantityLimit = useCallback(
+    (value) => {
+      setQuantityLimit(value);
+    },
+    [],
+  );
 
 
 
@@ -640,13 +668,15 @@ export default function Index() {
             productTitle: rows.find(
               (record) => record.id === row.id
             )?.name,
-            availablePublicationCount: row.quantityLimit
+            //availablePublicationCount: row.quantityLimit
           });
+          setQuantityLimit(row.quantityLimit);
           setTagValue('Product Wise');
           setStatusValue(row.status);
         } else if (row.type === 'category_wise') {
           setTagValue('Category Wise');
-          setCategoryLimit(row.quantityLimit);
+          //setCategoryLimit(row.quantityLimit);
+          setQuantityLimit(row.quantityLimit);
           setStatusValue(row.status);
           setCategoryValue(rows.find(
             (record) => record.id === row.id
@@ -654,6 +684,7 @@ export default function Index() {
         } else {
           setTagValue('Store Wise');
           setStatusValue(row.status);
+          setQuantityLimit(row.quantityLimit);
         }
       }
     }
@@ -669,18 +700,18 @@ export default function Index() {
 
   const handleUpdate = () => {
     let id = '';
-    let quantityLimit = 0;
+    //let quantityLimit = 0;
     let name = ''
 
     if (tagValue === 'Category Wise') {
       const indexId = categoryOptions.indexOf(categoryValue);
       id = categoryIds[indexId];
       name = categoryValue;
-      quantityLimit = categoryLimit;
+      //quantityLimit = categoryLimit;
     } else if (tagValue === 'Product Wise') {
       console.log('in handleSave', formState.productId);
       id = formState.productId;
-      quantityLimit = formState.availablePublicationCount;
+      //quantityLimit = formState.availablePublicationCount;
     }
 
     //triggers the action function. Makes the post request
@@ -691,18 +722,18 @@ export default function Index() {
 
   const handleSave = () => {
     let id = '';
-    let quantityLimit = 0;
+    //let quantityLimit = 0;
     let name = '';
 
     if (tagValue === 'Category Wise') {
       const indexId = categoryOptions.indexOf(categoryValue);
       id = categoryIds[indexId];
       name = categoryValue;
-      quantityLimit = categoryLimit;
+      //quantityLimit = categoryLimit;
     } else if (tagValue === 'Product Wise') {
       console.log('in handleSave', formState.productId);
       id = formState.productId;
-      quantityLimit = formState.availablePublicationCount;
+      //quantityLimit = formState.availablePublicationCount;
     }
 
 
@@ -750,6 +781,16 @@ export default function Index() {
               />
             </FormLayout>
           </div>
+          <div style={{ marginTop: '1rem' }}>
+            <FormLayout>
+            <TextField
+              value={quantityLimit}
+              label="Quantity Limit"
+              type="number"
+              onChange={handleQuantityLimit}
+            />
+            </FormLayout>
+          </div>
           {tagValue === 'Product Wise' && formState.productId && (
             <div style={{ marginTop: '1rem' }}>
               <Card>
@@ -782,13 +823,13 @@ export default function Index() {
                     <Divider />
                   </Bleed>
                 </BlockStack>
-                <BlockStack>
+                {/*<BlockStack>
                   <TextField
                     value={formState.availablePublicationCount}
                     label="Quantity Limit"
                     type="number"
                   />
-                </BlockStack>
+                </BlockStack>*/}
               </Card>
             </div>
           )}
@@ -802,7 +843,7 @@ export default function Index() {
                   onChange={handleCategoryValueChange}
                 />
               </FormLayout>
-              <div style={{ marginTop: '1rem' }}>
+              {/*<div style={{ marginTop: '1rem' }}>
                 <BlockStack>
                   <TextField
                     value={categoryLimit}
@@ -810,7 +851,7 @@ export default function Index() {
                     type="number"
                   />
                 </BlockStack>
-              </div>
+              </div>*/}
             </div>
           )}
         </Modal.Section>
