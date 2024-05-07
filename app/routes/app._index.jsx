@@ -352,7 +352,7 @@ export async function action({ request, params }) {
         return json({
           updated: true,
         });
-      } else if(result?.ok === false) {
+      } else if (result?.ok === false) {
         console.log('error while storing records', result?.error);
         return json({
           ok: false,
@@ -374,7 +374,7 @@ export async function action({ request, params }) {
         return json({
           created: true,
         });
-      } else if(result?.ok === false) {
+      } else if (result?.ok === false) {
         console.log('error while storing records', result?.error);
         return json({
           ok: false,
@@ -408,7 +408,7 @@ export default function Index() {
       setError(loaderData?.error || 'Unknown error occurred');
     }
   }, [loaderData]);
-  
+
   // Handling action errors
   useEffect(() => {
     if (!actionData?.ok) {
@@ -431,9 +431,9 @@ export default function Index() {
     );
   };
 
-// Render error message if error exists
-  if(error) {
-    <renderErrorMessage/>
+  // Render error message if error exists
+  if (error) {
+    <renderErrorMessage />
   }
 
   const categoryLimits = loaderData.categoryLimits;
@@ -783,12 +783,12 @@ export default function Index() {
           </div>
           <div style={{ marginTop: '1rem' }}>
             <FormLayout>
-            <TextField
-              value={quantityLimit}
-              label="Quantity Limit"
-              type="number"
-              onChange={handleQuantityLimit}
-            />
+              <TextField
+                value={quantityLimit}
+                label="Quantity Limit"
+                type="number"
+                onChange={handleQuantityLimit}
+              />
             </FormLayout>
           </div>
           {tagValue === 'Product Wise' && formState.productId && (
