@@ -25,9 +25,9 @@ export function run(input) {
       const { product } = merchandise;
 
       // Check store limit
-      if (product.storeLimitField && parseInt(product.storeLimitField.value) > 0) {
-        const storeLimit = parseInt(product.storeLimitField.value);
-        if (product.storeStatusField && product.storeStatusField.value === "active") {
+      if (input.shop.storeLimitField && parseInt(input.shop.storeLimitField.value) > 0) {
+        const storeLimit = parseInt(input.shop.storeLimitField.value);
+        if (input.shop.storeStatusField && input.shop.storeStatusField.value === "active") {
           const totalQuantity = input.cart.lines.reduce((acc, curr) => acc + curr.quantity, 0);
           if (totalQuantity > storeLimit) {
             errors.push({

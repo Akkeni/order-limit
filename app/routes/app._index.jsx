@@ -42,16 +42,17 @@ export async function loader({ request }) {
 
     const response = await admin.graphql(
       `{
-      shop {
-       allProductCategories {
-         productTaxonomyNode {
-           fullName
-           name
-           id
-         }
-       }
-     }
-     }
+        shop {
+          id
+          allProductCategories {
+          productTaxonomyNode {
+            fullName
+            name
+            id
+          }
+          }
+        }
+      }
     `);
 
     const res = await admin.graphql(
@@ -70,8 +71,9 @@ export async function loader({ request }) {
     );
     const allProductsData = await res.json();
     const data = await response.json();
-    const allProductCategories = data.data.shop.allProductCategories;
-    const storeLimit = allProductsData.data.products.edges.length;
+    const allProductCategories = data?.data?.shop?.allProductCategories;
+    const shopId = data?.data?.shop?.id;
+    const storeLimit = allProductsData?.data?.products?.edges.length;
 
     const categoryLimits = {}
     for (const category of allProductCategories) {
@@ -88,8 +90,102 @@ export async function loader({ request }) {
       categoryLimits[name] = quantityLimit;
     }
 
-
+    console.log('shop id in loader', shopId);
+    //for loop to create metafields for products and shop
     for (const orderLimiter of orderLimit) {
+      
+      if(orderLimiter.type === 'store_wise') {
+        console.log('store limit and status', orderLimiter.quantityLimit, orderLimiter.status)
+        const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) {
+            metafields {
+              id
+              namespace
+              key
+              value
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }`;
+
+        const metafields = {
+          variables: {
+            metafields: [
+              {
+                "ownerId": `${shopId}`,
+                "namespace": "storeLimit",
+                "key": "storeLimit",
+                "type": "string",
+                "value": `${orderLimiter.quantityLimit}`
+                
+              },
+              {
+                "ownerId": `${shopId}`,
+                "namespace": "storeStatus",
+                "key": "storeStatus",
+                "type": "string",
+                "value": `${orderLimiter.status}`
+                
+              }
+            ]
+          }
+        };
+
+        const metaResponse = await admin.graphql(mutationQuery, metafields);
+        const metaData = await metaResponse.json();
+        const existingMetafields = metaData?.data?.metafieldsSet?.metafields;
+
+        const errorMessages = metaData?.data?.metafieldsSet?.userErrors;
+        console.log(metaData?.data?.metafieldsSet?.userErrors);
+
+        console.log('existingrecords in storemeta', metaData?.data?.metafieldsSet?.metafields);
+
+        /*if (errorMessages && errorMessages.length > 0) {
+
+          // Delete metafields one by one based on the given keys
+          const keysToDelete = [
+            'storeLimit', 'storeStatus'
+          ];
+
+          const deletePromises = keysToDelete.map(async key => {
+            // Find the corresponding metafield ID in the existing metafields
+            const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
+            console.log('metafield in storemeta', existingMetafield);
+
+            if (existingMetafield) {
+              // Delete the conflicting metafield
+              await admin.graphql(
+                `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+                  metafieldDelete(input: $input) {
+                    userErrors {
+                      field
+                      message
+                    }
+                  }
+                }`,
+                {
+                  variables: {
+                    input: {
+                      id: `${existingMetafield.id}`
+                    }
+                  }
+                }
+              );
+            }
+          });
+
+          // Wait for all delete operations to complete
+          await Promise.all(deletePromises);
+
+          // Now, execute the updateProduct query with the updated metafields
+          const updatedMetaResponse = await admin.graphql(mutationQuery, metafields);
+          const updatedMetaData = await updatedMetaResponse.json();
+        }*/
+      }
+      
       if (orderLimiter.type === 'product_wise') {
         //console.log('store limit in metafields', orderLimit.find((item) => item.type === 'store_wise')?.quantityLimit);
 
