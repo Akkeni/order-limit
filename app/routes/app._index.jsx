@@ -44,6 +44,7 @@ export async function loader({ request }) {
       `{
         shop {
           id
+          name
           allProductCategories {
           productTaxonomyNode {
             fullName
@@ -73,6 +74,7 @@ export async function loader({ request }) {
     const data = await response.json();
     const allProductCategories = data?.data?.shop?.allProductCategories;
     const shopId = data?.data?.shop?.id;
+    const shopName = data?.data?.shop?.name;
     const storeLimit = allProductsData?.data?.products?.edges.length;
 
     const categoryLimits = {}
@@ -330,6 +332,7 @@ export async function loader({ request }) {
       }
     }
 
+    //to populate the rows
     const rows = [];
     for (const limiter of orderLimit) {
       let row = {};
@@ -338,7 +341,7 @@ export async function loader({ request }) {
 
       if (limiter.type === 'store_wise') {
         row.type = 'Store';
-        row.name = 'Store Name';
+        row.name = shopName;
         row.quantityLimit = limiter.quantityLimit;
       } else if (limiter.type === 'product_wise') {
         row.type = 'Product';
@@ -426,6 +429,8 @@ export async function action({ request, params }) {
 
     const formData = await request.formData();
 
+    console.log('status value in loader', formData.get('status'), formData.get('id'));
+
     //to delete a record from a database
     console.log(formData.get('action'), formData.get('pk'));
     if (formData.get('action') == 'delete') {
@@ -434,6 +439,65 @@ export async function action({ request, params }) {
           id: Number(formData.get('pk')),
         }
       });
+    
+      console.log('type and typeId in action', formData.get('type'), formData.get('typeId'));
+      if(formData.get('type') === 'product_wise') {
+        const productResponse = await admin.graphql(
+        `{  
+            product(id: "${formData.get('typeId')}") {
+              id
+              metafields(first: 10) {
+                edges {
+                  node {
+                    id
+                    namespace
+                    key
+                    
+                  }
+                }
+              }
+            }
+          }
+        `);
+        const productData = await productResponse.json();
+        const existingMetafields = productData?.data?.product?.metafields?.edges.map(edge => edge.node);
+        // Delete metafields one by one based on the given keys
+        const keysToDelete = [
+          'productLimit', 'productStatus', 'categoryLimit', 'categoryStatus', 'categoryName'
+        ];
+
+        const deletePromises = keysToDelete.map(async key => {
+          // Find the corresponding metafield ID in the existing metafields
+          const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
+          //console.log('metafield', existingMetafield);
+
+          if (existingMetafield) {
+            // Delete the conflicting metafield
+            await admin.graphql(
+              `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+                metafieldDelete(input: $input) {
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }`,
+              {
+                variables: {
+                  input: {
+                    id: `${existingMetafield.id}`
+                  }
+                }
+              }
+            );
+          }
+        });
+
+        // Wait for all delete operations to complete
+        await Promise.all(deletePromises);
+      }
+
+      
       return json({ deleted: true });
     }
 
@@ -576,7 +640,7 @@ export default function Index() {
     </ButtonGroup>
   ]) : [];*/
 
-  //console.log('rows', rows);
+  console.log('rows', rows);
   const [searchValue, setSearchValue] = useState('');
   const [modalActive, setModalActive] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
@@ -691,7 +755,7 @@ export default function Index() {
     });
 
     if (products) {
-      //console.log('products selected', products[0]);
+      console.log('products selected', products[0]);
       const { images, id, variants, title, handle, availablePublicationCount } = products[0];
       setFormState({
         ...formState,
@@ -749,6 +813,10 @@ export default function Index() {
   const handleAdd = () => {
     setIsUpdate(false);
     setTagValue('Store Wise');
+    setFormState({
+      ...formState,
+      productId: ''
+    });
     toggleModalActive();
   }
 
@@ -756,6 +824,7 @@ export default function Index() {
     console.log(id + 'in edit');
     for (const row of orderLimit) {
       console.log('row id and edit id', row.id);
+      console.log('row status in edit', row.status);
       if (row.id == id) {
         if (row.type === 'product_wise') {
           setFormState({
@@ -764,22 +833,23 @@ export default function Index() {
             productTitle: rows.find(
               (record) => record.id === row.id
             )?.name,
+            productImage: '',
             //availablePublicationCount: row.quantityLimit
           });
           setQuantityLimit(row.quantityLimit);
           setTagValue('Product Wise');
-          setStatusValue(row.status);
+          setStatusValue(row.status.charAt(0).toUpperCase() + row.status.slice(1));
         } else if (row.type === 'category_wise') {
           setTagValue('Category Wise');
           //setCategoryLimit(row.quantityLimit);
           setQuantityLimit(row.quantityLimit);
-          setStatusValue(row.status);
+          setStatusValue(row.status.charAt(0).toUpperCase() + row.status.slice(1));
           setCategoryValue(rows.find(
             (record) => record.id === row.id
           )?.name);
         } else {
           setTagValue('Store Wise');
-          setStatusValue(row.status);
+          setStatusValue(row.status.charAt(0).toUpperCase() + row.status.slice(1));
           setQuantityLimit(row.quantityLimit);
         }
       }
@@ -791,7 +861,13 @@ export default function Index() {
 
   const handleDelete = (id) => {
     console.log(id + 'in delete');
-    submit({ action: 'delete', pk: id }, { method: 'post' });
+    const typeId = orderLimit.find(
+      (record) => record.id === id
+    )?.typeId;
+    const type = orderLimit.find(
+      (record) => record.id === id
+    )?.type;
+    submit({ action: 'delete', pk: id, typeId: typeId, type: type }, { method: 'post' });
   }
 
   const handleUpdate = () => {
@@ -1096,7 +1172,7 @@ export default function Index() {
                 selectable={false}
               >
                 {/* Render rows with sorted and filtered data */}
-                {paginatedRows.map((row, index) => (
+                {sortedFilteredRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage).map((row, index) => (
                   <IndexTable.Row key={index}>
                     {Object.values(row).map((cell, cellIndex) => (
                       <IndexTable.Cell key={cellIndex}>{cell}</IndexTable.Cell>

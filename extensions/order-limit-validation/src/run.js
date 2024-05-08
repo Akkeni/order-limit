@@ -55,7 +55,7 @@ export function run(input) {
           }
 
           // Check if total quantity exceeds category limit
-          if (categoryQuantities.get(categoryName) > categoryLimit) {
+          if (categoryQuantities.get(categoryName) > categoryLimit  && product?.categoryStatusField?.value === "active") {
               errors.push({
                   localizedMessage: `Can't select more than ${categoryLimit} products from the category "${categoryName}".`,
                   target: "cart",
