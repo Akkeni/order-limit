@@ -27,7 +27,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { PageActions } from '@shopify/polaris';
 import { useNavigate, useSubmit, useLoaderData, useActionData } from '@remix-run/react';
 import db from "../db.server";
-import { ImageIcon, EditIcon, DeleteIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon } from '@shopify/polaris-icons';
+import { ImageIcon, EditIcon, DeleteIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, LogoXIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
 import React from 'react';
 import { updateLimiter, addLimiter } from '../models/Limiter.server';
@@ -44,6 +44,21 @@ export async function loader({ request }) {
         shop {
           id
           name
+          storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
+            value
+          }
+          storeStatusField: metafield(namespace: "storeStatus", key: "storeStatus") {
+            value
+          }
+          categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+            value
+          }
+          categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
+            value
+          }
+          categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
+            value
+          }
           allProductCategories {
           productTaxonomyNode {
             fullName
@@ -73,6 +88,15 @@ export async function loader({ request }) {
         			poductStatusField: metafield(namespace: "productStatus", key: "productStatus") {
           			value
         			}
+              categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+                value
+              }
+              categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
+                value
+              }
+              categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
+                value
+              }
         			priceRangeV2 {
         				maxVariantPrice {
             				amount
@@ -101,6 +125,13 @@ export async function loader({ request }) {
     const allProductCategories = data?.data?.shop?.allProductCategories;
     const shopId = data?.data?.shop?.id;
     const shopName = data?.data?.shop?.name;
+
+    const storeLimitFieldValue = data?.data?.shop?.storeLimitField?.value;
+    const storeStatusFieldValue = data?.data?.shop?.storeStatusField?.value;
+    const categoryLimitFieldValue = data?.data?.shop?.categoryLimitField?.value;
+    const categoryStatusFieldValue = data?.data?.shop?.categoryStatusField?.value;
+    const categoryNameFieldValue = data?.data?.shop?.categoryNameField?.value;
+
     const storeLimit = allProductsData?.data?.products?.edges.length;
 
     const categoryLimits = {}
@@ -123,100 +154,22 @@ export async function loader({ request }) {
     /*//for loop to create metafields for products and shop
     for (const orderLimiter of orderLimit) {
 
-      if (orderLimiter.type === 'store_wise') {
-        console.log('store limit and status', orderLimiter.quantityLimit, orderLimiter.status)
-        const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
-          metafieldsSet(metafields: $metafields) {
-            metafields {
-              id
-              namespace
-              key
-              value
-            }
-            userErrors {
-              field
-              message
-            }
-          }
-        }`;
-
-        const metafields = {
-          variables: {
-            metafields: [
-              {
-                "ownerId": `${shopId}`,
-                "namespace": "storeLimit",
-                "key": "storeLimit",
-                "type": "string",
-                "value": `${orderLimiter.quantityLimit}`
-
-              },
-              {
-                "ownerId": `${shopId}`,
-                "namespace": "storeStatus",
-                "key": "storeStatus",
-                "type": "string",
-                "value": `${orderLimiter.status}`
-
-              }
-            ]
-          }
-        };
-
-        const metaResponse = await admin.graphql(mutationQuery, metafields);
-        const metaData = await metaResponse.json();
-        const existingMetafields = metaData?.data?.metafieldsSet?.metafields;
-
-        const errorMessages = metaData?.data?.metafieldsSet?.userErrors;
-        console.log(metaData?.data?.metafieldsSet?.userErrors);
-
-        console.log('existingrecords in storemeta', metaData?.data?.metafieldsSet?.metafields);
-
-        /*if (errorMessages && errorMessages.length > 0) {
-
-          // Delete metafields one by one based on the given keys
-          const keysToDelete = [
-            'storeLimit', 'storeStatus'
-          ];
-
-          const deletePromises = keysToDelete.map(async key => {
-            // Find the corresponding metafield ID in the existing metafields
-            const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
-            console.log('metafield in storemeta', existingMetafield);
-
-            if (existingMetafield) {
-              // Delete the conflicting metafield
-              await admin.graphql(
-                `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                  metafieldDelete(input: $input) {
-                    userErrors {
-                      field
-                      message
-                    }
-                  }
-                }`,
-                {
-                  variables: {
-                    input: {
-                      id: `${existingMetafield.id}`
-                    }
-                  }
-                }
-              );
-            }
-          });
-
-          // Wait for all delete operations to complete
-          await Promise.all(deletePromises);
-
-          // Now, execute the updateProduct query with the updated metafields
-          const updatedMetaResponse = await admin.graphql(mutationQuery, metafields);
-          const updatedMetaData = await updatedMetaResponse.json();
-        }
-      }
-
       if (orderLimiter.type === 'product_wise') {
-        //console.log('store limit in metafields', orderLimit.find((item) => item.type === 'store_wise')?.quantityLimit);
+        console.log('orderLimiter in loader', orderLimiter);
+
+        let productResponse = await admin.graphql(
+        `{
+            product(id: "${orderLimiter.typeId}") {
+                title
+                category {
+                  name
+                }
+            }
+          }`,
+        );
+
+        let productData = await productResponse.json();
+        let categoryName = productData?.data?.product?.category?.name;
 
         const categoryName = allProductsData.data.products.edges.find(
           (product) => product.node.id === orderLimiter.typeId
@@ -255,18 +208,6 @@ export async function loader({ request }) {
               id: orderLimiter.typeId,
               metafields: [
                 {
-                  "namespace": "productLimit",
-                  "key": `productLimit`,
-                  "type": "string",
-                  "value": `${orderLimiter.quantityLimit}`
-                },
-                {
-                  "namespace": "productStatus",
-                  "key": "productStatus",
-                  "type": "string",
-                  "value": `${orderLimiter.status}`,
-                },
-                {
                   "namespace": "categoryName",
                   "key": "categoryName",
                   "type": "string",
@@ -287,18 +228,6 @@ export async function loader({ request }) {
                     (item) => item.typeId === categoryId
                   )?.status}`,
                   "type": "string"
-                },
-                {
-                  "namespace": "storeLimit",
-                  "key": "storeLimit",
-                  "value": `${orderLimit.find((item) => item.type === 'store_wise')?.quantityLimit}`,
-                  "type": "string"
-                },
-                {
-                  "namespace": "storeStatus",
-                  "key": "storeStatus",
-                  "value": `${orderLimit.find((item) => item.type === 'store_wise')?.status}`,
-                  "type": "string"
                 }
               ]
             }
@@ -311,13 +240,13 @@ export async function loader({ request }) {
 
         const errorMessages = metaData.data.productUpdate.userErrors;
 
-        //console.log('existingrecords', existingMetafields);
+        console.log('existingrecords in loader', errorMessages);
 
         if (errorMessages && errorMessages.length > 0) {
 
           // Delete metafields one by one based on the given keys
           const keysToDelete = [
-            'productLimit', 'productStatus', 'categoryLimit', 'categoryStatus', 'categoryName', 'storeLimit', 'storeStatus'
+            'categoryLimit', 'categoryStatus', 'categoryName'
           ];
 
           const deletePromises = keysToDelete.map(async key => {
@@ -412,6 +341,8 @@ export async function loader({ request }) {
       rows.push(row);
     }
 
+
+
     return json({
       ok: true,
       data,
@@ -419,8 +350,14 @@ export async function loader({ request }) {
       rows,
       categoryLimits,
       storeLimit,
+      shopId,
+      shopName,
+      storeLimitFieldValue,
+      storeStatusFieldValue,
+      categoryLimitFieldValue,
+      categoryStatusFieldValue,
+      categoryNameFieldValue,
       allProductsData,
-      graphql: admin.graphql,
     });
   } catch (error) {
     console.error('Error in loader:', error);
@@ -467,9 +404,238 @@ export async function action({ request, params }) {
       for (const limiter of limiters) {
 
         try {
-          console.log('limiter value in action saveProduct', limiter.value, limiter.productId);
+          console.log('limiter value in action saveProduct', limiter.value, limiter.id);
 
-          if (Number(limiter.value) > 0) {
+          if (Number(limiter.value) > 0 && limiter.type === 'Store Wise') {
+
+            const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+                metafieldsSet(metafields: $metafields) {
+                  metafields {
+                    id
+                    namespace
+                    key
+                    value
+                  }
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }`;
+
+            const metafields = {
+              variables: {
+                metafields: [
+                  {
+                    "ownerId": `${limiter.id}`,
+                    "namespace": "storeLimit",
+                    "key": "storeLimit",
+                    "type": "string",
+                    "value": `${limiter.value}`
+
+                  },
+                  {
+                    "ownerId": `${limiter.id}`,
+                    "namespace": "storeStatus",
+                    "key": "storeStatus",
+                    "type": "string",
+                    "value": "active"
+
+                  }
+                ]
+              }
+            };
+
+            const metaResponse = await admin.graphql(mutationQuery, metafields);
+            const metaData = await metaResponse.json();
+          }
+
+          /*if(limiter.type === 'Product Wise' || limiter.type === 'Category Wise') {
+             const result = await addLimiter(limiter);
+          }*/
+
+          if (Number(limiter.value) > 0 && limiter.type === 'Category Wise') {
+            console.log('limiter in category wise in action', limiter);
+
+            // Initialize an empty array to store product IDs
+            const productIds = [];
+
+            // Iterate through the edges of the products
+            allProductsData.data.products.edges.forEach(edge => {
+              const category = edge.node.category;
+              // Check if the category exists and its name is "Snowboards"
+              if (category && category?.name === limiter.id) {
+                // If it matches, add the product ID to the array
+                productIds.push(edge.node.id);
+              }
+            });
+
+            // Now, snowboardProductIds array contains the IDs of products belonging to the "Snowboards" category
+            console.log('productIds in action', productIds);
+            for (const id of productIds) {
+              console.log('productid in forloop', id);
+              const mutationQuery = `mutation productUpdate($input: ProductInput!) {
+                productUpdate(input: $input) {
+                  product {
+                    id
+                    title
+                    metafields(first: 10) {
+                      edges {
+                        node {
+                          id
+                          namespace
+                          key
+                          value
+                        }
+                      }
+                    }
+                  }
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }`;
+
+              const variables = {
+                variables: {
+                  input: {
+                    id: `${id}`,
+                    metafields: [
+                      {
+                        "namespace": "categoryName",
+                        "key": "categoryName",
+                        "type": "string",
+                        "value": `${limiter.id}`
+                      },
+                      {
+                        "namespace": "categoryLimit",
+                        "key": "categoryLimit",
+                        "value": `${limiter.value}`,
+                        "type": "string"
+                      },
+                      {
+                        "namespace": "categoryStatus",
+                        "key": "categoryStatus",
+                        "value": "active",
+                        "type": "string"
+                      }
+                    ]
+                  }
+                }
+              };
+
+              const metaResponse = await admin.graphql(mutationQuery, variables);
+              const metaData = await metaResponse.json();
+              const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
+
+              const errorMessages = metaData.data.productUpdate.userErrors;
+
+              console.log('existingerrorMessages in action', errorMessages);
+              console.log('existingMetafields in action', existingMetafields);
+              //console.log('existingrecords', existingMetafields);
+
+              if (existingMetafields && existingMetafields.length > 0) {
+
+                // Delete metafields one by one based on the given keys
+                const keysToDelete = [
+                  'categoryLimit', 'categoryStatus', 'categoryName'
+                ];
+
+                const deletePromises = keysToDelete.map(async key => {
+                  // Find the corresponding metafield ID in the existing metafields
+                  const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
+                  //console.log('metafield', existingMetafield);
+
+                  if (existingMetafield) {
+                    // Delete the conflicting metafield
+                    await admin.graphql(
+                      `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+                    metafieldDelete(input: $input) {
+                      userErrors {
+                        field
+                        message
+                      }
+                    }
+                  }`,
+                      {
+                        variables: {
+                          input: {
+                            id: `${existingMetafield.id}`
+                          }
+                        }
+                      }
+                    );
+                  }
+                });
+
+                // Wait for all delete operations to complete
+                await Promise.all(deletePromises);
+
+                // Now, execute the updateProduct query with the updated metafields
+                const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
+                const updatedMetaData = await updatedMetaResponse.json();
+                const updatedMetafields = updatedMetaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
+
+                const updatedErrorMessages = updatedMetaData.data.productUpdate.userErrors;
+  
+                console.log('updatedrecords in action', updatedErrorMessages);
+                console.log('updatedMetafields in action', updatedMetafields);
+              }
+
+            }
+
+            /*const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+              metafieldsSet(metafields: $metafields) {
+                metafields {
+                  id
+                  namespace
+                  key
+                  value
+                }
+                userErrors {
+                  field
+                  message
+                }
+              }
+            }`;
+    
+            const metafields = {
+              variables: {
+                metafields: [
+                  {
+                    "ownerId": `${formData.get('shopId')}`,
+                    "namespace": "categoryLimit",
+                    "key": "categoryLimit",
+                    "type": "string",
+                    "value": `${limiter.value}`
+    
+                  },
+                  {
+                    "ownerId": `${formData.get('shopId')}`,
+                    "namespace": "categoryStatus",
+                    "key": "categoryStatus",
+                    "type": "string",
+                    "value": "active"
+    
+                  },
+                  {
+                    "ownerId": `${formData.get('shopId')}`,
+                    "namespace": "categoryName",
+                    "key": "categoryName",
+                    "type": "string",
+                    "value": `${limiter.id}`
+    
+                  }
+                ]
+              }
+            };
+    
+            const metaResponse = await admin.graphql(mutationQuery, metafields);
+            const metaData = await metaResponse.json();*/
+          }
+
+          if (Number(limiter.value) > 0 && limiter.type === 'Product Wise') {
             const mutationQuery = `mutation productUpdate($input: ProductInput!) {
               productUpdate(input: $input) {
                 product {
@@ -496,7 +662,7 @@ export async function action({ request, params }) {
             const variables = {
               variables: {
                 input: {
-                  id: `${limiter.productId}`,
+                  id: `${limiter.id}`,
                   metafields: [
                     {
                       "namespace": "productLimit",
@@ -526,7 +692,7 @@ export async function action({ request, params }) {
 
               // Delete metafields one by one based on the given keys
               const keysToDelete = [
-                'productLimit', 'productStatus', 'categoryLimit', 'categoryStatus', 'categoryName', 'storeLimit', 'storeStatus'
+                'productLimit', 'productStatus'
               ];
 
               const deletePromises = keysToDelete.map(async key => {
@@ -565,10 +731,125 @@ export async function action({ request, params }) {
             }
           }
 
-          if (Number(limiter.value) === 0) {
+          if (Number(limiter.value) === 0 && limiter.type === 'Store Wise') {
+            const response = await admin.graphql(
+              `{
+                shop {
+                  id
+                  name
+                  storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
+                    value
+                    id
+                  }
+                  storeStatusField: metafield(namespace: "storeStatus", key: "storeStatus") {
+                    value
+                    id
+                  }
+                }
+              }
+            `);
+            const shopData = await response.json();
+            const ids = [shopData?.data?.shop?.storeLimitField?.id, shopData?.data?.shop?.storeStatusField?.id ];
+            for(const id of ids) {
+              if (id) {
+                // Delete the conflicting metafield
+                await admin.graphql(
+                  `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+                  metafieldDelete(input: $input) {
+                    userErrors {
+                      field
+                      message
+                    }
+                  }
+                }`,
+                  {
+                    variables: {
+                      input: {
+                        id: `${id}`
+                      }
+                    }
+                  }
+                );
+              }
+            }
+          }
+
+          if(Number(limiter.value) === 0 && limiter.type === 'Category Wise') {
+            // Initialize an empty array to store product IDs
+            const productIds = [];
+
+            // Iterate through the edges of the products
+            allProductsData.data.products.edges.forEach(edge => {
+              const category = edge.node.category;
+              if (category && category?.name === limiter.id) {
+                productIds.push(edge.node.id);
+              }
+            });
+
+            // Now, snowboardProductIds array contains the IDs of products belonging to the "Snowboards" category
+            console.log('productIds in action', productIds);
+            for (const id of productIds) {
+                const productResponse = await admin.graphql(
+                  `{  
+                    product(id: "${id}") {
+                      id
+                      metafields(first: 20) {
+                        edges {
+                          node {
+                            id
+                            namespace
+                            key
+                            
+                          }
+                        }
+                      }
+                    }
+                  }`
+                );
+                const productData = await productResponse.json();
+                const existingMetafields = productData?.data?.product?.metafields?.edges.map(edge => edge.node);
+                // Delete metafields one by one based on the given keys
+                const keysToDelete = [
+                  'categoryLimit', 'categoryStatus', 'categoryName'
+                ];
+    
+                const deletePromises = keysToDelete.map(async key => {
+                  // Find the corresponding metafield ID in the existing metafields
+                  const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
+                  //console.log('metafield', existingMetafield);
+    
+                  if (existingMetafield) {
+                    // Delete the conflicting metafield
+                    await admin.graphql(
+                      `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+                      metafieldDelete(input: $input) {
+                        userErrors {
+                          field
+                          message
+                        }
+                      }
+                    }`,
+                      {
+                        variables: {
+                          input: {
+                            id: `${existingMetafield.id}`
+                          }
+                        }
+                      }
+                    );
+                  }
+                });
+    
+                // Wait for all delete operations to complete
+                await Promise.all(deletePromises);
+              }
+          }
+
+          if (Number(limiter.value) === 0 && limiter.type === 'Product Wise') {
+
             const productResponse = await admin.graphql(
               `{  
-                product(id: "${limiter.productId}") {
+                product(id: "${limiter.id}") {
                   id
                   metafields(first: 20) {
                     edges {
@@ -797,21 +1078,23 @@ export default function Index() {
 
   // Render error message if error exists
   if (error) {
-    <renderErrorMessage />
+    renderErrorMessage();
   }
 
   const productsData = loaderData?.allProductsData.data.products.edges;
   const categoryLimits = loaderData.categoryLimits;
   const categoryOptions = [];
-  const categoryIds = [];
+  const categoryIds = {};
   const allProductCategories = loaderData.data.data.shop.allProductCategories;
   const orderLimit = loaderData.orderLimit;
+  const shopName = loaderData.shopName;
+  const shopLimit = loaderData.storeLimit;
 
   //to populate the category arrays
   for (const category of allProductCategories) {
     const productTaxonomyNode = category.productTaxonomyNode;
     categoryOptions.push(productTaxonomyNode.name);
-    categoryIds.push(productTaxonomyNode.id);
+    categoryIds[productTaxonomyNode.name] = productTaxonomyNode.id;
   }
   //abscent of categories in the store
   if (!(categoryOptions.length)) {
@@ -872,7 +1155,7 @@ export default function Index() {
   const [sortDirection, setSortDirection] = useState('ascending');
 
   const [currentPage, setCurrentPage] = useState(1);
-  const recordsPerPage = 5;
+  const recordsPerPage = 4;
 
   //console.log(loaderData.orderLimit);
 
@@ -903,11 +1186,14 @@ export default function Index() {
   const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage);
 
   // Handle pagination
-  //const handleNextPage = () => setCurrentPage(currentPage + 1);
-  //const handlePreviousPage = () => setCurrentPage(currentPage - 1);
+  const handleNextPage = () => setCurrentPage(currentPage + 1);
+  const handlePreviousPage = () => setCurrentPage(currentPage - 1);
 
   const totalRecords = rows.length;
   const totalPages = Math.ceil(totalRecords / recordsPerPage);
+
+  const totalProducts = productsData.length;
+  const totalProductPages = Math.ceil(totalProducts / recordsPerPage);
 
   //handle sorting
   const handleSort = (column) => {
@@ -987,13 +1273,19 @@ export default function Index() {
 
 
 
-  const handleTagValueChange = useCallback((value) => {
+  const handleTagValueChange = (value) => {
+    setTagValue(value);
+    console.log('tag value', tagValue);
+  };
+  /*useCallback((value) => {
     setTagValue(value);
     if (value === 'Product Wise' && !formState.productId) {
       selectProduct();
       toggleModalActive();
     }
-  }, [formState.productId, selectProduct]);
+  }, [formState.productId, selectProduct]);*/
+
+  console.log(categoryLimits);
 
   const handleCategoryValueChange = useCallback(
     (value) => {
@@ -1011,36 +1303,34 @@ export default function Index() {
     [],
   );
 
-  const handleQuantityLimit = (value, productId) => {
-    console.log('value and id in handlequantity', value, productId, quantityLimit);
+  const handleQuantityLimit = (value, id) => {
+    console.log('value and id in handlequantity', value, id, quantityLimit);
 
     if (value >= 0) {
-
-      // Update quantityLimit state to contain objects with productId as keys and quantity limits as values
+      // Update quantityLimit state to contain objects with id as keys and quantity limits as values
       setQuantityLimit((prevQuantityLimit) => {
-        // Check if the productId already exists in the state
-        const index = prevQuantityLimit.findIndex(item => item.productId === productId);
+        // Check if the id already exists in the state
+        const index = prevQuantityLimit.findIndex(item => item.id === id);
 
         if (index !== -1) {
-          // If productId exists, update its quantity limit
+          // If id exists, update its quantity limit
           return prevQuantityLimit.map(item => {
-            if (item.productId === productId) {
-              return { ...item, value };
+            if (item.id === id) {
+              return { ...item, value, type: tagValue };
             } else {
               return item;
             }
           });
         } else {
-          // If productId doesn't exist, add it to the state
-          return [...prevQuantityLimit, { productId, value }];
+          // If id doesn't exist, add it to the state
+          return [...prevQuantityLimit, { id, value, type: tagValue }];
         }
       });
     }
-
   };
 
-  const getQuantityLimit = (productId) => {
-    const productLimit = quantityLimit.find(item => item.productId === productId);
+  const getProductQuantityLimit = (productId) => {
+    const productLimit = quantityLimit.find(item => item.id === productId);
     if (productLimit) {
       return parseInt(productLimit.value); // Return the quantity limit if found and greater than 0
     } else {
@@ -1054,7 +1344,41 @@ export default function Index() {
   };
 
   const handleSaveProduct = () => {
+
     submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit) }, { method: 'post' });
+  }
+
+  const getCategoryQuantityLimit = (name) => {
+    const categoryLimit = quantityLimit.find(item => item.id === name);
+    if (categoryLimit) {
+      return parseInt(categoryLimit.value);
+    } else {
+
+      const categoryLimitFieldValue = loaderData?.allProductsData.data.products.edges.find((item) => 
+        item.node?.category?.name === name &&
+        item.node?.categoryLimitField &&
+        item.node?.categoryLimitField.value !== "undefined"
+      )?.node?.categoryLimitField?.value;
+
+      if (categoryLimitFieldValue) {
+        return parseInt(categoryLimitFieldValue);
+      } else {
+        return 0;
+      }
+    }
+  }
+
+  const getStoreQuantityLimit = (shopId) => {
+    const storeLimit = quantityLimit.find(item => item.id === shopId);
+    if (storeLimit) {
+      return parseInt(storeLimit.value);
+    } else {
+      if (loaderData?.storeLimitFieldValue) {
+        return parseInt(loaderData?.storeLimitFieldValue);
+      } else {
+        return 0;
+      }
+    }
   }
 
   const handleAdd = () => {
@@ -1254,12 +1578,23 @@ export default function Index() {
       </Modal>
 
       {/* Alert message */}
-      {/*exist && (
+      {success && (
         <div>
-          <p>Record already exists!</p>
-          <button onClick={() => handleAlertClose()}>Close</button>
+          <Card>
+              <div style={{ display: "flex", alignItems: "center", flexDirection: "row", alignContent: "stretch", justifyContent: "space-between" }}>
+                <Text>Saved successfully!</Text>
+                <div style={{ float: "right" }}>
+                  <Button onClick={toggleSuccess}>
+                    <Icon
+                      source={LogoXIcon}
+                      tone="base"
+                    />
+                  </Button>
+                </div>
+              </div>
+          </Card>
         </div>
-      )*/}
+      )}
       <Modal
         open={alert}
         onClose={toggleAlert}
@@ -1274,7 +1609,7 @@ export default function Index() {
         </Modal.Section>
       </Modal>
 
-      <Modal
+      {/*<Modal
         open={success}
         onClose={toggleSuccess}
         title="Sucess"
@@ -1286,21 +1621,35 @@ export default function Index() {
         <Modal.Section>
           <p>Sucess</p>
         </Modal.Section>
-      </Modal>
+      </Modal>*/}
 
-      <div style={{ width: '100%', overflow: 'auto' }}>
-        <div style={{ marginLeft: '0.5rem' }}>
-          <InlineStack gap="500">
-            <TextField
-              label="Search"
-              value={searchValue}
-              onChange={setSearchValue}
-              prefix={<Icon source={SearchIcon} color="skyDark" />}
-            />
-          </InlineStack>
+      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+
+        <div>
+          {/*<Button onClick={handleAdd}>Add Order Limit</Button>*/}
         </div>
-        <div style={{ padding: '10px' }}>
-          <Button onClick={handleAdd}>Add Order Limit</Button>
+
+        <div style={{ paddingTop: '0.5rem' }}>
+          <InlineStack gap="500">
+            <div style={{ paddingLeft: '0.5rem' }}>
+              <TextField
+                label="Search"
+                value={searchValue}
+                onChange={setSearchValue}
+                prefix={<Icon source={SearchIcon} color="skyDark" />}
+              />
+            </div>
+            <div style={{ paddingLeft: '0.5rem' }}>
+              <FormLayout>
+                <Select
+                  label="Limit By"
+                  options={['Store Wise', 'Product Wise', 'Category Wise']}
+                  value={tagValue}
+                  onChange={handleTagValueChange}
+                />
+              </FormLayout>
+            </div>
+          </InlineStack>
         </div>
 
         <PageActions
@@ -1316,159 +1665,230 @@ export default function Index() {
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
-            <Card>
-              {/*<IndexTable
-                    headings={[
-                      {
-                        title: (
-                          <ButtonGroup>
-                            <Button onClick={() => handleSort('id')} variant="tertiary">
-                              Id
-                            </Button>
-                            <Button onClick={() => handleSort('id')} variant="tertiary">
-                              <Icon source={SelectIcon} />
-                            </Button>
-                          </ButtonGroup>
-                        ),
-                        alignment: "center"
-                      },
-                      {
-                        title: (
-                          <ButtonGroup>
-                            <Button onClick={() => handleSort('type')} variant="tertiary">
-                              Type
-                            </Button>
-                            <Button onClick={() => handleSort('type')} variant="tertiary">
-                              <Icon source={SelectIcon} />
-                            </Button>
-                          </ButtonGroup>
-                        ),
-                        alignment: "center"
-                      },
-                      {
-                        title: (
-                          <ButtonGroup>
-                            <Button onClick={() => handleSort('name')} variant="tertiary">
-                              Name
-                            </Button>
-                            <Button onClick={() => handleSort('name')} variant="tertiary">
-                              <Icon source={SelectIcon} />
-                            </Button>
-                          </ButtonGroup>
-                        ),
-                        alignment: "center"
-                      },
-                      {
-                        title: (
-                          <ButtonGroup>
-                            <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
-                              Quantity
-                            </Button>
-                            <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
-                              <Icon source={SelectIcon} />
-                            </Button>
-                          </ButtonGroup>
-                        ),
-                        alignment: "center"
-                      },
-                      {
-                        title: (
-                          <ButtonGroup>
-                            <Button onClick={() => handleSort('status')} variant="tertiary">
-                              Status
-                            </Button>
-                            <Button onClick={() => handleSort('status')} variant="tertiary">
-                              <Icon source={SelectIcon} />
-                            </Button>
-                          </ButtonGroup>
-                        ),
-                        alignment: "center"
-                      },
-                      {
-                        title: (
-                          <ButtonGroup>
-                            <Button onClick={() => handleSort('createdAt')} variant="tertiary">
-                              Created At
-                            </Button>
-                            <Button onClick={() => handleSort('createdAt')} variant="tertiary">
-                              <Icon source={SelectIcon} />
-                            </Button>
-                          </ButtonGroup>
-                        ),
-                        alignment: "center"
-                      },
-                      { title: (<b>Action</b>) },
-                    ]}
-                    itemCount={sortedFilteredRows.length}
-                    selectable={false}
-                  >
-                    {sortedFilteredRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage).map((row, index) => (
-                      <IndexTable.Row key={index}>
-                        {Object.values(row).map((cell, cellIndex) => (
-                          <IndexTable.Cell key={cellIndex}>{cell}</IndexTable.Cell>
-                        ))}
-                        <IndexTable.Cell>
-                          <ButtonGroup gap="200">
-                            <Button onClick={() => handleEdit(row.id, row.type)}>
-                              <Icon source={EditIcon} tone="base" />
-                            </Button>
-                            <Button onClick={() => handleDelete(row.id)}>
-                              <Icon source={DeleteIcon} tone="base" />
-                            </Button>
-                          </ButtonGroup>
-                        </IndexTable.Cell>
-                        </IndexTable.Row>
-                    ))
-                    }
-                  </IndexTable>
-              */}
+            {/*
+              <Card>
+                <IndexTable
+                      headings={[
+                        {
+                          title: (
+                            <ButtonGroup>
+                              <Button onClick={() => handleSort('id')} variant="tertiary">
+                                Id
+                              </Button>
+                              <Button onClick={() => handleSort('id')} variant="tertiary">
+                                <Icon source={SelectIcon} />
+                              </Button>
+                            </ButtonGroup>
+                          ),
+                          alignment: "center"
+                        },
+                        {
+                          title: (
+                            <ButtonGroup>
+                              <Button onClick={() => handleSort('type')} variant="tertiary">
+                                Type
+                              </Button>
+                              <Button onClick={() => handleSort('type')} variant="tertiary">
+                                <Icon source={SelectIcon} />
+                              </Button>
+                            </ButtonGroup>
+                          ),
+                          alignment: "center"
+                        },
+                        {
+                          title: (
+                            <ButtonGroup>
+                              <Button onClick={() => handleSort('name')} variant="tertiary">
+                                Name
+                              </Button>
+                              <Button onClick={() => handleSort('name')} variant="tertiary">
+                                <Icon source={SelectIcon} />
+                              </Button>
+                            </ButtonGroup>
+                          ),
+                          alignment: "center"
+                        },
+                        {
+                          title: (
+                            <ButtonGroup>
+                              <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
+                                Quantity
+                              </Button>
+                              <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
+                                <Icon source={SelectIcon} />
+                              </Button>
+                            </ButtonGroup>
+                          ),
+                          alignment: "center"
+                        },
+                        {
+                          title: (
+                            <ButtonGroup>
+                              <Button onClick={() => handleSort('status')} variant="tertiary">
+                                Status
+                              </Button>
+                              <Button onClick={() => handleSort('status')} variant="tertiary">
+                                <Icon source={SelectIcon} />
+                              </Button>
+                            </ButtonGroup>
+                          ),
+                          alignment: "center"
+                        },
+                        {
+                          title: (
+                            <ButtonGroup>
+                              <Button onClick={() => handleSort('createdAt')} variant="tertiary">
+                                Created At
+                              </Button>
+                              <Button onClick={() => handleSort('createdAt')} variant="tertiary">
+                                <Icon source={SelectIcon} />
+                              </Button>
+                            </ButtonGroup>
+                          ),
+                          alignment: "center"
+                        },
+                        { title: (<b>Action</b>) },
+                      ]}
+                      itemCount={sortedFilteredRows.length}
+                      selectable={false}
+                    >
+                      {sortedFilteredRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage).map((row, index) => (
+                        <IndexTable.Row key={index}>
+                          {Object.values(row).map((cell, cellIndex) => (
+                            <IndexTable.Cell key={cellIndex}>{cell}</IndexTable.Cell>
+                          ))}
+                          <IndexTable.Cell>
+                            <ButtonGroup gap="200">
+                              <Button onClick={() => handleEdit(row.id, row.type)}>
+                                <Icon source={EditIcon} tone="base" />
+                              </Button>
+                              <Button onClick={() => handleDelete(row.id)}>
+                                <Icon source={DeleteIcon} tone="base" />
+                              </Button>
+                            </ButtonGroup>
+                          </IndexTable.Cell>
+                          </IndexTable.Row>
+                      ))
+                      }
+                    </IndexTable>
+              </Card>
+            */}
+            {tagValue === 'Product Wise' && (
+              <Card>
+                <IndexTable
+                  headings={[
+                    { title: 'Image' },
+                    { title: 'Title' },
+                    { title: 'Quantity Available' },
+                    { title: 'Price' },
+                    { title: 'Quantity Limit' },
+                  ]}
+                  itemCount={productsData.length}
+                  selectable={false}
+                >
+                  {filteredProductRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage).map((product, index) => (
+                    <IndexTable.Row key={index}>
+                      <IndexTable.Cell>
+                        <Thumbnail
+                          source={product.node.images.edges[0]?.node?.url || ImageIcon}
+                          alt="Product"
+                        />
 
-              <IndexTable
-                headings={[
-                  { title: 'Image' },
-                  { title: 'Title' },
-                  { title: 'Quantity Available' },
-                  { title: 'Price' },
-                  { title: 'Quantity Limit' },
-                ]}
-                itemCount={productsData.length}
-                selectable={false}
-              >
-                {filteredProductRows.map((product, index) => (
-                  <IndexTable.Row key={index}>
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>{product.node.title}</IndexTable.Cell>
+                      <IndexTable.Cell>{product.node.totalInventory}</IndexTable.Cell>
+                      <IndexTable.Cell>{product.node.priceRangeV2?.maxVariantPrice?.amount}</IndexTable.Cell>
+                      <IndexTable.Cell>
+                        <FormLayout>
+                          <TextField
+                            value={getProductQuantityLimit(product.node.id)}
+                            label="Quantity Limit"
+                            type="number"
+                            onChange={(value) => { handleQuantityLimit(value, product.node.id) }}
+                          />
+                        </FormLayout>
+                      </IndexTable.Cell>
+                    </IndexTable.Row>
+                  ))}
+                </IndexTable>
+                {/* Pagination component*/}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                  <Button icon={ChevronLeftIcon} accessibilityLabel="Previous Page" disabled={currentPage === 1} onClick={handlePreviousPage} />
+                  <span style={{ padding: '0.5rem', margin: '0.5rem' }}> Page {currentPage}</span>
+                  <Button icon={ChevronRightIcon} accessibilityLabel="Next Page" disabled={currentPage === totalProductPages} onClick={handleNextPage} />
+                </div>
+              </Card>
+            )}
+
+            {tagValue === 'Category Wise' && (
+              <Card>
+                <IndexTable
+                  headings={[
+                    { title: 'Category Name' },
+                    { title: 'Quantity Available' },
+                    { title: 'Quantity Limit' },
+                  ]}
+                  itemCount={categoryOptions.length}
+                  selectable={false}
+                >
+                  {categoryOptions.map((categoryName, index) => (
+                    <IndexTable.Row key={index}>
+                      <IndexTable.Cell>
+                        {categoryName}
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        {categoryLimits[categoryName]}
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        <FormLayout>
+                          <TextField
+                            value={getCategoryQuantityLimit(categoryName)}
+                            label="Quantity Limit"
+                            type="number"
+                            onChange={(value) => { handleQuantityLimit(value, categoryName) }}
+                          />
+                        </FormLayout>
+                      </IndexTable.Cell>
+                    </IndexTable.Row>
+                  ))}
+                </IndexTable>
+              </Card>
+            )}
+            {tagValue === 'Store Wise' && (
+              <Card>
+                <IndexTable
+                  headings={[
+                    { title: 'Store Name' },
+                    { title: 'Quantity Available' },
+                    { title: 'Quantity Limit' },
+                  ]}
+                  itemCount={1}
+                  selectable={false}
+                >
+
+                  <IndexTable.Row>
                     <IndexTable.Cell>
-                      <Thumbnail
-                        source={product.node.images.edges[0]?.node?.url || ImageIcon}
-                        alt="Product"
-                      />
-
+                      {shopName}
                     </IndexTable.Cell>
-                    <IndexTable.Cell>{product.node.title}</IndexTable.Cell>
-                    <IndexTable.Cell>{product.node.totalInventory}</IndexTable.Cell>
-                    <IndexTable.Cell>{product.node.priceRangeV2?.maxVariantPrice?.amount}</IndexTable.Cell>
+                    <IndexTable.Cell>
+                      {shopLimit}
+                    </IndexTable.Cell>
                     <IndexTable.Cell>
                       <FormLayout>
                         <TextField
-                          value={getQuantityLimit(product.node.id)}
+                          value={getStoreQuantityLimit(loaderData.shopId)}
                           label="Quantity Limit"
                           type="number"
-                          onChange={(value) => { handleQuantityLimit(value, product.node.id) }}
+                          onChange={(value) => { handleQuantityLimit(value, loaderData.shopId) }}
                         />
                       </FormLayout>
                     </IndexTable.Cell>
                   </IndexTable.Row>
-                ))}
-              </IndexTable>
-              {/* Pagination component 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <Button icon={ChevronLeftIcon} accessibilityLabel="Previous Page" disabled={!cursor} onClick={handlePreviousPage} />
-                <span style={{ padding: '0.5rem', margin: '0.5rem' }}> Page {currentPage}</span>
-                <Button icon={ChevronRightIcon} accessibilityLabel="Next Page" disabled={!hasNextPage} onClick={handleNextPage} />
-            </div>*/}
-            </Card>
+                </IndexTable>
+              </Card>
+            )}
           </Layout.Section>
         </Layout>
-
       </BlockStack>
 
 
