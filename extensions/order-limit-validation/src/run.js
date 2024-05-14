@@ -38,35 +38,43 @@ export function run(input) {
         }
       }
 
-       // Check if merchandise is a ProductVariant
-    if (merchandise.__typename === "ProductVariant") {
-      const { product } = merchandise;
-      
-      // Check if product has category information
-      if (product.categoryNameField && product.categoryLimitField) {
+      // Check if merchandise is a ProductVariant
+      if (merchandise.__typename === "ProductVariant") {
+        const { product } = merchandise;
+
+        // Check if product has category information
+        if (product.categoryNameField && product.categoryLimitField) {
           const categoryName = product.categoryNameField.value;
           const categoryLimit = parseInt(product.categoryLimitField.value);
-          
+
           // Update categoryQuantities map with quantity for current category
           if (categoryQuantities.has(categoryName)) {
-              categoryQuantities.set(categoryName, categoryQuantities.get(categoryName) + quantity);
+            categoryQuantities.set(categoryName, categoryQuantities.get(categoryName) + quantity);
           } else {
-              categoryQuantities.set(categoryName, quantity);
+            categoryQuantities.set(categoryName, quantity);
           }
 
           // Check if total quantity exceeds category limit
-          if (categoryQuantities.get(categoryName) > categoryLimit  && product?.categoryStatusField?.value === "active") {
-              errors.push({
-                  localizedMessage: `Can't select more than ${categoryLimit} products from the category "${categoryName}".`,
-                  target: "cart",
-              });
+          if (categoryQuantities.get(categoryName) > categoryLimit && product?.categoryStatusField?.value === "active") {
+            errors.push({
+              localizedMessage: `Can't select more than ${categoryLimit} products from the category "${categoryName}".`,
+              target: "cart",
+            });
           }
+        }
       }
-  }
 
 
       // Check product limit
-      if (product.productLimitField && parseInt(product.productLimitField.value) > 0 && product?.productStatusField?.value === "active") {
+      if (merchandise.productVariantLimitField && parseInt(merchandise.productVariantLimitField.value) > 0) {
+        const productVariantLimit = parseInt(merchandise.productVariantLimitField.value);
+        if (quantity > productVariantLimit) {
+          errors.push({
+            localizedMessage: `Can't select more than ${productVariantLimit}.`,
+            target: "cart",
+          });
+        }
+      } else if (product.productLimitField && parseInt(product.productLimitField.value) > 0) {
         const productLimit = parseInt(product.productLimitField.value);
         if (quantity > productLimit) {
           errors.push({

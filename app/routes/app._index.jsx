@@ -39,6 +39,162 @@ export async function loader({ request }) {
   try {
     const orderLimit = await db.order_Limit.findMany();
 
+    let allProductsData = [];
+    const resProduct = await admin.graphql(
+      `query AllProducts{
+        products(first: 5) {
+          edges {
+            cursor
+            node {
+              id
+              title
+              variants(first: 250) {
+                edges {
+                  node {
+                    id
+                    image {
+                      url
+                    }
+                    price
+                    inventoryQuantity
+                    title
+                  }
+                }
+              }
+              category {
+                name
+              }
+              totalInventory
+        			productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+              	value
+        			}
+        			poductStatusField: metafield(namespace: "productStatus", key: "productStatus") {
+          			value
+        			}
+              categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+                value
+              }
+              categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
+                value
+              }
+              categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
+                value
+              }
+        			priceRangeV2 {
+        				maxVariantPrice {
+            				amount
+        				}
+        				minVariantPrice {
+           				 amount
+        				}
+              }
+              images(first: 1) {
+                edges {
+                  node {
+                    url
+                  }
+                }
+              }
+            }
+          }
+        }
+      }`
+      );
+    const allData = await resProduct.json();
+    allProductsData = allProductsData.concat(allData?.data?.products?.edges);
+
+    //const products = allProductsData?.data?.products?.edges;
+    let cursor = allProductsData[allProductsData.length - 1]?.cursor;
+    //let allData = [];
+    let i = 1;
+
+      while(true){
+        let productResponse = await admin.graphql(`
+          query GetProductsPaginated($after: String) {
+            products(first: 10, after: $after) {
+              edges {
+                cursor
+                node {
+                  id
+                  title
+                  variants(first: 250) {
+                    edges {
+                      node {
+                        id
+                        image {
+                          url
+                        }
+                        price
+                        inventoryQuantity
+                        title
+                      }
+                    }
+                  }
+                  category {
+                    name
+                  }
+                  totalInventory
+                  productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+                    value
+                  }
+                  poductStatusField: metafield(namespace: "productStatus", key: "productStatus") {
+                    value
+                  }
+                  categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+                    value
+                  }
+                  categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
+                    value
+                  }
+                  categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
+                    value
+                  }
+                  priceRangeV2 {
+                    maxVariantPrice {
+                        amount
+                    }
+                    minVariantPrice {
+                        amount
+                    }
+                  }
+                  images(first: 1) {
+                    edges {
+                      node {
+                        url
+                      }
+                    }
+                  }
+                }
+              }
+              pageInfo {
+                hasNextPage
+              }
+            }
+          }`,
+          {
+            variables: {
+              after: cursor,
+            },
+          }
+        );
+
+        let productData = await productResponse.json();
+        console.log('product data in loader while loop', allProductsData);
+        allProductsData = allProductsData.concat(productData?.data?.products?.edges);
+        //i++;
+        if (productData?.data?.products?.pageInfo?.hasNextPage) {
+            const products = productData?.data?.products?.edges;
+            if (products) {
+                cursor = products[products.length - 1]?.cursor;
+            } else {
+              break;
+            }
+        } else {
+            break;
+        }
+     }
+
+
     const response = await admin.graphql(
       `{
         shop {
@@ -72,12 +228,25 @@ export async function loader({ request }) {
 
     const res = await admin.graphql(
       `query AllProducts{
-        products(first: 250) {
+        products(first: 10) {
           edges {
             cursor
             node {
               id
               title
+              variants(first: 250) {
+                edges {
+                  node {
+                    id
+                    image {
+                      url
+                    }
+                    price
+                    inventoryQuantity
+                    title
+                  }
+                }
+              }
               category {
                 name
               }
@@ -120,7 +289,7 @@ export async function loader({ request }) {
         }
       }`
     );
-    const allProductsData = await res.json();
+    const productsData = await res.json();
     const data = await response.json();
     const allProductCategories = data?.data?.shop?.allProductCategories;
     const shopId = data?.data?.shop?.id;
@@ -132,14 +301,14 @@ export async function loader({ request }) {
     const categoryStatusFieldValue = data?.data?.shop?.categoryStatusField?.value;
     const categoryNameFieldValue = data?.data?.shop?.categoryNameField?.value;
 
-    const storeLimit = allProductsData?.data?.products?.edges.length;
+    const storeLimit = allProductsData.length; // allProductsData?.data?.products?.edges.length;
 
     const categoryLimits = {}
     for (const category of allProductCategories) {
       const productTaxonomyNode = category.productTaxonomyNode;
       let quantityLimit = 0;
       let name = productTaxonomyNode.name
-      for (const edge of allProductsData.data.products.edges) {
+      for (const edge of allProductsData/*.data.products.edges*/) {
         const productCategory = edge.node.category ? edge.node.category.name : null;
         // If the product category matches the current category, increment the count
         if (productCategory === productTaxonomyNode.name) {
@@ -151,142 +320,6 @@ export async function loader({ request }) {
 
     console.log('shop id in loader', shopId);
 
-    /*//for loop to create metafields for products and shop
-    for (const orderLimiter of orderLimit) {
-
-      if (orderLimiter.type === 'product_wise') {
-        console.log('orderLimiter in loader', orderLimiter);
-
-        let productResponse = await admin.graphql(
-        `{
-            product(id: "${orderLimiter.typeId}") {
-                title
-                category {
-                  name
-                }
-            }
-          }`,
-        );
-
-        let productData = await productResponse.json();
-        let categoryName = productData?.data?.product?.category?.name;
-
-        const categoryName = allProductsData.data.products.edges.find(
-          (product) => product.node.id === orderLimiter.typeId
-        )?.node?.category?.name;
-
-        const categoryId = allProductCategories.find(
-          (category) => category.productTaxonomyNode.name === categoryName
-        )?.productTaxonomyNode.id
-
-        const mutationQuery = `mutation productUpdate($input: ProductInput!) {
-          productUpdate(input: $input) {
-            product {
-              id
-              title
-              metafields(first: 10) {
-                edges {
-                  node {
-                    id
-                    namespace
-                    key
-                    value
-                  }
-                }
-              }
-            }
-            userErrors {
-              field
-              message
-            }
-          }
-        }`;
-
-        const variables = {
-          variables: {
-            input: {
-              id: orderLimiter.typeId,
-              metafields: [
-                {
-                  "namespace": "categoryName",
-                  "key": "categoryName",
-                  "type": "string",
-                  "value": `${categoryName}`
-                },
-                {
-                  "namespace": "categoryLimit",
-                  "key": "categoryLimit",
-                  "value": `${orderLimit.find(
-                    (item) => item.typeId === categoryId
-                  )?.quantityLimit}`,
-                  "type": "string"
-                },
-                {
-                  "namespace": "categoryStatus",
-                  "key": "categoryStatus",
-                  "value": `${orderLimit.find(
-                    (item) => item.typeId === categoryId
-                  )?.status}`,
-                  "type": "string"
-                }
-              ]
-            }
-          }
-        };
-
-        const metaResponse = await admin.graphql(mutationQuery, variables);
-        const metaData = await metaResponse.json();
-        const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
-
-        const errorMessages = metaData.data.productUpdate.userErrors;
-
-        console.log('existingrecords in loader', errorMessages);
-
-        if (errorMessages && errorMessages.length > 0) {
-
-          // Delete metafields one by one based on the given keys
-          const keysToDelete = [
-            'categoryLimit', 'categoryStatus', 'categoryName'
-          ];
-
-          const deletePromises = keysToDelete.map(async key => {
-            // Find the corresponding metafield ID in the existing metafields
-            const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
-            //console.log('metafield', existingMetafield);
-
-            if (existingMetafield) {
-              // Delete the conflicting metafield
-              await admin.graphql(
-                `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                  metafieldDelete(input: $input) {
-                    userErrors {
-                      field
-                      message
-                    }
-                  }
-                }`,
-                {
-                  variables: {
-                    input: {
-                      id: `${existingMetafield.id}`
-                    }
-                  }
-                }
-              );
-            }
-          });
-
-          // Wait for all delete operations to complete
-          await Promise.all(deletePromises);
-
-          // Now, execute the updateProduct query with the updated metafields
-          const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
-          const updatedMetaData = await updatedMetaResponse.json();
-        }
-
-        // console.log(metaData.data.productUpdate.product , metaData.data.productUpdate.userErrors);
-      }
-    }*/
 
     //to populate the rows
     const rows = [];
@@ -348,6 +381,7 @@ export async function loader({ request }) {
       data,
       orderLimit,
       rows,
+      allProductsData,
       categoryLimits,
       storeLimit,
       shopId,
@@ -357,7 +391,7 @@ export async function loader({ request }) {
       categoryLimitFieldValue,
       categoryStatusFieldValue,
       categoryNameFieldValue,
-      allProductsData,
+      productsData,
     });
   } catch (error) {
     console.error('Error in loader:', error);
@@ -373,6 +407,7 @@ export async function action({ request, params }) {
 
   const { admin, session } = await authenticate.admin(request);
   try {
+    const formData = await request.formData();
 
     const res = await admin.graphql(
       `query AllProducts{
@@ -388,12 +423,11 @@ export async function action({ request, params }) {
         }
       }`
     );
-    const allProductsData = await res.json();
+    const allProductsData = JSON.parse(formData.get('allProductsData')) //await res.json();
 
 
-    const formData = await request.formData();
+   
 
-    console.log('status value in loader', formData.get('status'), formData.get('id'));
 
 
     if (formData.get('action') == 'saveProduct') {
@@ -461,7 +495,7 @@ export async function action({ request, params }) {
             const productIds = [];
 
             // Iterate through the edges of the products
-            allProductsData.data.products.edges.forEach(edge => {
+            allProductsData.forEach(edge => {
               const category = edge.node.category;
               // Check if the category exists and its name is "Snowboards"
               if (category && category?.name === limiter.id) {
@@ -585,149 +619,197 @@ export async function action({ request, params }) {
 
             }
 
-            /*const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
-              metafieldsSet(metafields: $metafields) {
-                metafields {
-                  id
-                  namespace
-                  key
-                  value
-                }
-                userErrors {
-                  field
-                  message
-                }
-              }
-            }`;
-    
-            const metafields = {
-              variables: {
-                metafields: [
-                  {
-                    "ownerId": `${formData.get('shopId')}`,
-                    "namespace": "categoryLimit",
-                    "key": "categoryLimit",
-                    "type": "string",
-                    "value": `${limiter.value}`
-    
-                  },
-                  {
-                    "ownerId": `${formData.get('shopId')}`,
-                    "namespace": "categoryStatus",
-                    "key": "categoryStatus",
-                    "type": "string",
-                    "value": "active"
-    
-                  },
-                  {
-                    "ownerId": `${formData.get('shopId')}`,
-                    "namespace": "categoryName",
-                    "key": "categoryName",
-                    "type": "string",
-                    "value": `${limiter.id}`
-    
-                  }
-                ]
-              }
-            };
-    
-            const metaResponse = await admin.graphql(mutationQuery, metafields);
-            const metaData = await metaResponse.json();*/
           }
 
           if (Number(limiter.value) > 0 && limiter.type === 'Product Wise') {
-            const mutationQuery = `mutation productUpdate($input: ProductInput!) {
-              productUpdate(input: $input) {
-                product {
-                  id
-                  title
-                  metafields(first: 20) {
+
+            if(limiter.id.includes("ProductVariant")) {
+              console.log('product variant id in action', limiter.id);
+              const mutationQuery = `mutation productVariantUpdate($input: ProductVariantInput!) {
+                productVariantUpdate(input: $input) {
+                productVariant{
+                  metafields(first:10){
                     edges {
                       node {
                         id
-                        namespace
                         key
                         value
                       }
                     }
                   }
                 }
-                userErrors {
-                  field
-                  message
+                  userErrors {
+                    field
+                    message
+                  }
                 }
-              }
-            }`;
+              }`;
 
-            const variables = {
-              variables: {
-                input: {
-                  id: `${limiter.id}`,
-                  metafields: [
-                    {
-                      "namespace": "productLimit",
-                      "key": `productLimit`,
-                      "type": "string",
-                      "value": `${limiter.value}`
-                    },
-                    {
-                      "namespace": "productStatus",
-                      "key": "productStatus",
-                      "type": "string",
-                      "value": "active",
-                    }
-                  ]
-                }
-              }
-            };
-            const metaResponse = await admin.graphql(mutationQuery, variables);
-            const metaData = await metaResponse.json();
-            const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
-
-            const errorMessages = metaData.data.productUpdate.userErrors;
-
-            //console.log('existingrecords', existingMetafields);
-
-            if (errorMessages && errorMessages.length > 0) {
-
-              // Delete metafields one by one based on the given keys
-              const keysToDelete = [
-                'productLimit', 'productStatus'
-              ];
-
-              const deletePromises = keysToDelete.map(async key => {
-                // Find the corresponding metafield ID in the existing metafields
-                const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
-                //console.log('metafield', existingMetafield);
-
-                if (existingMetafield) {
-                  // Delete the conflicting metafield
-                  await admin.graphql(
-                    `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                    metafieldDelete(input: $input) {
-                      userErrors {
-                        field
-                        message
+              const variables = {
+                variables: {
+                  input: {
+                    id: `${limiter.id}`,
+                    metafields: [
+                      {
+                        "namespace": "productLimit",
+                        "key": `productLimit`,
+                        "type": "string",
+                        "value": `${limiter.value}`
+                      },
+                      {
+                        "namespace": "productStatus",
+                        "key": "productStatus",
+                        "type": "string",
+                        "value": "active",
                       }
-                    }
-                  }`,
-                    {
-                      variables: {
-                        input: {
-                          id: `${existingMetafield.id}`
+                    ]
+                  }
+                }
+              };
+              const metaResponse = await admin.graphql(mutationQuery, variables);
+              const metaData = await metaResponse.json();
+              const existingMetafields = metaData?.data?.productVariantUpdate?.productVariant?.metafields?.edges.map(edge => edge.node)
+  
+              const errorMessages = metaData.data?.productVariantUpdate?.userErrors;
+  
+              //console.log('existingrecords', existingMetafields);
+  
+              if (errorMessages && errorMessages.length > 0) {
+  
+                // Delete metafields one by one based on the given keys
+                const keysToDelete = [
+                  'productLimit', 'productStatus'
+                ];
+  
+                const deletePromises = keysToDelete.map(async key => {
+                  // Find the corresponding metafield ID in the existing metafields
+                  const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
+                  //console.log('metafield', existingMetafield);
+  
+                  if (existingMetafield) {
+                    // Delete the conflicting metafield
+                    await admin.graphql(
+                      `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+                      metafieldDelete(input: $input) {
+                        userErrors {
+                          field
+                          message
+                        }
+                      }
+                    }`,
+                      {
+                        variables: {
+                          input: {
+                            id: `${existingMetafield.id}`
+                          }
+                        }
+                      }
+                    );
+                  }
+                });
+  
+                // Wait for all delete operations to complete
+                await Promise.all(deletePromises);
+  
+                // Now, execute the updateProduct query with the updated metafields
+                const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
+                const updatedMetaData = await updatedMetaResponse.json();
+              }
+            } else {
+
+              const mutationQuery = `mutation productUpdate($input: ProductInput!) {
+                productUpdate(input: $input) {
+                  product {
+                    id
+                    title
+                    metafields(first: 20) {
+                      edges {
+                        node {
+                          id
+                          namespace
+                          key
+                          value
                         }
                       }
                     }
-                  );
+                  }
+                  userErrors {
+                    field
+                    message
+                  }
                 }
-              });
+              }`;
 
-              // Wait for all delete operations to complete
-              await Promise.all(deletePromises);
+              const variables = {
+                variables: {
+                  input: {
+                    id: `${limiter.id}`,
+                    metafields: [
+                      {
+                        "namespace": "productLimit",
+                        "key": `productLimit`,
+                        "type": "string",
+                        "value": `${limiter.value}`
+                      },
+                      {
+                        "namespace": "productStatus",
+                        "key": "productStatus",
+                        "type": "string",
+                        "value": "active",
+                      }
+                    ]
+                  }
+                }
+              };
+              const metaResponse = await admin.graphql(mutationQuery, variables);
+              const metaData = await metaResponse.json();
+              const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
 
-              // Now, execute the updateProduct query with the updated metafields
-              const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
-              const updatedMetaData = await updatedMetaResponse.json();
+              const errorMessages = metaData.data.productUpdate.userErrors;
+
+              //console.log('existingrecords', existingMetafields);
+
+              if (errorMessages && errorMessages.length > 0) {
+
+                // Delete metafields one by one based on the given keys
+                const keysToDelete = [
+                  'productLimit', 'productStatus'
+                ];
+
+                const deletePromises = keysToDelete.map(async key => {
+                  // Find the corresponding metafield ID in the existing metafields
+                  const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
+                  //console.log('metafield', existingMetafield);
+
+                  if (existingMetafield) {
+                    // Delete the conflicting metafield
+                    await admin.graphql(
+                      `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+                      metafieldDelete(input: $input) {
+                        userErrors {
+                          field
+                          message
+                        }
+                      }
+                    }`,
+                      {
+                        variables: {
+                          input: {
+                            id: `${existingMetafield.id}`
+                          }
+                        }
+                      }
+                    );
+                  }
+                });
+
+                // Wait for all delete operations to complete
+                await Promise.all(deletePromises);
+
+                // Now, execute the updateProduct query with the updated metafields
+                const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
+                const updatedMetaData = await updatedMetaResponse.json();
+              }
             }
           }
 
@@ -779,7 +861,7 @@ export async function action({ request, params }) {
             const productIds = [];
 
             // Iterate through the edges of the products
-            allProductsData.data.products.edges.forEach(edge => {
+            allProductsData.forEach(edge => {
               const category = edge.node.category;
               if (category && category?.name === limiter.id) {
                 productIds.push(edge.node.id);
@@ -1081,14 +1163,36 @@ export default function Index() {
     renderErrorMessage();
   }
 
-  const productsData = loaderData?.allProductsData.data.products.edges;
-  const categoryLimits = loaderData.categoryLimits;
+
+  const [productsData, setProductsData] = useState([]);
+  const [cursor, setCursor] = useState('');
+
+  useEffect(() => {
+    const products = loaderData.productsData.data.products.edges;
+    setProductsData(products);
+    console.log('productsData in useEffect', productsData);
+    const hasNextPage = loaderData.productsData.data.products.pageInfo.hasNextPage;
+    const lastProductCursor = products[products.length - 1]?.cursor;
+    setCursor(hasNextPage ? lastProductCursor : null);
+  }, [loaderData]);
+
+
+  useEffect(() => {
+    console.log('cursor', cursor);
+  }, [cursor]);
+  
+  useEffect(() => {
+    console.log('productsData', productsData);
+  }, [productsData]);
+  //const productsData = loaderData?.allProductsData.data.products.edges;
+  const categoryLimits = loaderData?.categoryLimits;
   const categoryOptions = [];
   const categoryIds = {};
-  const allProductCategories = loaderData.data.data.shop.allProductCategories;
+  const allProductCategories = loaderData?.data?.data.shop.allProductCategories;
   const orderLimit = loaderData.orderLimit;
   const shopName = loaderData.shopName;
   const shopLimit = loaderData.storeLimit;
+  const allProductsData = loaderData?.allProductsData;
 
   //to populate the category arrays
   for (const category of allProductCategories) {
@@ -1103,30 +1207,6 @@ export default function Index() {
   }
 
   const rows = loaderData.rows;
-  console.log('productsData', productsData[2].node);
-  /*//to add buttons to the rows
-  const rows = allFieldRows ? rows.map(row => [
-    row.id,
-    row.type,
-    row.name,
-    row.quantityLimit,
-    row.status,
-    row.createdAt,
-    <ButtonGroup gap="200">
-      <Button onClick={() => handleEdit(row.id, row.type)}>
-        <Icon
-          source={EditIcon}
-          tone="base"
-        />
-      </Button>
-      <Button onClick={() => handleDelete(row.id)}>
-        <Icon
-          source={DeleteIcon}
-          tone="base"
-        />
-      </Button>
-    </ButtonGroup>
-  ]) : [];*/
 
   //console.log('rows', rows);
   const [searchValue, setSearchValue] = useState('');
@@ -1148,6 +1228,7 @@ export default function Index() {
     productImage: '',
     availablePublicationCount: 0,
   });
+  const [variantQuantityLimits, setVariantQuantityLimits] = useState({});
   const navigate = useNavigate();
   const submit = useSubmit();
 
@@ -1155,49 +1236,126 @@ export default function Index() {
   const [sortDirection, setSortDirection] = useState('ascending');
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalProductPages, setTotalProductPages] = useState(3);
   const recordsPerPage = 4;
 
   //console.log(loaderData.orderLimit);
 
   // Filter rows based on search value
-  const filteredRows = rows.filter(row =>
-    Object.values(row).some(value =>
-      value.toString().toLowerCase().includes(searchValue.toLowerCase())
-    )
+  const filteredCategoryRows = categoryOptions.filter(row =>
+    //Object.values(row).some(value =>
+      row.toString().toLowerCase().includes(searchValue.toLowerCase())
+   // )
   );
 
-  const filteredProductRows = productsData.filter(product =>
+  const filteredProductRows = allProductsData.filter(product =>
     product.node.title.toLowerCase().includes(searchValue.toLowerCase()) ||
     (product.node.priceRangeV2?.maxVariantPrice?.amount.toString().toLowerCase().includes(searchValue.toLowerCase())) ||
     (product.node?.totalInventory.toString().toLowerCase().includes(searchValue.toLowerCase()))
 
   );
 
-  // Sort the filtered rows based on the current sort column and direction
-  const sortedFilteredRows = filteredRows.sort((a, b) => {
+  /*// Sort the filtered rows based on the current sort column and direction
+  const sortedCategoryFilteredRows = filteredCategoryRows.sort((a, b) => {
     const aValue = a[selectedSortColumn];
     const bValue = b[selectedSortColumn];
     //console.log('sortedfiletered', rows);
     if (aValue === bValue) return 0;
     return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
+  });*/
+  // Sort the filtered category rows based on the current sort column and direction
+  const sortedCategoryFilteredRows = filteredCategoryRows.sort((a, b) => {
+  // Directly compare the strings aValue and bValue
+  const aValue = a;
+  const bValue = b;
+
+  // Alphabetically sort the strings
+  return sortDirection === 'ascending' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+});
+
+  // Sort the filtered rows based on the current sort column and direction
+  const sortedProductFilteredRows = filteredProductRows.sort((a, b) => {
+     // Custom comparison logic for priceRangeV2
+  if (selectedSortColumn === 'priceRangeV2') {
+    const aPrice = a?.node.priceRangeV2?.maxVariantPrice?.amount;
+    const bPrice = b?.node.priceRangeV2?.maxVariantPrice?.amount;
+    return sortDirection === 'ascending' ? aPrice - bPrice : bPrice - aPrice;
+  }
+    const aValue = a.node[selectedSortColumn];
+    const bValue = b.node[selectedSortColumn];
+    if (aValue === bValue) return 0;
+    return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
   });
 
   // Slice the sorted rows to get records for the current page
-  const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage);
+  //const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage);
 
   // Handle pagination
-  const handleNextPage = () => setCurrentPage(currentPage + 1);
+const handleLoadMore = async () => {
+  console.log('cursor in handleNextPage', cursor);
+  try {
+    const response = await fetch(`/api/${cursor}`);
+    const responseData = await response.json();
+    console.log('data from fetch ', responseData?.allProductsData?.data?.products?.edges);
+    
+    // Ensure `allProductsData` and its properties are defined
+    if (responseData ) {
+      const products = responseData?.allProductsData?.data?.products?.edges;
+      if (products) {
+        setProductsData((previousProducts) => [...previousProducts, ...products]);
+        const hasNextPage = responseData?.allProductsData?.data.products.pageInfo.hasNextPage;
+        const lastProductCursor = products[products.length - 1]?.cursor;
+        setCursor(hasNextPage ? lastProductCursor : null);
+      }
+    } else {
+      console.error('Invalid response format:', responseData);
+      // Handle invalid response format
+    }
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    // Handle fetch error
+  }
+  
+  // Update current page
+  setCurrentPage(currentPage + 1);
+};
+
+  /*// Handle pagination
+  const handleNextPage = () => {
+    console.log('cursor in handleNextPage', cursor);
+    const res = async () => {
+      const response = await fetch(`/api/${cursor}`);
+      const allProductsData = await response.json();
+      console.log('data from fetch ', allProductsData);
+      const products = allProductsData?.data.products.edges;
+      if(products){
+        setProductsData((previousProducts) => [...previousProducts, ...products]);
+        const hasNextPage = actionData?.allProductsData.data.products.pageInfo.hasNextPage;
+        const lastProductCursor = products[products.length - 1]?.cursor;
+        setCursor(hasNextPage ? lastProductCursor : null);
+      }
+    }
+    res();
+    submit({ action: 'nextPage', cursor: cursor }, { method: 'post' });
+    setCurrentPage(currentPage + 1);
+  };*/
+
+  const handleNextPage = () => setCurrentPage(currentPage + 1)
   const handlePreviousPage = () => setCurrentPage(currentPage - 1);
 
-  const totalRecords = rows.length;
+  const totalRecords = allProductsData.length;
   const totalPages = Math.ceil(totalRecords / recordsPerPage);
 
-  const totalProducts = productsData.length;
-  const totalProductPages = Math.ceil(totalProducts / recordsPerPage);
+  useEffect(() => {
+    const totalProducts = productsData.length;
+    const totalPages = Math.ceil(totalProducts / recordsPerPage);
+    setTotalProductPages(totalPages);
+  }, [productsData, currentPage]);
+  
 
   //handle sorting
   const handleSort = (column) => {
-    console.log('handleSort');
+    console.log('handleSort', column);
     if (selectedSortColumn === column) {
       setSortDirection((prevDirection) =>
         prevDirection === 'ascending' ? 'descending' : 'ascending'
@@ -1209,6 +1367,26 @@ export default function Index() {
     console.log('direction', sortDirection);
   };
 
+  
+    const fetchVariantQuantityLimit = async (productId) => {
+      try {
+        const limit = await getProductVariantQuantityLimit(productId);
+        setVariantQuantityLimits(prevState => ({
+          ...prevState,
+          [productId]: limit
+        }));
+      } catch (error) {
+        console.error('Error fetching variant quantity limit for product ID:', productId, error);
+      }
+    };
+
+    useEffect(()=>{
+      allProductsData.forEach((product) => {
+      product.node.variants.edges.forEach((variant) => {
+       fetchVariantQuantityLimit(variant.node.id);
+      });
+    });
+  },[quantityLimit]);
 
   //responsible for opening and closing the Modal
   const toggleModalActive = useCallback(
@@ -1277,6 +1455,7 @@ export default function Index() {
     setTagValue(value);
     console.log('tag value', tagValue);
   };
+
   /*useCallback((value) => {
     setTagValue(value);
     if (value === 'Product Wise' && !formState.productId) {
@@ -1285,7 +1464,7 @@ export default function Index() {
     }
   }, [formState.productId, selectProduct]);*/
 
-  console.log(categoryLimits);
+  console.log('category options in index', categoryOptions);
 
   const handleCategoryValueChange = useCallback(
     (value) => {
@@ -1343,9 +1522,31 @@ export default function Index() {
     }
   };
 
-  const handleSaveProduct = () => {
+  const getProductVariantQuantityLimit = async (productId) => {
+    
+    try {
+      const productLimit = quantityLimit.find(item => item.id === productId);
+      if (productLimit) {
+        return parseInt(productLimit.value); // Return the quantity limit if found and greater than 0
+      } else {
+        const lastNumberId = productId.match(/\d+$/)[0];
+        const response = await fetch(`/api/getVariantLimit/${lastNumberId}`);
+        const responseData = await response.json();
+        console.log('responseData in getvariant quantity', responseData);
+        const productVariantLimitField = responseData?.productVariantLimitField;
+        if(productVariantLimitField?.value) {
+          return parseInt(productVariantLimitField?.value);
+        } else {
+          return 0;
+        }
+      }
+    } catch(error) {
+      console.log('error while fetching variant quantity limit ', error);
+    }
+  }
 
-    submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit) }, { method: 'post' });
+  const handleSaveProduct = () => {
+    submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit), allProductsData: JSON.stringify(allProductsData) }, { method: 'post' });
   }
 
   const getCategoryQuantityLimit = (name) => {
@@ -1354,7 +1555,7 @@ export default function Index() {
       return parseInt(categoryLimit.value);
     } else {
 
-      const categoryLimitFieldValue = loaderData?.allProductsData.data.products.edges.find((item) => 
+      const categoryLimitFieldValue = loaderData?.productsData.data.products.edges.find((item) => 
         item.node?.category?.name === name &&
         item.node?.categoryLimitField &&
         item.node?.categoryLimitField.value !== "undefined"
@@ -1381,201 +1582,10 @@ export default function Index() {
     }
   }
 
-  const handleAdd = () => {
-    setIsUpdate(false);
-    setTagValue('Store Wise');
-    setFormState({
-      ...formState,
-      productId: ''
-    });
-    toggleModalActive();
-  }
-
-  const handleEdit = (id, type) => {
-    console.log(id + 'in edit');
-    for (const row of orderLimit) {
-      console.log('row id and edit id', row.id);
-      console.log('row status in edit', row.status);
-      if (row.id == id) {
-        if (row.type === 'product_wise') {
-          setFormState({
-            ...formState,
-            productId: row.typeId,
-            productTitle: rows.find(
-              (record) => record.id === row.id
-            )?.name,
-            productImage: '',
-          });
-          setQuantityLimit(row.quantityLimit);
-          setTagValue('Product Wise');
-          setStatusValue(row.status.charAt(0).toUpperCase() + row.status.slice(1));
-        } else if (row.type === 'category_wise') {
-          setTagValue('Category Wise');
-          setQuantityLimit(row.quantityLimit);
-          setStatusValue(row.status.charAt(0).toUpperCase() + row.status.slice(1));
-          setCategoryValue(rows.find(
-            (record) => record.id === row.id
-          )?.name);
-        } else {
-          setTagValue('Store Wise');
-          setStatusValue(row.status.charAt(0).toUpperCase() + row.status.slice(1));
-          setQuantityLimit(row.quantityLimit);
-        }
-      }
-    }
-    setPk(id);
-    setIsUpdate(true);
-    toggleModalActive();
-  }
-
-  const handleDelete = (id) => {
-    console.log(id + 'in delete');
-    const typeId = orderLimit.find(
-      (record) => record.id === id
-    )?.typeId;
-    const type = orderLimit.find(
-      (record) => record.id === id
-    )?.type;
-    submit({ action: 'delete', pk: id, typeId: typeId, type: type }, { method: 'post' });
-  }
-
-  const handleUpdate = () => {
-    let id = '';
-    //let quantityLimit = 0;
-    let name = ''
-
-    if (tagValue === 'Category Wise') {
-      const indexId = categoryOptions.indexOf(categoryValue);
-      id = categoryIds[indexId];
-      name = categoryValue;
-    } else if (tagValue === 'Product Wise') {
-      console.log('in handleSave', formState.productId);
-      id = formState.productId;
-    }
-
-    //triggers the action function. Makes the post request
-    submit({ action: 'update', choice: tagValue, name: name, id: id, status: statusValue.toLowerCase(), pk: pk, quantityLimit: quantityLimit }, { method: 'post' });
-    toggleIsUpdate();
-    toggleModalActive();
-  }
-
-  const handleSave = () => {
-    let id = '';
-    let name = '';
-
-    if (tagValue === 'Category Wise') {
-      const indexId = categoryOptions.indexOf(categoryValue);
-      id = categoryIds[indexId];
-      name = categoryValue;
-    } else if (tagValue === 'Product Wise') {
-      console.log('in handleSave', formState.productId);
-      id = formState.productId;
-    }
-
-
-    //triggers the action function. Makes the post request
-    submit({ action: 'create', choice: tagValue, id: id, status: statusValue.toLowerCase(), quantityLimit: quantityLimit, name: name }, { method: 'post' });
-    toggleModalActive();
-  }
 
   return (
     <Page fullWidth={true}>
       <ui-title-bar title="Order Limit"></ui-title-bar>
-
-      <Modal
-        open={modalActive}
-        onClose={toggleModalActive}
-        title="Limiters"
-        primaryAction={{
-          content: isUpdate ? 'update' : 'save', // Conditional primary action content
-          onAction: isUpdate ? handleUpdate : handleSave, // Conditional primary action handler
-        }}
-        secondaryActions={[
-          {
-            content: 'Close',
-            onAction: toggleModalActive,
-          },
-        ]}
-      >
-        <Modal.Section>
-          <FormLayout>
-            <Select
-              label="Limit By"
-              options={['Store Wise', 'Product Wise', 'Category Wise']}
-              value={tagValue}
-              onChange={handleTagValueChange}
-              onClick={() => handleTagValueChange(tagValue)}
-            />
-          </FormLayout>
-          <div style={{ marginTop: '1rem' }}>
-            <FormLayout>
-              <Select
-                label="Status"
-                options={['Active', 'Inactive']}
-                value={statusValue}
-                onChange={handleStatusValueChange}
-              />
-            </FormLayout>
-          </div>
-          <div style={{ marginTop: '1rem' }}>
-            <FormLayout>
-              <TextField
-                value={quantityLimit}
-                label="Quantity Limit"
-                type="number"
-                onChange={handleQuantityLimit}
-              />
-            </FormLayout>
-          </div>
-          {tagValue === 'Product Wise' && formState.productId && (
-            <div style={{ marginTop: '1rem' }}>
-              <Card>
-                <BlockStack gap="500">
-                  <InlineStack align="space-between">
-                    {formState.productId ? (
-                      <>
-                        <Text as={"h2"} variant="headingLg">
-                          Product
-                        </Text>
-                        <Button variant="plain" Primary onClick={() => { selectProduct(formState, setFormState); toggleModalActive(); }}>
-                          Change product
-                        </Button>
-                      </>
-                    ) : null}
-                  </InlineStack>
-                  {formState.productId ? (
-                    <InlineStack blockAlign="center" gap="500">
-                      <Thumbnail
-                        source={formState.productImage || ImageIcon}
-                        alt={formState.productAlt}
-                      />
-                      <Text as="span" variant="headingMd" fontWeight="semibold">
-                        {formState.productTitle}
-                      </Text>
-                      <input type="hidden" name="productForm" value={formState.productId} />
-                    </InlineStack>
-                  ) : null}
-                  <Bleed marginInlineStart="200" marginInlineEnd="200">
-                    <Divider />
-                  </Bleed>
-                </BlockStack>
-              </Card>
-            </div>
-          )}
-          {tagValue === 'Category Wise' && (
-            <div style={{ marginTop: '1rem' }}>
-              <FormLayout>
-                <Select
-                  label="Categories"
-                  options={categoryOptions}
-                  value={categoryValue}
-                  onChange={handleCategoryValueChange}
-                />
-              </FormLayout>
-            </div>
-          )}
-        </Modal.Section>
-      </Modal>
 
       {/* Alert message */}
       {success && (
@@ -1595,34 +1605,6 @@ export default function Index() {
           </Card>
         </div>
       )}
-      <Modal
-        open={alert}
-        onClose={toggleAlert}
-        title="Record Already Exists"
-        primaryAction={{
-          content: 'Close',
-          onAction: toggleAlert,
-        }}
-      >
-        <Modal.Section>
-          <p>A record with the same data already exists.</p>
-        </Modal.Section>
-      </Modal>
-
-      {/*<Modal
-        open={success}
-        onClose={toggleSuccess}
-        title="Sucess"
-        primaryAction={{
-          content: 'Close',
-          onAction: toggleSuccess,
-        }}
-      >
-        <Modal.Section>
-          <p>Sucess</p>
-        </Modal.Section>
-      </Modal>*/}
-
       <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
 
         <div>
@@ -1665,157 +1647,104 @@ export default function Index() {
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
-            {/*
-              <Card>
-                <IndexTable
-                      headings={[
-                        {
-                          title: (
-                            <ButtonGroup>
-                              <Button onClick={() => handleSort('id')} variant="tertiary">
-                                Id
-                              </Button>
-                              <Button onClick={() => handleSort('id')} variant="tertiary">
-                                <Icon source={SelectIcon} />
-                              </Button>
-                            </ButtonGroup>
-                          ),
-                          alignment: "center"
-                        },
-                        {
-                          title: (
-                            <ButtonGroup>
-                              <Button onClick={() => handleSort('type')} variant="tertiary">
-                                Type
-                              </Button>
-                              <Button onClick={() => handleSort('type')} variant="tertiary">
-                                <Icon source={SelectIcon} />
-                              </Button>
-                            </ButtonGroup>
-                          ),
-                          alignment: "center"
-                        },
-                        {
-                          title: (
-                            <ButtonGroup>
-                              <Button onClick={() => handleSort('name')} variant="tertiary">
-                                Name
-                              </Button>
-                              <Button onClick={() => handleSort('name')} variant="tertiary">
-                                <Icon source={SelectIcon} />
-                              </Button>
-                            </ButtonGroup>
-                          ),
-                          alignment: "center"
-                        },
-                        {
-                          title: (
-                            <ButtonGroup>
-                              <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
-                                Quantity
-                              </Button>
-                              <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
-                                <Icon source={SelectIcon} />
-                              </Button>
-                            </ButtonGroup>
-                          ),
-                          alignment: "center"
-                        },
-                        {
-                          title: (
-                            <ButtonGroup>
-                              <Button onClick={() => handleSort('status')} variant="tertiary">
-                                Status
-                              </Button>
-                              <Button onClick={() => handleSort('status')} variant="tertiary">
-                                <Icon source={SelectIcon} />
-                              </Button>
-                            </ButtonGroup>
-                          ),
-                          alignment: "center"
-                        },
-                        {
-                          title: (
-                            <ButtonGroup>
-                              <Button onClick={() => handleSort('createdAt')} variant="tertiary">
-                                Created At
-                              </Button>
-                              <Button onClick={() => handleSort('createdAt')} variant="tertiary">
-                                <Icon source={SelectIcon} />
-                              </Button>
-                            </ButtonGroup>
-                          ),
-                          alignment: "center"
-                        },
-                        { title: (<b>Action</b>) },
-                      ]}
-                      itemCount={sortedFilteredRows.length}
-                      selectable={false}
-                    >
-                      {sortedFilteredRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage).map((row, index) => (
-                        <IndexTable.Row key={index}>
-                          {Object.values(row).map((cell, cellIndex) => (
-                            <IndexTable.Cell key={cellIndex}>{cell}</IndexTable.Cell>
-                          ))}
-                          <IndexTable.Cell>
-                            <ButtonGroup gap="200">
-                              <Button onClick={() => handleEdit(row.id, row.type)}>
-                                <Icon source={EditIcon} tone="base" />
-                              </Button>
-                              <Button onClick={() => handleDelete(row.id)}>
-                                <Icon source={DeleteIcon} tone="base" />
-                              </Button>
-                            </ButtonGroup>
-                          </IndexTable.Cell>
-                          </IndexTable.Row>
-                      ))
-                      }
-                    </IndexTable>
-              </Card>
-            */}
             {tagValue === 'Product Wise' && (
               <Card>
                 <IndexTable
                   headings={[
                     { title: 'Image' },
-                    { title: 'Title' },
-                    { title: 'Quantity Available' },
-                    { title: 'Price' },
+                    { title:  (
+                      <ButtonGroup>
+                        <Button onClick={() => handleSort('title')} variant="tertiary">
+                          Title
+                        </Button>
+                        <Button onClick={() => handleSort('title')} variant="tertiary">
+                          <Icon source={SelectIcon} />
+                        </Button>
+                      </ButtonGroup>
+                    ) },
+                    { title:  (
+                      <ButtonGroup>
+                        <Button onClick={() => handleSort('totalInventory')} variant="tertiary">
+                          Quantity Available
+                        </Button>
+                        <Button onClick={() => handleSort('totalInventory')} variant="tertiary">
+                          <Icon source={SelectIcon} />
+                        </Button>
+                      </ButtonGroup>
+                    ) },
+                    { title:  (
+                      <ButtonGroup>
+                        <Button onClick={() => handleSort('priceRangeV2')} variant="tertiary">
+                          Price
+                        </Button>
+                        <Button onClick={() => handleSort('priceRangeV2')} variant="tertiary">
+                          <Icon source={SelectIcon} />
+                        </Button>
+                      </ButtonGroup>
+                    ) },
                     { title: 'Quantity Limit' },
                   ]}
                   itemCount={productsData.length}
                   selectable={false}
                 >
-                  {filteredProductRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage).map((product, index) => (
-                    <IndexTable.Row key={index}>
-                      <IndexTable.Cell>
-                        <Thumbnail
-                          source={product.node.images.edges[0]?.node?.url || ImageIcon}
-                          alt="Product"
-                        />
-
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>{product.node.title}</IndexTable.Cell>
-                      <IndexTable.Cell>{product.node.totalInventory}</IndexTable.Cell>
-                      <IndexTable.Cell>{product.node.priceRangeV2?.maxVariantPrice?.amount}</IndexTable.Cell>
-                      <IndexTable.Cell>
-                        <FormLayout>
-                          <TextField
-                            value={getProductQuantityLimit(product.node.id)}
-                            label="Quantity Limit"
-                            type="number"
-                            onChange={(value) => { handleQuantityLimit(value, product.node.id) }}
+                  {sortedProductFilteredRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage).map((product, index) => (
+                    <>
+                      <IndexTable.Row key={index}>
+                        <IndexTable.Cell>
+                          <Thumbnail
+                            source={product.node.images.edges[0]?.node?.url || ImageIcon}
+                            alt="Product"
                           />
-                        </FormLayout>
-                      </IndexTable.Cell>
-                    </IndexTable.Row>
+
+                        </IndexTable.Cell>
+                        <IndexTable.Cell>{product.node.title}</IndexTable.Cell>
+                        <IndexTable.Cell>{product.node.totalInventory}</IndexTable.Cell>
+                        <IndexTable.Cell>{product.node.priceRangeV2?.maxVariantPrice?.amount}</IndexTable.Cell>
+                        <IndexTable.Cell>
+                          <FormLayout>
+                            <TextField
+                              value={getProductQuantityLimit(product.node.id)}
+                              label="Quantity Limit"
+                              type="number"
+                              onChange={(value) => { handleQuantityLimit(value, product.node.id) }}
+                            />
+                          </FormLayout>
+                        </IndexTable.Cell>
+                      </IndexTable.Row>
+                      {product?.node.variants?.edges.length > 1 && (
+                        product.node.variants.edges.map((variant, index) => (
+                          <IndexTable.Row key={index}>
+                            <IndexTable.Cell>
+                              <Thumbnail
+                                source={variant?.node?.image?.url || ImageIcon}
+                                alt="Product"
+                              />
+                            </IndexTable.Cell>
+                            <IndexTable.Cell>{variant.node.title}</IndexTable.Cell>
+                            <IndexTable.Cell>{variant.node.inventoryQuantity}</IndexTable.Cell>
+                            <IndexTable.Cell>{variant.node.price}</IndexTable.Cell>
+                            <IndexTable.Cell>
+                              <FormLayout>
+                                <TextField
+                                  value={variantQuantityLimits[variant.node.id]}
+                                  label="Quantity Limit"
+                                  type="number"
+                                  onChange={(value) => { handleQuantityLimit(value, variant.node.id) }}
+                                />
+                              </FormLayout>
+                            </IndexTable.Cell>
+                          </IndexTable.Row>
+                        ))
+                      )}
+                    </>
                   ))}
                 </IndexTable>
                 {/* Pagination component*/}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                  {/*<Button onClick={handleLoadMore} disabled={!cursor}><span style={{ padding: '0.5rem', margin: '0.5rem' }}> Load More </span></Button>*/}
                   <Button icon={ChevronLeftIcon} accessibilityLabel="Previous Page" disabled={currentPage === 1} onClick={handlePreviousPage} />
                   <span style={{ padding: '0.5rem', margin: '0.5rem' }}> Page {currentPage}</span>
-                  <Button icon={ChevronRightIcon} accessibilityLabel="Next Page" disabled={currentPage === totalProductPages} onClick={handleNextPage} />
+                <Button icon={ChevronRightIcon} accessibilityLabel="Next Page"  disabled={ currentPage === totalPages }  onClick={handleNextPage} />
                 </div>
               </Card>
             )}
@@ -1824,14 +1753,23 @@ export default function Index() {
               <Card>
                 <IndexTable
                   headings={[
-                    { title: 'Category Name' },
+                    { title:  (
+                      <ButtonGroup>
+                        <Button onClick={() => handleSort('categoryName')} variant="tertiary">
+                          Category Name
+                        </Button>
+                        <Button onClick={() => handleSort('categoryName')} variant="tertiary">
+                          <Icon source={SelectIcon} />
+                        </Button>
+                      </ButtonGroup>
+                    ) },
                     { title: 'Quantity Available' },
                     { title: 'Quantity Limit' },
                   ]}
                   itemCount={categoryOptions.length}
                   selectable={false}
                 >
-                  {categoryOptions.map((categoryName, index) => (
+                  {sortedCategoryFilteredRows.map((categoryName, index) => (
                     <IndexTable.Row key={index}>
                       <IndexTable.Cell>
                         {categoryName}

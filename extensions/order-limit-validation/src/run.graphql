@@ -11,6 +11,9 @@ query RunInput {
         }
         ... on ProductVariant {
           id
+          productVariantLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+              value
+          }
           product {
             id
             categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
@@ -23,9 +26,6 @@ query RunInput {
               value
             }
             productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
-              value
-            }
-            productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
               value
             }
             
