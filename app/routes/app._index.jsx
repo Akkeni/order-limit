@@ -179,7 +179,7 @@ export async function loader({ request }) {
         );
 
         let productData = await productResponse.json();
-        console.log('product data in loader while loop', allProductsData);
+        //console.log('product data in loader while loop', allProductsData);
         allProductsData = allProductsData.concat(productData?.data?.products?.edges);
         //i++;
         if (productData?.data?.products?.pageInfo?.hasNextPage) {
@@ -613,8 +613,8 @@ export async function action({ request, params }) {
 
                 const updatedErrorMessages = updatedMetaData.data.productUpdate.userErrors;
   
-                console.log('updatedrecords in action', updatedErrorMessages);
-                console.log('updatedMetafields in action', updatedMetafields);
+                //console.log('updatedrecords in action', updatedErrorMessages);
+                //console.log('updatedMetafields in action', updatedMetafields);
               }
 
             }
@@ -1194,12 +1194,20 @@ export default function Index() {
   const shopLimit = loaderData.storeLimit;
   const allProductsData = loaderData?.allProductsData;
 
+  const categoriesData = [];
+
   //to populate the category arrays
   for (const category of allProductCategories) {
+    let obj = {};
     const productTaxonomyNode = category.productTaxonomyNode;
     categoryOptions.push(productTaxonomyNode.name);
+    obj['categoryName'] = productTaxonomyNode.name;
+    obj['quantityLimit'] = categoryLimits[productTaxonomyNode.name];
     categoryIds[productTaxonomyNode.name] = productTaxonomyNode.id;
+    categoriesData.push(obj);
   }
+
+  console.log('categoriesData in index', categoriesData);
   //abscent of categories in the store
   if (!(categoryOptions.length)) {
     console.log('no categories');
@@ -1242,10 +1250,10 @@ export default function Index() {
   //console.log(loaderData.orderLimit);
 
   // Filter rows based on search value
-  const filteredCategoryRows = categoryOptions.filter(row =>
-    //Object.values(row).some(value =>
-      row.toString().toLowerCase().includes(searchValue.toLowerCase())
-   // )
+  const filteredCategoryRows = categoriesData.filter(row =>
+    Object.values(row).some(value =>
+      value.toString().toLowerCase().includes(searchValue.toLowerCase())
+    )
   );
 
   const filteredProductRows = allProductsData.filter(product =>
@@ -1255,15 +1263,16 @@ export default function Index() {
 
   );
 
-  /*// Sort the filtered rows based on the current sort column and direction
+  // Sort the filtered rows based on the current sort column and direction
   const sortedCategoryFilteredRows = filteredCategoryRows.sort((a, b) => {
     const aValue = a[selectedSortColumn];
     const bValue = b[selectedSortColumn];
     //console.log('sortedfiletered', rows);
     if (aValue === bValue) return 0;
     return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
-  });*/
-  // Sort the filtered category rows based on the current sort column and direction
+  });
+
+  /*// Sort the filtered category rows based on the current sort column and direction
   const sortedCategoryFilteredRows = filteredCategoryRows.sort((a, b) => {
   // Directly compare the strings aValue and bValue
   const aValue = a;
@@ -1271,7 +1280,7 @@ export default function Index() {
 
   // Alphabetically sort the strings
   return sortDirection === 'ascending' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
-});
+});*/
 
   // Sort the filtered rows based on the current sort column and direction
   const sortedProductFilteredRows = filteredProductRows.sort((a, b) => {
@@ -1763,27 +1772,36 @@ const handleLoadMore = async () => {
                         </Button>
                       </ButtonGroup>
                     ) },
-                    { title: 'Quantity Available' },
+                    { title:  (
+                      <ButtonGroup>
+                        <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
+                          Quantity Available
+                        </Button>
+                        <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
+                          <Icon source={SelectIcon} />
+                        </Button>
+                      </ButtonGroup>
+                    ) },
                     { title: 'Quantity Limit' },
                   ]}
-                  itemCount={categoryOptions.length}
+                  itemCount={categoriesData.length}
                   selectable={false}
                 >
-                  {sortedCategoryFilteredRows.map((categoryName, index) => (
+                  {sortedCategoryFilteredRows.map((category, index) => (
                     <IndexTable.Row key={index}>
                       <IndexTable.Cell>
-                        {categoryName}
+                        {category['categoryName']}
                       </IndexTable.Cell>
                       <IndexTable.Cell>
-                        {categoryLimits[categoryName]}
+                        {category['quantityLimit']}
                       </IndexTable.Cell>
                       <IndexTable.Cell>
                         <FormLayout>
                           <TextField
-                            value={getCategoryQuantityLimit(categoryName)}
+                            value={getCategoryQuantityLimit(category['categoryName'])}
                             label="Quantity Limit"
                             type="number"
-                            onChange={(value) => { handleQuantityLimit(value, categoryName) }}
+                            onChange={(value) => { handleQuantityLimit(value, category['categoryName']) }}
                           />
                         </FormLayout>
                       </IndexTable.Cell>
