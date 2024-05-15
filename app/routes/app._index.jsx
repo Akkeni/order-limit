@@ -27,18 +27,16 @@ import { json, redirect } from '@remix-run/node';
 import { useState, useCallback, useEffect } from 'react';
 import { PageActions } from '@shopify/polaris';
 import { useNavigate, useSubmit, useLoaderData, useActionData } from '@remix-run/react';
-import db from "../db.server";
-import { ImageIcon, EditIcon, DeleteIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, LogoXIcon } from '@shopify/polaris-icons';
+import { ImageIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, LogoXIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
 import React from 'react';
-import { updateLimiter, addLimiter } from '../models/Limiter.server';
 
 
 //fetches the category data
 export async function loader({ request }) {
   const { admin, session } = await authenticate.admin(request);
   try {
-    const orderLimit = await db.order_Limit.findMany();
+    
 
     let allProductsData = [];
     const resProduct = await admin.graphql(
@@ -225,80 +223,13 @@ export async function loader({ request }) {
       }
     `);
 
-    const res = await admin.graphql(
-      `query AllProducts{
-        products(first: 10) {
-          edges {
-            cursor
-            node {
-              id
-              title
-              variants(first: 250) {
-                edges {
-                  node {
-                    id
-                    image {
-                      url
-                    }
-                    price
-                    inventoryQuantity
-                    title
-                  }
-                }
-              }
-              category {
-                name
-              }
-              totalInventory
-        			productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
-              	value
-        			}
-        			poductStatusField: metafield(namespace: "productStatus", key: "productStatus") {
-          			value
-        			}
-              categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
-                value
-              }
-              categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
-                value
-              }
-              categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
-                value
-              }
-        			priceRangeV2 {
-        				maxVariantPrice {
-            				amount
-        				}
-        				minVariantPrice {
-           				 amount
-        				}
-              }
-              images(first: 1) {
-                edges {
-                  node {
-                    url
-                  }
-                }
-              }
-            }
-          }
-          pageInfo {
-            hasNextPage
-          }
-        }
-      }`
-    );
-    const productsData = await res.json();
+     
     const data = await response.json();
     const allProductCategories = data?.data?.shop?.allProductCategories;
     const shopId = data?.data?.shop?.id;
     const shopName = data?.data?.shop?.name;
 
     const storeLimitFieldValue = data?.data?.shop?.storeLimitField?.value;
-    const storeStatusFieldValue = data?.data?.shop?.storeStatusField?.value;
-    const categoryLimitFieldValue = data?.data?.shop?.categoryLimitField?.value;
-    const categoryStatusFieldValue = data?.data?.shop?.categoryStatusField?.value;
-    const categoryNameFieldValue = data?.data?.shop?.categoryNameField?.value;
 
     const storeLimit = allProductsData.length; // allProductsData?.data?.products?.edges.length;
 
@@ -317,81 +248,22 @@ export async function loader({ request }) {
       categoryLimits[name] = quantityLimit;
     }
 
-    console.log('shop id in loader', shopId);
+    //console.log('shop id in loader', shopId);
 
-
-    //to populate the rows
-    const rows = [];
-    for (const limiter of orderLimit) {
-      let row = {};
-
-      row.id = limiter.id;
-
-      if (limiter.type === 'store_wise') {
-        row.type = 'Store';
-        row.name = shopName;
-        row.quantityLimit = limiter.quantityLimit;
-      } else if (limiter.type === 'product_wise') {
-        row.type = 'Product';
-        let productResponse = await admin.graphql(
-          `query Title($id:ID!){
-              product(id: $id) {
-                title
-                availablePublicationsCount{
-                  count
-                }
-              }
-            }`,
-          {
-            variables: {
-              id: limiter.typeId,
-            },
-          }
-        );
-        let productData = await productResponse.json();
-        let productTitle = productData.data.product.title;
-        row.name = productTitle;
-        row.quantityLimit = limiter.quantityLimit;
-      } else {
-        row.type = 'Category';
-        let categoryName = allProductCategories.find(
-          (category) => category.productTaxonomyNode.id === limiter.typeId
-        )?.productTaxonomyNode.name;
-        row.name = categoryName;
-
-        row.quantityLimit = limiter.quantityLimit;
-      }
-
-      row.status = limiter.status.charAt(0).toUpperCase() + limiter.status.slice(1);
-
-      // Convert createdAt to a Date object if it's not already
-      let createdAt = new Date(limiter.createdAt).toLocaleString();
-      createdAt = new Date(createdAt.toLocaleString());
-      createdAt = createdAt.getFullYear() + '-' + (createdAt.getMonth() + 1) + '-' + createdAt.getDate() + ' ' + createdAt.getHours() + ':' + createdAt.getMinutes() + ':' + createdAt.getSeconds();
-
-      row.createdAt = createdAt;
-      rows.push(row);
-    }
 
 
 
     return json({
       ok: true,
       data,
-      orderLimit,
-      rows,
       allProductsData,
       categoryLimits,
       storeLimit,
       shopId,
       shopName,
       storeLimitFieldValue,
-      storeStatusFieldValue,
-      categoryLimitFieldValue,
-      categoryStatusFieldValue,
-      categoryNameFieldValue,
-      productsData,
     });
+
   } catch (error) {
     console.error('Error in loader:', error);
     return json({
@@ -414,12 +286,12 @@ export async function action({ request, params }) {
     if (formData.get('action') == 'saveProduct') {
 
       const limiters = JSON.parse(formData.get('quantityLimit'));
-      console.log('limiters in action', limiters);
+      //console.log('limiters in action', limiters);
 
       for (const limiter of limiters) {
 
         try {
-          console.log('limiter value in action saveProduct', limiter.value, limiter.id);
+          //console.log('limiter value in action saveProduct', limiter.value, limiter.id);
 
           if (Number(limiter.value) > 0 && limiter.type === 'Store Wise') {
 
@@ -470,7 +342,7 @@ export async function action({ request, params }) {
           }*/
 
           if (Number(limiter.value) > 0 && limiter.type === 'Category Wise') {
-            console.log('limiter in category wise in action', limiter);
+            //console.log('limiter in category wise in action', limiter);
 
             // Initialize an empty array to store product IDs
             const productIds = [];
@@ -486,9 +358,9 @@ export async function action({ request, params }) {
             });
 
             // Now, snowboardProductIds array contains the IDs of products belonging to the "Snowboards" category
-            console.log('productIds in action', productIds);
+            //console.log('productIds in action', productIds);
             for (const id of productIds) {
-              console.log('productid in forloop', id);
+              //console.log('productid in forloop', id);
               const mutationQuery = `mutation productUpdate($input: ProductInput!) {
                 productUpdate(input: $input) {
                   product {
@@ -546,8 +418,8 @@ export async function action({ request, params }) {
 
               const errorMessages = metaData.data.productUpdate.userErrors;
 
-              console.log('existingerrorMessages in action', errorMessages);
-              console.log('existingMetafields in action', existingMetafields);
+              //console.log('existingerrorMessages in action', errorMessages);
+              //console.log('existingMetafields in action', existingMetafields);
               //console.log('existingrecords', existingMetafields);
 
               if (existingMetafields && existingMetafields.length > 0) {
@@ -605,7 +477,7 @@ export async function action({ request, params }) {
           if (Number(limiter.value) > 0 && limiter.type === 'Product Wise') {
 
             if (limiter.id.includes("ProductVariant")) {
-              console.log('product variant id in action', limiter.id);
+              //console.log('product variant id in action', limiter.id);
               const mutationQuery = `mutation productVariantUpdate($input: ProductVariantInput!) {
                 productVariantUpdate(input: $input) {
                 productVariant{
@@ -849,8 +721,8 @@ export async function action({ request, params }) {
               }
             });
 
-            // Now, snowboardProductIds array contains the IDs of products belonging to the "Snowboards" category
-            console.log('productIds in action', productIds);
+          
+            //console.log('productIds in action', productIds);
             for (const id of productIds) {
               const productResponse = await admin.graphql(
                 `{  
@@ -1091,7 +963,7 @@ export default function Index() {
     renderErrorMessage();
   }
 
-  //const productsData = loaderData?.allProductsData.data.products.edges;
+ 
   const categoryLimits = loaderData?.categoryLimits;
   const categoryOptions = [];
   const categoryIds = {};
@@ -1104,7 +976,6 @@ export default function Index() {
 
   
 
-  //console.log('rows', rows);
   const [searchValue, setSearchValue] = useState('');
   const [success, setSuccess] = useState(false);
   const [tagValue, setTagValue] = useState('Store Wise');
@@ -1119,7 +990,7 @@ export default function Index() {
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 4;
 
-  //console.log(loaderData.orderLimit);
+  
 
   //to populate the category arrays
   for (const category of allProductCategories) {
@@ -1132,17 +1003,17 @@ export default function Index() {
     categoriesData.push(obj);
   }
 
-  console.log('categoriesData in index', categoriesData);
+  //console.log('categoriesData in index', categoriesData);
   //abscent of categories in the store
   if (!(categoryOptions.length)) {
-    console.log('no categories');
+    //console.log('no categories');
     categoryOptions.push('No Categories');
   }
 
 
   useEffect(() => {
     if (actionData?.exist) {
-      console.log('exist', actionData?.exist);
+      //console.log('exist', actionData?.exist);
       toggleAlert();
     }
     if (actionData?.created || actionData?.updated || actionData?.deleted) {
@@ -1170,7 +1041,6 @@ export default function Index() {
   const sortedCategoryFilteredRows = filteredCategoryRows.sort((a, b) => {
     const aValue = a[selectedSortColumn];
     const bValue = b[selectedSortColumn];
-    //console.log('sortedfiletered', rows);
     if (aValue === bValue) return 0;
     return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
   });
@@ -1203,7 +1073,7 @@ export default function Index() {
 
   //handle sorting
   const handleSort = (column) => {
-    console.log('handleSort', column);
+    //console.log('handleSort', column);
     if (selectedSortColumn === column) {
       setSortDirection((prevDirection) =>
         prevDirection === 'ascending' ? 'descending' : 'ascending'
@@ -1212,7 +1082,7 @@ export default function Index() {
       setSelectedSortColumn(column);
       setSortDirection('ascending');
     }
-    console.log('direction', sortDirection);
+    //console.log('direction', sortDirection);
   };
 
 
@@ -1251,7 +1121,7 @@ export default function Index() {
 
   const handleTagValueChange = (value) => {
     setTagValue(value);
-    console.log('tag value', tagValue);
+    //console.log('tag value', tagValue);
   };
 
 
@@ -1265,7 +1135,7 @@ export default function Index() {
   }
 
   const handleQuantityLimit = (value, id) => {
-    console.log('value and id in handlequantity', value, id, quantityLimit);
+    //console.log('value and id in handlequantity', value, id, quantityLimit);
 
     if (value >= 0) {
       // Update quantityLimit state to contain objects with id as keys and quantity limits as values
@@ -1314,7 +1184,7 @@ export default function Index() {
         const lastNumberId = productId.match(/\d+$/)[0];
         const response = await fetch(`/api/getVariantLimit/${lastNumberId}`);
         const responseData = await response.json();
-        console.log('responseData in getvariant quantity', responseData);
+        //console.log('responseData in getvariant quantity', responseData);
         const productVariantLimitField = responseData?.productVariantLimitField;
         if (productVariantLimitField?.value) {
           return parseInt(productVariantLimitField?.value);
@@ -1363,7 +1233,7 @@ export default function Index() {
   }
 
   if (isSaving) {
-    console.log('isSaving ', isSaving);
+    //console.log('isSaving ', isSaving);
     return (
       <div style={{
         position: "fixed",
