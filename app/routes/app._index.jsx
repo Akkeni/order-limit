@@ -1820,12 +1820,14 @@ export default function Index() {
                       {product?.node.variants?.edges.length > 1 && (
                         product.node.variants.edges.map((variant, index) => (
                           <IndexTable.Row key={index}>
-                            <IndexTable.Cell>
-                              <Thumbnail
-                                source={variant?.node?.image?.url || ImageIcon}
-                                alt="Product"
-                              />
-                            </IndexTable.Cell>
+                            <div style={{ paddingLeft: "3rem" }}>
+                              <IndexTable.Cell >
+                                <Thumbnail
+                                  source={variant?.node?.image?.url || ImageIcon}
+                                  alt="Product"
+                                />
+                              </IndexTable.Cell>
+                            </div>
                             <IndexTable.Cell>{variant.node.title}</IndexTable.Cell>
                             <IndexTable.Cell>{variant.node.inventoryQuantity}</IndexTable.Cell>
                             <IndexTable.Cell>{variant.node.price}</IndexTable.Cell>
