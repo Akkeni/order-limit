@@ -21,6 +21,7 @@ import {
   TextField,
   Modal,
   Icon,
+  Spinner,
 } from '@shopify/polaris';
 import { json, redirect } from '@remix-run/node';
 import { useState, useCallback, useEffect } from 'react';
@@ -105,8 +106,6 @@ export async function loader({ request }) {
 
     //const products = allProductsData?.data?.products?.edges;
     let cursor = allProductsData[allProductsData.length - 1]?.cursor;
-    //let allData = [];
-    let i = 1;
 
     while (true) {
       let productResponse = await admin.graphql(`
@@ -1296,6 +1295,7 @@ export default function Index() {
   const [variantQuantityLimits, setVariantQuantityLimits] = useState({});
   const navigate = useNavigate();
   const submit = useSubmit();
+  const [isSaving, setIsSaving] = useState(false);
 
   const [selectedSortColumn, setSelectedSortColumn] = useState('id');
   const [sortDirection, setSortDirection] = useState('ascending');
@@ -1483,6 +1483,7 @@ export default function Index() {
       toggleAlert();
     }
     if (actionData?.created || actionData?.updated || actionData?.deleted) {
+      setIsSaving(false);
       toggleSuccess();
     }
   }, [actionData]);
@@ -1612,7 +1613,12 @@ export default function Index() {
   }
 
   const handleSaveProduct = () => {
-    submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit), allProductsData: JSON.stringify(allProductsData) }, { method: 'post' });
+    setIsSaving(true);
+    submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit), allProductsData: JSON.stringify(allProductsData) }, { method: 'post' }).catch((error) => {
+      // Handle error
+      console.error('Error saving product:', error);
+      setIsSaving(false); // Ensure saving state is set to false in case of error
+    });
   }
 
   const getCategoryQuantityLimit = (name) => {
@@ -1648,10 +1654,37 @@ export default function Index() {
     }
   }
 
+  if(isSaving) {
+    console.log('isSaving ', isSaving);
+    return (
+      <div style={{ 
+        position: "fixed",
+        top: "0",
+        left: "0",
+        width: "100%",
+        height: "100%",
+        backgroundColor: "rgba(0, 0, 0, 0.5)", 
+        zIndex: "999", 
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center" 
+      }}>
+        <div style={{ 
+          backgroundColor: "#fff",
+          padding: "20px",
+          borderRadius: "5px",
+          boxShadow: "0 0 10px rgba(0, 0, 0, 0.5)",
+          fontSize: "18px",
+        }}>
+          <Spinner accessibilityLabel="Saving" size="large" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Page fullWidth={true}>
-      <ui-title-bar title="Order Limit"></ui-title-bar>
+      <ui-title-bar title="Order Wise Limit"></ui-title-bar>
 
       {/* Alert message */}
       {success && (
@@ -1677,7 +1710,7 @@ export default function Index() {
           {/*<Button onClick={handleAdd}>Add Order Limit</Button>*/}
         </div>
 
-        <div style={{ paddingTop: '0.5rem' }}>
+        <div style={{ paddingTop: '0.5rem', paddingBottom: '1.5rem', paddingRight: '1rem' }}>
           <InlineStack gap="500">
             <div style={{ paddingLeft: '0.5rem' }}>
               <TextField
@@ -1697,15 +1730,16 @@ export default function Index() {
                 />
               </FormLayout>
             </div>
+            <div style={{ marginLeft: 'auto' }}>
+              <PageActions
+                primaryAction={{
+                  content: 'Save',
+                  onAction: handleSaveProduct
+                }}
+              />
+            </div>
           </InlineStack>
         </div>
-
-        <PageActions
-          primaryAction={{
-            content: 'Save',
-            onAction: handleSaveProduct
-          }}
-        />
       </div>
 
 
