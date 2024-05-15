@@ -1219,38 +1219,35 @@ export default function Index() {
     renderErrorMessage();
   }
 
-
-  const [productsData, setProductsData] = useState([]);
-  const [cursor, setCursor] = useState('');
-
-  useEffect(() => {
-    const products = loaderData.productsData.data.products.edges;
-    setProductsData(products);
-    console.log('productsData in useEffect', productsData);
-    const hasNextPage = loaderData.productsData.data.products.pageInfo.hasNextPage;
-    const lastProductCursor = products[products.length - 1]?.cursor;
-    setCursor(hasNextPage ? lastProductCursor : null);
-  }, [loaderData]);
-
-
-  useEffect(() => {
-    console.log('cursor', cursor);
-  }, [cursor]);
-
-  useEffect(() => {
-    console.log('productsData', productsData);
-  }, [productsData]);
   //const productsData = loaderData?.allProductsData.data.products.edges;
   const categoryLimits = loaderData?.categoryLimits;
   const categoryOptions = [];
   const categoryIds = {};
   const allProductCategories = loaderData?.data?.data.shop.allProductCategories;
-  const orderLimit = loaderData.orderLimit;
   const shopName = loaderData.shopName;
   const shopLimit = loaderData.storeLimit;
   const allProductsData = loaderData?.allProductsData;
 
   const categoriesData = [];
+
+  
+
+  //console.log('rows', rows);
+  const [searchValue, setSearchValue] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [tagValue, setTagValue] = useState('Store Wise');
+  const [quantityLimit, setQuantityLimit] = useState([]);
+  const [variantQuantityLimits, setVariantQuantityLimits] = useState({});
+  const submit = useSubmit();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [selectedSortColumn, setSelectedSortColumn] = useState('id');
+  const [sortDirection, setSortDirection] = useState('ascending');
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 4;
+
+  //console.log(loaderData.orderLimit);
 
   //to populate the category arrays
   for (const category of allProductCategories) {
@@ -1270,41 +1267,18 @@ export default function Index() {
     categoryOptions.push('No Categories');
   }
 
-  const rows = loaderData.rows;
 
-  //console.log('rows', rows);
-  const [searchValue, setSearchValue] = useState('');
-  const [modalActive, setModalActive] = useState(false);
-  const [isUpdate, setIsUpdate] = useState(false);
-  const [alert, setAlert] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [pk, setPk] = useState(0);
-  const [tagValue, setTagValue] = useState('Store Wise');
-  const [statusValue, setStatusValue] = useState('Active');
-  const [categoryValue, setCategoryValue] = useState(categoryOptions[0]);
-  const [quantityLimit, setQuantityLimit] = useState([]);
-  const [formState, setFormState] = useState({
-    productId: '',
-    productVariantId: '',
-    productTitle: '',
-    productHandle: '',
-    productAlt: '',
-    productImage: '',
-    availablePublicationCount: 0,
-  });
-  const [variantQuantityLimits, setVariantQuantityLimits] = useState({});
-  const navigate = useNavigate();
-  const submit = useSubmit();
-  const [isSaving, setIsSaving] = useState(false);
+  useEffect(() => {
+    if (actionData?.exist) {
+      console.log('exist', actionData?.exist);
+      toggleAlert();
+    }
+    if (actionData?.created || actionData?.updated || actionData?.deleted) {
+      setIsSaving(false);
+      toggleSuccess();
+    }
+  }, [actionData]);
 
-  const [selectedSortColumn, setSelectedSortColumn] = useState('id');
-  const [sortDirection, setSortDirection] = useState('ascending');
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalProductPages, setTotalProductPages] = useState(3);
-  const recordsPerPage = 4;
-
-  //console.log(loaderData.orderLimit);
 
   // Filter rows based on search value
   const filteredCategoryRows = categoriesData.filter(row =>
@@ -1353,11 +1327,6 @@ export default function Index() {
   const totalRecords = allProductsData.length;
   const totalPages = Math.ceil(totalRecords / recordsPerPage);
 
-  useEffect(() => {
-    const totalProducts = productsData.length;
-    const totalPages = Math.ceil(totalProducts / recordsPerPage);
-    setTotalProductPages(totalPages);
-  }, [productsData, currentPage]);
 
 
   //handle sorting
@@ -1407,21 +1376,6 @@ export default function Index() {
   );
 
 
-
-
-  useEffect(() => {
-    if (actionData?.exist) {
-      console.log('exist', actionData?.exist);
-      toggleAlert();
-    }
-    if (actionData?.created || actionData?.updated || actionData?.deleted) {
-      setIsSaving(false);
-      toggleSuccess();
-    }
-  }, [actionData]);
-
-
-  
 
   const handleTagValueChange = (value) => {
     setTagValue(value);
