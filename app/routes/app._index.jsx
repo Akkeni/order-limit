@@ -408,25 +408,7 @@ export async function action({ request, params }) {
   try {
     const formData = await request.formData();
 
-    const res = await admin.graphql(
-      `query AllProducts{
-        products(first: 250) {
-            edges {
-              node{
-                id
-                category {
-                  name
-                }
-              }
-            }
-        }
-      }`
-    );
     const allProductsData = JSON.parse(formData.get('allProductsData')) //await res.json();
-
-
-
-
 
 
     if (formData.get('action') == 'saveProduct') {
@@ -1054,118 +1036,8 @@ export async function action({ request, params }) {
         created: true,
       });
 
-    }
-
-    //to delete a record from a database
-    if (formData.get('action') == 'delete') {
-      await db.order_Limit.delete({
-        where: {
-          id: Number(formData.get('pk')),
-        }
-      });
-
-      if (formData.get('type') === 'product_wise') {
-        const productResponse = await admin.graphql(
-          `{  
-            product(id: "${formData.get('typeId')}") {
-              id
-              metafields(first: 10) {
-                edges {
-                  node {
-                    id
-                    namespace
-                    key
-                    
-                  }
-                }
-              }
-            }
-          }
-        `);
-        const productData = await productResponse.json();
-        const existingMetafields = productData?.data?.product?.metafields?.edges.map(edge => edge.node);
-        // Delete metafields one by one based on the given keys
-        const keysToDelete = [
-          'productLimit', 'productStatus', 'categoryLimit', 'categoryStatus', 'categoryName'
-        ];
-
-        const deletePromises = keysToDelete.map(async key => {
-          // Find the corresponding metafield ID in the existing metafields
-          const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
-          //console.log('metafield', existingMetafield);
-
-          if (existingMetafield) {
-            // Delete the conflicting metafield
-            await admin.graphql(
-              `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                metafieldDelete(input: $input) {
-                  userErrors {
-                    field
-                    message
-                  }
-                }
-              }`,
-              {
-                variables: {
-                  input: {
-                    id: `${existingMetafield.id}`
-                  }
-                }
-              }
-            );
-          }
-        });
-
-        // Wait for all delete operations to complete
-        await Promise.all(deletePromises);
-      }
-
-
-      return json({ deleted: true });
-    }
-
-    if (formData.get('action') === 'update') {
-      const result = await updateLimiter(formData, allProductsData);
-      console.log('result in update', result);
-      if (result?.exist === true) {
-        return json({
-          exist: true,
-        });
-      } else if (result?.updated === true) {
-        return json({
-          updated: true,
-        });
-      } else if (result?.ok === false) {
-        console.log('error while storing records', result?.error);
-        return json({
-          ok: false,
-          error: error,
-        });
-      } else {
-        return redirect('/app/');
-      }
-    }
-
-    else if (formData.get('action') === 'create') {
-      const result = await addLimiter(formData, allProductsData);
-      console.log('res in add', result);
-      if (result?.exist === true) {
-        return json({
-          exist: true,
-        });
-      } else if (result?.created === true) {
-        return json({
-          created: true,
-        });
-      } else if (result?.ok === false) {
-        console.log('error while storing records', result?.error);
-        return json({
-          ok: false,
-          error: error,
-        });
-      } else {
-        return redirect('/app/');
-      }
+    } else {
+      return redirect('/app/');
     }
 
   } catch (error) {
