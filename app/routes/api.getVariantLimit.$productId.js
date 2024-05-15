@@ -6,9 +6,9 @@ export const loader = async ({ request, params }) => {
     // The authenticate.admin method returns a CORS method to automatically wrap responses so that extensions, which are hosted on extensions.shopifycdn.com, can access this route.
     const { cors, admin } = await authenticate.admin(request);
 
-    try{
+    try {
 
-    
+
         const productId = "gid://shopify/ProductVariant/" + params.productId;
 
         //console.log('variantId in api ', productId);
@@ -26,12 +26,12 @@ export const loader = async ({ request, params }) => {
 
         const variantData = await response.json();
         const productVariantLimitField = variantData?.data?.productVariant?.productVariantLimitField;
-        
-       // console.log('productVariantLimitField in api ', productVariantLimitField);
+
+        // console.log('productVariantLimitField in api ', productVariantLimitField);
 
         return cors(json({ productVariantLimitField: productVariantLimitField }));
-    } catch(error) {
+    } catch (error) {
         console.log('error in api getVariant limit', error);
-        return cors(json({error: error}));
+        return cors(json({ error: error }));
     }
 }
