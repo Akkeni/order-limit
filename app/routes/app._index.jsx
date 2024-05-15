@@ -1329,15 +1329,7 @@ export default function Index() {
     return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
   });
 
-  /*// Sort the filtered category rows based on the current sort column and direction
-  const sortedCategoryFilteredRows = filteredCategoryRows.sort((a, b) => {
-  // Directly compare the strings aValue and bValue
-  const aValue = a;
-  const bValue = b;
-
-  // Alphabetically sort the strings
-  return sortDirection === 'ascending' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
-});*/
+  
 
   // Sort the filtered rows based on the current sort column and direction
   const sortedProductFilteredRows = filteredProductRows.sort((a, b) => {
@@ -1353,58 +1345,7 @@ export default function Index() {
     return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
   });
 
-  // Slice the sorted rows to get records for the current page
-  //const paginatedRows = sortedFilteredRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage);
-
-  // Handle pagination
-  const handleLoadMore = async () => {
-    console.log('cursor in handleNextPage', cursor);
-    try {
-      const response = await fetch(`/api/${cursor}`);
-      const responseData = await response.json();
-      console.log('data from fetch ', responseData?.allProductsData?.data?.products?.edges);
-
-      // Ensure `allProductsData` and its properties are defined
-      if (responseData) {
-        const products = responseData?.allProductsData?.data?.products?.edges;
-        if (products) {
-          setProductsData((previousProducts) => [...previousProducts, ...products]);
-          const hasNextPage = responseData?.allProductsData?.data.products.pageInfo.hasNextPage;
-          const lastProductCursor = products[products.length - 1]?.cursor;
-          setCursor(hasNextPage ? lastProductCursor : null);
-        }
-      } else {
-        console.error('Invalid response format:', responseData);
-        // Handle invalid response format
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      // Handle fetch error
-    }
-
-    // Update current page
-    setCurrentPage(currentPage + 1);
-  };
-
-  /*// Handle pagination
-  const handleNextPage = () => {
-    console.log('cursor in handleNextPage', cursor);
-    const res = async () => {
-      const response = await fetch(`/api/${cursor}`);
-      const allProductsData = await response.json();
-      console.log('data from fetch ', allProductsData);
-      const products = allProductsData?.data.products.edges;
-      if(products){
-        setProductsData((previousProducts) => [...previousProducts, ...products]);
-        const hasNextPage = actionData?.allProductsData.data.products.pageInfo.hasNextPage;
-        const lastProductCursor = products[products.length - 1]?.cursor;
-        setCursor(hasNextPage ? lastProductCursor : null);
-      }
-    }
-    res();
-    submit({ action: 'nextPage', cursor: cursor }, { method: 'post' });
-    setCurrentPage(currentPage + 1);
-  };*/
+  
 
   const handleNextPage = () => setCurrentPage(currentPage + 1)
   const handlePreviousPage = () => setCurrentPage(currentPage - 1);
@@ -1454,16 +1395,7 @@ export default function Index() {
     });
   }, [quantityLimit]);
 
-  //responsible for opening and closing the Modal
-  const toggleModalActive = useCallback(
-    () => setModalActive((modalActive) => !modalActive),
-    [],
-  );
-
-  const toggleIsUpdate = useCallback(
-    () => setIsUpdate((isUpdate) => !isUpdate),
-    [],
-  );
+  
 
   const toggleAlert = useCallback(
     () => setAlert((alert) => !alert),
@@ -1489,65 +1421,22 @@ export default function Index() {
   }, [actionData]);
 
 
-  async function selectProduct() {
-    const products = await window.shopify.resourcePicker({
-      type: "product",
-      action: "select",
-    });
-
-    if (products) {
-      console.log('products selected', products[0]);
-      const { images, id, variants, title, handle, availablePublicationCount } = products[0];
-      setFormState({
-        ...formState,
-        productId: id,
-        productVariantId: variants[0].id,
-        productTitle: title,
-        productHandle: handle,
-        productAlt: images[0]?.altText,
-        productImage: images[0]?.originalSrc,
-        availablePublicationCount: availablePublicationCount,
-      });
-      setQuantityLimit(availablePublicationCount);
-    }
-    //console.log('in selectproduct', formState.productId, formState.availablePublicationCount);
-
-    toggleModalActive();
-  }
-
-
-
+  
 
   const handleTagValueChange = (value) => {
     setTagValue(value);
     console.log('tag value', tagValue);
   };
 
-  /*useCallback((value) => {
-    setTagValue(value);
-    if (value === 'Product Wise' && !formState.productId) {
-      selectProduct();
-      toggleModalActive();
-    }
-  }, [formState.productId, selectProduct]);*/
 
-  console.log('category options in index', categoryOptions);
-
-  const handleCategoryValueChange = useCallback(
-    (value) => {
-      setCategoryValue(value);
-      //setCategoryLimit(categoryLimits[value]);
-      setQuantityLimit(categoryLimits[value]);
-    },
-    [],
-  );
-
-  const handleStatusValueChange = useCallback(
-    (value) => {
-      setStatusValue(value);
-    },
-    [],
-  );
+  const handleSaveProduct = () => {
+    setIsSaving(true);
+    submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit), allProductsData: JSON.stringify(allProductsData) }, { method: 'post' }).catch((error) => {
+      // Handle error
+      console.error('Error saving product:', error);
+      setIsSaving(false); // Ensure saving state is set to false in case of error
+    });
+  }
 
   const handleQuantityLimit = (value, id) => {
     console.log('value and id in handlequantity', value, id, quantityLimit);
@@ -1612,14 +1501,7 @@ export default function Index() {
     }
   }
 
-  const handleSaveProduct = () => {
-    setIsSaving(true);
-    submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit), allProductsData: JSON.stringify(allProductsData) }, { method: 'post' }).catch((error) => {
-      // Handle error
-      console.error('Error saving product:', error);
-      setIsSaving(false); // Ensure saving state is set to false in case of error
-    });
-  }
+  
 
   const getCategoryQuantityLimit = (name) => {
     const categoryLimit = quantityLimit.find(item => item.id === name);
@@ -1704,12 +1586,8 @@ export default function Index() {
           </Card>
         </div>
       )}
+
       <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
-
-        <div>
-          {/*<Button onClick={handleAdd}>Add Order Limit</Button>*/}
-        </div>
-
         <div style={{ paddingTop: '0.5rem', paddingBottom: '1.5rem', paddingRight: '1rem' }}>
           <InlineStack gap="500">
             <div style={{ paddingLeft: '0.5rem' }}>
@@ -1849,7 +1727,6 @@ export default function Index() {
                 </IndexTable>
                 {/* Pagination component*/}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                  {/*<Button onClick={handleLoadMore} disabled={!cursor}><span style={{ padding: '0.5rem', margin: '0.5rem' }}> Load More </span></Button>*/}
                   <Button icon={ChevronLeftIcon} accessibilityLabel="Previous Page" disabled={currentPage === 1} onClick={handlePreviousPage} />
                   <span style={{ padding: '0.5rem', margin: '0.5rem' }}> Page {currentPage}</span>
                   <Button icon={ChevronRightIcon} accessibilityLabel="Next Page" disabled={currentPage === totalPages} onClick={handleNextPage} />
@@ -1913,6 +1790,7 @@ export default function Index() {
                 </IndexTable>
               </Card>
             )}
+
             {tagValue === 'Store Wise' && (
               <Card>
                 <IndexTable
@@ -1949,7 +1827,6 @@ export default function Index() {
           </Layout.Section>
         </Layout>
       </BlockStack>
-
 
     </Page>
   );
