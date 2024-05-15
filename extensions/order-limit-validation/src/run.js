@@ -78,7 +78,7 @@ export function run(input) {
         const productLimit = parseInt(product.productLimitField.value);
         if (quantity > productLimit) {
           errors.push({
-            localizedMessage: `Can't select more than ${productLimit}.`,
+            localizedMessage: `Quantity limit reached, you can't select more than ${productLimit}.`,
             target: "cart",
           });
         }
