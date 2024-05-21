@@ -22,6 +22,7 @@ import {
   Modal,
   Icon,
   Spinner,
+  Banner,
 } from '@shopify/polaris';
 import { json, redirect } from '@remix-run/node';
 import { useState, useCallback, useEffect } from 'react';
@@ -1267,19 +1268,19 @@ export default function Index() {
       {/* Alert message */}
       {success && (
         <div>
-          <Card>
-            <div style={{ display: "flex", alignItems: "center", flexDirection: "row", alignContent: "stretch", justifyContent: "space-between" }}>
-              <Text>Saved successfully!</Text>
+          <Banner
+            title="Saved successfully!"
+            tone="success"
+            onDismiss={toggleSuccess}
+          />
+          {/*<Card padding="0">
+            <div style={{ display: "flex", alignItems: "center", flexDirection: "row", alignContent: "stretch", justifyContent: "space-between", backgroundColor: "rgb(80 220 169)" }}>
+              <Text><span style={{ padding: "0.5rem" }}>Saved successfully!</span></Text>
               <div style={{ float: "right" }}>
-                <Button onClick={toggleSuccess}>
-                  <Icon
-                    source={LogoXIcon}
-                    tone="base"
-                  />
-                </Button>
+                <Button icon={LogoXIcon} accessibilityLabel="close" onClick={toggleSuccess} size="micro" tone="critical" />
               </div>
             </div>
-          </Card>
+          </Card>*/}
         </div>
       )}
 
