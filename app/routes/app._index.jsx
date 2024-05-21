@@ -68,7 +68,7 @@ export async function loader({ request }) {
         			productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
               	value
         			}
-        			poductStatusField: metafield(namespace: "productStatus", key: "productStatus") {
+        			productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
           			value
         			}
               categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
@@ -135,7 +135,7 @@ export async function loader({ request }) {
                   productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
                     value
                   }
-                  poductStatusField: metafield(namespace: "productStatus", key: "productStatus") {
+                  productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
                     value
                   }
                   categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
@@ -367,15 +367,14 @@ export async function action({ request, params }) {
                   product {
                     id
                     title
-                    metafields(first: 10) {
-                      edges {
-                        node {
-                          id
-                          namespace
-                          key
-                          value
-                        }
-                      }
+                    categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+                      id
+                    }
+                    categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
+                      id
+                    }
+                    categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
+                      id
                     }
                   }
                   userErrors {
@@ -415,7 +414,7 @@ export async function action({ request, params }) {
 
               const metaResponse = await admin.graphql(mutationQuery, variables);
               const metaData = await metaResponse.json();
-              const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
+              //const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
 
               const errorMessages = metaData.data.productUpdate.userErrors;
 
@@ -423,43 +422,32 @@ export async function action({ request, params }) {
               //console.log('existingMetafields in action', existingMetafields);
               //console.log('existingrecords', existingMetafields);
 
-              if (existingMetafields && existingMetafields.length > 0) {
+              if (errorMessages && errorMessages.length > 0) {
 
+                const ids = [metaData?.data?.productUpdate?.product?.categoryLimitField?.id, metaData?.data?.productUpdate?.product?.categoryNameField?.id, metaData?.data?.productUpdate?.product?.categoryStatusField?.id];
                 // Delete metafields one by one based on the given keys
-                const keysToDelete = [
-                  'categoryLimit', 'categoryStatus', 'categoryName'
-                ];
-
-                const deletePromises = keysToDelete.map(async key => {
-                  // Find the corresponding metafield ID in the existing metafields
-                  const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
-                  //console.log('metafield', existingMetafield);
-
-                  if (existingMetafield) {
+                for (const id of ids) {
+                  if (id) {
                     // Delete the conflicting metafield
                     await admin.graphql(
                       `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                    metafieldDelete(input: $input) {
-                      userErrors {
-                        field
-                        message
+                      metafieldDelete(input: $input) {
+                        userErrors {
+                          field
+                          message
+                        }
                       }
-                    }
-                  }`,
+                    }`,
                       {
                         variables: {
                           input: {
-                            id: `${existingMetafield.id}`
+                            id: `${id}`
                           }
                         }
                       }
                     );
                   }
-                });
-
-                // Wait for all delete operations to complete
-                await Promise.all(deletePromises);
-
+                }
                 // Now, execute the updateProduct query with the updated metafields
                 const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
                 const updatedMetaData = await updatedMetaResponse.json();
@@ -481,17 +469,14 @@ export async function action({ request, params }) {
               //console.log('product variant id in action', limiter.id);
               const mutationQuery = `mutation productVariantUpdate($input: ProductVariantInput!) {
                 productVariantUpdate(input: $input) {
-                productVariant{
-                  metafields(first:10){
-                    edges {
-                      node {
-                        id
-                        key
-                        value
-                      }
+                  productVariant{
+                    productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+                      id
+                    }
+                    productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
+                      id
                     }
                   }
-                }
                   userErrors {
                     field
                     message
@@ -522,7 +507,7 @@ export async function action({ request, params }) {
               };
               const metaResponse = await admin.graphql(mutationQuery, variables);
               const metaData = await metaResponse.json();
-              const existingMetafields = metaData?.data?.productVariantUpdate?.productVariant?.metafields?.edges.map(edge => edge.node)
+              //const existingMetafields = metaData?.data?.productVariantUpdate?.productVariant?.metafields?.edges.map(edge => edge.node)
 
               const errorMessages = metaData.data?.productVariantUpdate?.userErrors;
 
@@ -530,17 +515,9 @@ export async function action({ request, params }) {
 
               if (errorMessages && errorMessages.length > 0) {
 
-                // Delete metafields one by one based on the given keys
-                const keysToDelete = [
-                  'productLimit', 'productStatus'
-                ];
-
-                const deletePromises = keysToDelete.map(async key => {
-                  // Find the corresponding metafield ID in the existing metafields
-                  const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
-                  //console.log('metafield', existingMetafield);
-
-                  if (existingMetafield) {
+                const ids = [metaData?.data?.productVariantUpdate?.productVariant?.productLimitField?.id, metaData?.data?.productVariantUpdate?.productVariant?.productStatusField?.id];
+                for (const id of ids) {
+                  if (id) {
                     // Delete the conflicting metafield
                     await admin.graphql(
                       `mutation metafieldDelete($input: MetafieldDeleteInput!) {
@@ -554,16 +531,14 @@ export async function action({ request, params }) {
                       {
                         variables: {
                           input: {
-                            id: `${existingMetafield.id}`
+                            id: `${id}`
                           }
                         }
                       }
                     );
                   }
-                });
-
-                // Wait for all delete operations to complete
-                await Promise.all(deletePromises);
+                  
+                }
 
                 // Now, execute the updateProduct query with the updated metafields
                 const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
@@ -576,15 +551,11 @@ export async function action({ request, params }) {
                   product {
                     id
                     title
-                    metafields(first: 20) {
-                      edges {
-                        node {
-                          id
-                          namespace
-                          key
-                          value
-                        }
-                      }
+                    productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+                      id
+                    }
+                    productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
+                      id
                     }
                   }
                   userErrors {
@@ -617,7 +588,7 @@ export async function action({ request, params }) {
               };
               const metaResponse = await admin.graphql(mutationQuery, variables);
               const metaData = await metaResponse.json();
-              const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
+              //const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
 
               const errorMessages = metaData.data.productUpdate.userErrors;
 
@@ -625,17 +596,9 @@ export async function action({ request, params }) {
 
               if (errorMessages && errorMessages.length > 0) {
 
-                // Delete metafields one by one based on the given keys
-                const keysToDelete = [
-                  'productLimit', 'productStatus'
-                ];
-
-                const deletePromises = keysToDelete.map(async key => {
-                  // Find the corresponding metafield ID in the existing metafields
-                  const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
-                  //console.log('metafield', existingMetafield);
-
-                  if (existingMetafield) {
+                const ids = [metaData?.data?.productUpdate?.product?.productLimitField?.id, metaData?.data?.productUpdate?.product?.productStatusField?.id];
+                for (const id of ids) {
+                  if (id) {
                     // Delete the conflicting metafield
                     await admin.graphql(
                       `mutation metafieldDelete($input: MetafieldDeleteInput!) {
@@ -649,16 +612,13 @@ export async function action({ request, params }) {
                       {
                         variables: {
                           input: {
-                            id: `${existingMetafield.id}`
+                            id: `${id}`
                           }
                         }
                       }
                     );
                   }
-                });
-
-                // Wait for all delete operations to complete
-                await Promise.all(deletePromises);
+                }
 
                 // Now, execute the updateProduct query with the updated metafields
                 const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
@@ -729,55 +689,43 @@ export async function action({ request, params }) {
                 `{  
                     product(id: "${id}") {
                       id
-                      metafields(first: 20) {
-                        edges {
-                          node {
-                            id
-                            namespace
-                            key
-                            
-                          }
-                        }
+                      categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+                        id
+                      }
+                      categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
+                        id
+                      }
+                      categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
+                        id
                       }
                     }
                   }`
               );
               const productData = await productResponse.json();
-              const existingMetafields = productData?.data?.product?.metafields?.edges.map(edge => edge.node);
+              const ids = [productData?.data?.product?.categoryLimitField?.id, productData?.data?.product?.categoryNameField?.id, productData?.data?.product?.categoryStatusField?.id];
               // Delete metafields one by one based on the given keys
-              const keysToDelete = [
-                'categoryLimit', 'categoryStatus', 'categoryName'
-              ];
-
-              const deletePromises = keysToDelete.map(async key => {
-                // Find the corresponding metafield ID in the existing metafields
-                const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
-                //console.log('metafield', existingMetafield);
-
-                if (existingMetafield) {
+              for (const id of ids) {
+                if (id) {
                   // Delete the conflicting metafield
                   await admin.graphql(
                     `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                      metafieldDelete(input: $input) {
-                        userErrors {
-                          field
-                          message
-                        }
+                    metafieldDelete(input: $input) {
+                      userErrors {
+                        field
+                        message
                       }
-                    }`,
+                    }
+                  }`,
                     {
                       variables: {
                         input: {
-                          id: `${existingMetafield.id}`
+                          id: `${id}`
                         }
                       }
                     }
                   );
                 }
-              });
-
-              // Wait for all delete operations to complete
-              await Promise.all(deletePromises);
+              }
             }
           }
 
@@ -788,32 +736,19 @@ export async function action({ request, params }) {
                 `{  
                   productVariant(id: "${limiter.id}") {
                     id
-                    metafields(first: 20) {
-                      edges {
-                        node {
-                          id
-                          namespace
-                          key
-                          
-                        }
-                      }
+                    productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+                      id
+                    }
+                    productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
+                      id
                     }
                   }
                 }`
               );
               const productData = await productResponse.json();
-              const existingMetafields = productData?.data?.productVariant?.metafields?.edges.map(edge => edge.node);
-              // Delete metafields one by one based on the given keys
-              const keysToDelete = [
-                'productLimit', 'productStatus', 'categoryLimit', 'categoryStatus', 'categoryName'
-              ];
-
-              const deletePromises = keysToDelete.map(async key => {
-                // Find the corresponding metafield ID in the existing metafields
-                const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
-                //console.log('metafield', existingMetafield);
-
-                if (existingMetafield) {
+              const ids = [productData?.data?.productVariant?.productLimitField?.id, productData?.data?.productVariant?.productStatusField?.id];
+              for (const id of ids) {
+                if (id) {
                   // Delete the conflicting metafield
                   await admin.graphql(
                     `mutation metafieldDelete($input: MetafieldDeleteInput!) {
@@ -827,48 +762,33 @@ export async function action({ request, params }) {
                     {
                       variables: {
                         input: {
-                          id: `${existingMetafield.id}`
+                          id: `${id}`
                         }
                       }
                     }
                   );
                 }
-              });
+              }
 
-              // Wait for all delete operations to complete
-              await Promise.all(deletePromises);
             } else {
 
               const productResponse = await admin.graphql(
                 `{  
                   product(id: "${limiter.id}") {
                     id
-                    metafields(first: 20) {
-                      edges {
-                        node {
-                          id
-                          namespace
-                          key
-                          
-                        }
-                      }
+                    productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+                      id
+                    }
+                    productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
+                      id
                     }
                   }
                 }`
               );
               const productData = await productResponse.json();
-              const existingMetafields = productData?.data?.product?.metafields?.edges.map(edge => edge.node);
-              // Delete metafields one by one based on the given keys
-              const keysToDelete = [
-                'productLimit', 'productStatus', 'categoryLimit', 'categoryStatus', 'categoryName'
-              ];
-
-              const deletePromises = keysToDelete.map(async key => {
-                // Find the corresponding metafield ID in the existing metafields
-                const existingMetafield = existingMetafields.find(metafield => metafield.key === key);
-                //console.log('metafield', existingMetafield);
-
-                if (existingMetafield) {
+              const ids = [productData?.data?.product?.productLimitField?.id, productData?.data?.product?.productStatusField?.id];
+              for (const id of ids) {
+                if (id) {
                   // Delete the conflicting metafield
                   await admin.graphql(
                     `mutation metafieldDelete($input: MetafieldDeleteInput!) {
@@ -882,16 +802,13 @@ export async function action({ request, params }) {
                     {
                       variables: {
                         input: {
-                          id: `${existingMetafield.id}`
+                          id: `${id}`
                         }
                       }
                     }
                   );
                 }
-              });
-
-              // Wait for all delete operations to complete
-              await Promise.all(deletePromises);
+              }
             }
           }
 
