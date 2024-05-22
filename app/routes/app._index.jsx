@@ -30,12 +30,14 @@ import { PageActions } from '@shopify/polaris';
 import { useNavigate, useSubmit, useLoaderData, useActionData } from '@remix-run/react';
 import { ImageIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, LogoXIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
+import db from '../db.server';
 import React from 'react';
 
 
 //fetches the category data
 export async function loader({ request }) {
   const { admin, session } = await authenticate.admin(request);
+  const orderLimit = await db.order_Limit.findMany();
   try {
     
 
@@ -198,19 +200,18 @@ export async function loader({ request }) {
         shop {
           id
           name
-          storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
+          currencyCode
+          weightUnit
+          storeLimitField: metafield(namespace: "$app:storeLimit", key: "storeLimit") {
             value
           }
-          storeStatusField: metafield(namespace: "storeStatus", key: "storeStatus") {
+          storeStatusField: metafield(namespace: "$app:storeStatus", key: "storeStatus") {
             value
           }
-          categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+          priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") {
             value
           }
-          categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
-            value
-          }
-          categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
+          weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") {
             value
           }
           allProductCategories {
@@ -229,8 +230,14 @@ export async function loader({ request }) {
     const allProductCategories = data?.data?.shop?.allProductCategories;
     const shopId = data?.data?.shop?.id;
     const shopName = data?.data?.shop?.name;
+    const currencyCode = data?.data?.shop?.currencyCode;
+    const weightUnit = data?.data?.shop?.weightUnit;
+
 
     const storeLimitFieldValue = data?.data?.shop?.storeLimitField?.value;
+    const priceLimitFieldValue = data?.data?.shop?.priceLimitField?.value;
+    const weightLimitFieldValue = data?.data?.shop?.weightLimitField?.value;
+
 
     const storeLimit = allProductsData.length; // allProductsData?.data?.products?.edges.length;
 
@@ -263,6 +270,10 @@ export async function loader({ request }) {
       shopId,
       shopName,
       storeLimitFieldValue,
+      priceLimitFieldValue,
+      weightLimitFieldValue,
+      currencyCode,
+      weightUnit,
     });
 
   } catch (error) {
@@ -293,6 +304,78 @@ export async function action({ request, params }) {
 
         try {
           //console.log('limiter value in action saveProduct', limiter.value, limiter.id);
+          if(Number(limiter.value) >= 0 && limiter.type === 'General') {
+            const shopId = formData.get('shopId');
+            const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+              metafieldsSet(metafields: $metafields) {
+                metafields {
+                  id
+                  namespace
+                  key
+                  value
+                }
+                userErrors {
+                  field
+                  message
+                }
+              }
+            }`;
+
+            if(limiter.id === 'priceMin' || limiter.id === 'priceMax') {
+              /*let priceLimit = '';
+              console.log('limiters in action', limiters);
+              const priceMin = Number(limiters.find(item => item.id === 'priceMin')?.value) || 0;
+              const priceMax = Number(limiters.find(item => item.id === 'priceMax')?.value) || 0;
+
+              priceLimit += priceMin;
+              priceLimit += ',' + priceMax;*/
+              console.log('priceLimit in action ', formData.get('priceLimit'));
+              const metafields = {
+                variables: {
+                  metafields: [
+                    {
+                      "ownerId": `${shopId}`,
+                      "namespace": "priceLimit",
+                      "key": "priceLimit",
+                      "type": "string",
+                      "value": `${formData.get('priceLimit')}`
+
+                    }
+                  ]
+                }
+              };
+
+              const metaResponse = await admin.graphql(mutationQuery, metafields);
+              const metaData = await metaResponse.json();
+            }
+            if(limiter.id === 'weightMin' || limiter.id === 'weightMax') {
+              let weightLimit = '';
+              console.log('limiters in action', limiters);
+              const weightMin = Number(limiters.find(item => item.id === 'weightMin')?.value) || 0;
+              const weightMax = Number(limiters.find(item => item.id === 'weightMax')?.value) || 0;
+
+              weightLimit += weightMin;
+              weightLimit += ',' + weightMax;
+              console.log('weightLimit in action ', weightLimit);
+              const metafields = {
+                variables: {
+                  metafields: [
+                    {
+                      "ownerId": `${shopId}`,
+                      "namespace": "weightLimit",
+                      "key": "weightLimit",
+                      "type": "string",
+                      "value": `${formData.get('weightLimit')}`
+
+                    }
+                  ]
+                }
+              };
+
+              const metaResponse = await admin.graphql(mutationQuery, metafields);
+              const metaData = await metaResponse.json();
+            }
+          }
 
           if (Number(limiter.value) > 0 && limiter.type === 'Store Wise') {
 
@@ -316,7 +399,7 @@ export async function action({ request, params }) {
                 metafields: [
                   {
                     "ownerId": `${limiter.id}`,
-                    "namespace": "storeLimit",
+                    "namespace": "$app:storeLimit",
                     "key": "storeLimit",
                     "type": "string",
                     "value": `${limiter.value}`
@@ -324,7 +407,7 @@ export async function action({ request, params }) {
                   },
                   {
                     "ownerId": `${limiter.id}`,
-                    "namespace": "storeStatus",
+                    "namespace": "$app:storeStatus",
                     "key": "storeStatus",
                     "type": "string",
                     "value": "active"
@@ -633,11 +716,11 @@ export async function action({ request, params }) {
                 shop {
                   id
                   name
-                  storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
+                  storeLimitField: metafield(namespace: "$app:storeLimit", key: "storeLimit") {
                     value
                     id
                   }
-                  storeStatusField: metafield(namespace: "storeStatus", key: "storeStatus") {
+                  storeStatusField: metafield(namespace: "$app:storeStatus", key: "storeStatus") {
                     value
                     id
                   }
@@ -1045,7 +1128,12 @@ export default function Index() {
 
   const handleSaveProduct = () => {
     setIsSaving(true);
-    submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit), allProductsData: JSON.stringify(allProductsData) }, { method: 'post' }).catch((error) => {
+    let priceLimit = '';
+    let weightLimit = '';
+    priceLimit = priceLimit + getPriceQuantityLimit('priceMin') + ',' + getPriceQuantityLimit('priceMax');
+    weightLimit = weightLimit + getWeightQuantityLimit('weightMin') + ',' + getWeightQuantityLimit('weightMax');
+    console.log('priceLimit ', priceLimit );
+    submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit), allProductsData: JSON.stringify(allProductsData), shopId: loaderData?.shopId, priceLimit: priceLimit, weightLimit: weightLimit }, { method: 'post' }).catch((error) => {
       // Handle error
       console.error('Error saving product:', error);
       setIsSaving(false); // Ensure saving state is set to false in case of error
@@ -1053,7 +1141,7 @@ export default function Index() {
   }
 
   const handleQuantityLimit = (value, id) => {
-    //console.log('value and id in handlequantity', value, id, quantityLimit);
+    console.log('value and id in handlequantity', value, id, quantityLimit);
 
     if (value >= 0) {
       // Update quantityLimit state to contain objects with id as keys and quantity limits as values
@@ -1150,6 +1238,45 @@ export default function Index() {
     }
   }
 
+  const getPriceQuantityLimit = (range) => {
+    const priceLimit = quantityLimit.find(item => item.id === range);
+    if (priceLimit || priceLimit === '0') {
+      return parseInt(priceLimit.value);
+    } else {
+      if (loaderData?.priceLimitFieldValue) {
+        const priceLimit = loaderData?.priceLimitFieldValue;
+        if(range === "priceMin"){
+          return priceLimit.split(',')[0];
+        } else {
+          return priceLimit.split(',')[1];
+        }
+        //return parseInt(loaderData?.priceLimitFieldValue);
+      } else {
+        return 0;
+      }
+    }
+  }
+
+  const getWeightQuantityLimit = (range) => {
+    const weightLimit = quantityLimit.find(item => item.id === range);
+    
+    if (weightLimit) {
+      return parseInt(weightLimit.value);
+    } else {
+      if (loaderData?.weightLimitFieldValue) {
+        const weightLimit = loaderData?.weightLimitFieldValue;
+        if(range === "weightMin"){
+          return weightLimit.split(',')[0];
+        } else {
+          return weightLimit.split(',')[1];
+        }
+        //return parseInt(loaderData?.weightLimitFieldValue);
+      } else {
+        return 0;
+      }
+    }
+  }
+
   if (isSaving) {
     //console.log('isSaving ', isSaving);
     return (
@@ -1216,7 +1343,7 @@ export default function Index() {
               <FormLayout>
                 <Select
                   label="Limit By"
-                  options={['Store Wise', 'Product Wise', 'Category Wise']}
+                  options={['Store Wise', 'Product Wise', 'Category Wise', 'General']}
                   value={tagValue}
                   onChange={handleTagValueChange}
                 />
@@ -1272,7 +1399,7 @@ export default function Index() {
                       title: (
                         <ButtonGroup>
                           <Button onClick={() => handleSort('priceRangeV2')} variant="tertiary">
-                            Price
+                            Price ({loaderData?.currencyCode})
                           </Button>
                           <Button onClick={() => handleSort('priceRangeV2')} variant="tertiary">
                             <Icon source={SelectIcon} />
@@ -1431,6 +1558,70 @@ export default function Index() {
                           label="Quantity Limit"
                           type="number"
                           onChange={(value) => { handleQuantityLimit(value, loaderData.shopId) }}
+                        />
+                      </FormLayout>
+                    </IndexTable.Cell>
+                  </IndexTable.Row>
+                </IndexTable>
+              </Card>
+            )}
+            {tagValue === 'General' && (
+              <Card>
+                <IndexTable
+                  headings={[
+                    { title: 'Type Name' },
+                    { title: 'Min Limit' },
+                    { title: 'Max Limit' },
+                  ]}
+                  itemCount={2}
+                  selectable={false}
+                >
+                  <IndexTable.Row>
+                    <IndexTable.Cell>
+                     Total Cart Price ({loaderData?.currencyCode})
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>
+                    <FormLayout>
+                        <TextField
+                          value={getPriceQuantityLimit("priceMin")}
+                          label="Quantity Limit"
+                          type="number"
+                          onChange={(value) => { handleQuantityLimit(value, "priceMin") }}
+                        />
+                      </FormLayout>
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>
+                      <FormLayout>
+                        <TextField
+                          value={getPriceQuantityLimit("priceMax")}
+                          label="Quantity Limit"
+                          type="number"
+                          onChange={(value) => { handleQuantityLimit(value, "priceMax") }}
+                        />
+                      </FormLayout>
+                    </IndexTable.Cell>
+                  </IndexTable.Row>
+                  <IndexTable.Row>
+                    <IndexTable.Cell>
+                      Total Cart Weight ({loaderData?.weightUnit})
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>
+                    <FormLayout>
+                        <TextField
+                          value={getWeightQuantityLimit("weightMin")}
+                          label="Quantity Limit"
+                          type="number"
+                          onChange={(value) => { handleQuantityLimit(value, "weightMin") }}
+                        />
+                      </FormLayout>
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>
+                      <FormLayout>
+                        <TextField
+                          value={getWeightQuantityLimit("weightMax")}
+                          label="Quantity Limit"
+                          type="number"
+                          onChange={(value) => { handleQuantityLimit(value, "weightMax") }}
                         />
                       </FormLayout>
                     </IndexTable.Cell>

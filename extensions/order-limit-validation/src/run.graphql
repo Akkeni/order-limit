@@ -1,16 +1,17 @@
 query RunInput {
   cart {
+    cost {
+        totalAmount {
+          amount
+        }
+      }
     lines {
       quantity
-      id
       merchandise {
         __typename
-        ... on CustomProduct {
-          customProductTitle: title
-          # Include other fields specific to CustomProduct if needed
-        }
         ... on ProductVariant {
           id
+          weight
           productVariantLimitField: metafield(namespace: "productLimit", key: "productLimit") {
               value
           }
@@ -22,27 +23,26 @@ query RunInput {
             categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
               value
             }
-            categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
-              value
-            }
             productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
               value
             }
             
           }
-          productVariantTitle: title
-          # Include other fields specific to ProductVariant if needed
         }
       }
     }
   }
 
   shop {
-    storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
+    storeLimitField: metafield(namespace: "$app:storeLimit", key: "storeLimit") {
       value
     }
-    storeStatusField: metafield(namespace: "storeStatus", key: "storeStatus") {
+    priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") {
+      value
+    }    
+    weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") {
       value
     }
+          
   }
 }
