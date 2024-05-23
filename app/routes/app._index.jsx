@@ -39,7 +39,7 @@ export async function loader({ request }) {
   const { admin, session } = await authenticate.admin(request);
   const orderLimit = await db.order_Limit.findMany();
   try {
-    
+
 
     let allProductsData = [];
     const resProduct = await admin.graphql(
@@ -225,7 +225,7 @@ export async function loader({ request }) {
       }
     `);
 
-     
+
     const data = await response.json();
     const allProductCategories = data?.data?.shop?.allProductCategories;
     const shopId = data?.data?.shop?.id;
@@ -242,7 +242,7 @@ export async function loader({ request }) {
     const storeLimit = allProductsData.length; // allProductsData?.data?.products?.edges.length;
 
     const categoriesData = [];
-    if(allProductCategories) {
+    if (allProductCategories) {
       for (const category of allProductCategories) {
         const productTaxonomyNode = category.productTaxonomyNode;
         let quantityLimit = 0;
@@ -310,7 +310,7 @@ export async function action({ request, params }) {
 
         try {
           //console.log('limiter value in action saveProduct', limiter.value, limiter.id);
-          if(Number(limiter.value) >= 0 && limiter.type === 'General') {
+          if (Number(limiter.value) >= 0 && limiter.type === 'General') {
             const shopId = formData.get('shopId');
             const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
               metafieldsSet(metafields: $metafields) {
@@ -327,7 +327,7 @@ export async function action({ request, params }) {
               }
             }`;
 
-            if(limiter.id === 'priceMin' || limiter.id === 'priceMax') {
+            if (limiter.id === 'priceMin' || limiter.id === 'priceMax') {
               /*let priceLimit = '';
               console.log('limiters in action', limiters);
               const priceMin = Number(limiters.find(item => item.id === 'priceMin')?.value) || 0;
@@ -354,7 +354,7 @@ export async function action({ request, params }) {
               const metaResponse = await admin.graphql(mutationQuery, metafields);
               const metaData = await metaResponse.json();
             }
-            if(limiter.id === 'weightMin' || limiter.id === 'weightMax') {
+            if (limiter.id === 'weightMin' || limiter.id === 'weightMax') {
               let weightLimit = '';
               console.log('limiters in action', limiters);
               const weightMin = Number(limiters.find(item => item.id === 'weightMin')?.value) || 0;
@@ -383,7 +383,7 @@ export async function action({ request, params }) {
             }
           }
 
-          if ( limiter.type === 'Store Wise' ) {
+          if (limiter.type === 'Store Wise') {
 
             const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
                 metafieldsSet(metafields: $metafields) {
@@ -552,7 +552,7 @@ export async function action({ request, params }) {
 
           }
 
-          if ( limiter.type === 'Product Wise' ) {
+          if (limiter.type === 'Product Wise') {
 
             if (limiter.id.includes("ProductVariant")) {
               //console.log('product variant id in action', limiter.id);
@@ -626,7 +626,7 @@ export async function action({ request, params }) {
                       }
                     );
                   }
-                  
+
                 }
 
                 // Now, execute the updateProduct query with the updated metafields
@@ -771,7 +771,7 @@ export async function action({ request, params }) {
               }
             });
 
-          
+
             //console.log('productIds in action', productIds);
             for (const id of productIds) {
               const productResponse = await admin.graphql(
@@ -970,7 +970,7 @@ export default function Index() {
     renderErrorMessage();
   }
 
- 
+
   //const categoryLimits = loaderData?.categoryLimits;
   const categoryOptions = [];
   const categoryIds = {};
@@ -981,7 +981,7 @@ export default function Index() {
 
   const categoriesData = loaderData?.categoriesData;
 
-  
+
 
   const [searchValue, setSearchValue] = useState('');
   const [success, setSuccess] = useState(false);
@@ -997,7 +997,7 @@ export default function Index() {
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 4;
 
-  
+
 
   /*//to populate the category arrays
   for (const category of allProductCategories) {
@@ -1053,7 +1053,7 @@ export default function Index() {
     return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
   });
 
-  
+
 
   // Sort the filtered rows based on the current sort column and direction
   const sortedProductFilteredRows = filteredProductRows.sort((a, b) => {
@@ -1069,7 +1069,7 @@ export default function Index() {
     return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
   });
 
-  
+
 
   const handleNextPage = () => setCurrentPage(currentPage + 1)
   const handlePreviousPage = () => setCurrentPage(currentPage - 1);
@@ -1114,7 +1114,7 @@ export default function Index() {
     });
   }, []);
 
-  
+
 
   const toggleAlert = useCallback(
     () => setAlert((alert) => !alert),
@@ -1139,7 +1139,7 @@ export default function Index() {
     let weightLimit = '';
     priceLimit = priceLimit + getPriceQuantityLimit('priceMin') + ',' + getPriceQuantityLimit('priceMax');
     weightLimit = weightLimit + getWeightQuantityLimit('weightMin') + ',' + getWeightQuantityLimit('weightMax');
-    console.log('priceLimit ', priceLimit );
+    console.log('priceLimit ', priceLimit);
     submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit), allProductsData: JSON.stringify(allProductsData), shopId: loaderData?.shopId, priceLimit: priceLimit, weightLimit: weightLimit }, { method: 'post' }).catch((error) => {
       // Handle error
       console.error('Error saving product:', error);
@@ -1147,17 +1147,17 @@ export default function Index() {
     });
   }
 
-  const handleQuantityLimit = (value, id, range='') => {
+  const handleQuantityLimit = (value, id, range = '') => {
     console.log('value and id in handlequantity', value);
     let limitValue = '';
-    if(range === 'min') {
-      if(id.includes("ProductVariant")) {
+    if (range === 'min') {
+      if (id.includes("ProductVariant")) {
         let max = getVariantQunatity(id, 'max');
         limitValue = limitValue + value + ',' + max;
-      } else if(id.includes("Product")) {
+      } else if (id.includes("Product")) {
         let max = getProductQuantityLimit(id, 'max');
         limitValue = limitValue + value + ',' + max;
-      }else if(id.includes('shop')) {
+      } else if (id.includes('shop')) {
         let max = getStoreQuantityLimit(id, 'max');
         limitValue = limitValue + value + ',' + max;
       } else {
@@ -1165,21 +1165,21 @@ export default function Index() {
         limitValue = limitValue + value + ',' + max;
       }
     } else {
-        if(id.includes("ProductVariant")) {
-          let min = getVariantQunatity(id, 'min');
-          limitValue = limitValue + min + ',' + value;
-        } else if(id.includes("Product")) {
-          let min = getProductQuantityLimit(id, 'min');
-          limitValue = limitValue + min + ',' + value;
-        } else if(id.includes('shop')) {
-          let min = getStoreQuantityLimit(id, 'min');
-          limitValue = limitValue + min + ',' + value;
-        } else {
-          let min = getCategoryQuantityLimit(id, 'min');
-          limitValue = limitValue + min + ',' + value;
-        }
+      if (id.includes("ProductVariant")) {
+        let min = getVariantQunatity(id, 'min');
+        limitValue = limitValue + min + ',' + value;
+      } else if (id.includes("Product")) {
+        let min = getProductQuantityLimit(id, 'min');
+        limitValue = limitValue + min + ',' + value;
+      } else if (id.includes('shop')) {
+        let min = getStoreQuantityLimit(id, 'min');
+        limitValue = limitValue + min + ',' + value;
+      } else {
+        let min = getCategoryQuantityLimit(id, 'min');
+        limitValue = limitValue + min + ',' + value;
+      }
     }
-    if (id.includes('price') || id.includes('weight')){
+    if (id.includes('price') || id.includes('weight')) {
       limitValue = value;
     }
     value = limitValue;
@@ -1217,7 +1217,7 @@ export default function Index() {
     //console.log('productLimit in getProduct ', productLimit);
     if (productLimit) {
       const productLimitValue = productLimit.value;
-      if(range === "min"){
+      if (range === "min") {
         return productLimitValue.split(',')[0];
       } else {
         return productLimitValue.split(',')[1];
@@ -1227,7 +1227,7 @@ export default function Index() {
       //console.log('productLimitValue in getProduct ', productLimitFieldValue);
 
       if (productLimitFieldValue) {
-        if(range === "min"){
+        if (range === "min") {
           return productLimitFieldValue.split(',')[0];
         } else {
           return productLimitFieldValue.split(',')[1];
@@ -1266,19 +1266,19 @@ export default function Index() {
   const getVariantQunatity = (id, range) => {
     const variantQuantityLimitValue = variantQuantityLimits[id];
     console.log('variantQuantityLimitValue in getVariantQuantity', variantQuantityLimitValue);
-    if(range === "min") {
-      return variantQuantityLimitValue.split(',')[0];  
+    if (range === "min") {
+      return variantQuantityLimitValue.split(',')[0];
     } else {
       return variantQuantityLimitValue.split(',')[1];
     }
   }
-  
+
 
   const getCategoryQuantityLimit = (name, range) => {
     const categoryLimit = quantityLimit.find(item => item.id === name);
     if (categoryLimit) {
       const categoryLimitValue = categoryLimit.value;
-      if(range === "min"){
+      if (range === "min") {
         return categoryLimitValue.split(',')[0];
       } else {
         return categoryLimitValue.split(',')[1];
@@ -1292,7 +1292,7 @@ export default function Index() {
       )?.node?.categoryLimitField?.value;
 
       if (categoryLimitFieldValue) {
-        if(range === "min"){
+        if (range === "min") {
           return categoryLimitFieldValue.split(',')[1];
         } else {
           return categoryLimitFieldValue.split(',')[2];
@@ -1309,7 +1309,7 @@ export default function Index() {
     const storeLimit = quantityLimit.find(item => item.id === shopId);
     if (storeLimit) {
       const storeLimitValue = storeLimit.value;
-      if(range === "min"){
+      if (range === "min") {
         return storeLimitValue.split(',')[0];
       } else {
         return storeLimitValue.split(',')[1];
@@ -1318,7 +1318,7 @@ export default function Index() {
       if (loaderData?.storeLimitFieldValue) {
         console.log('storeLimitFieldValue in getStore', loaderData?.storeLimitFieldValue);
         const storeLimit = loaderData?.storeLimitFieldValue;
-        if(range === "min"){
+        if (range === "min") {
           return storeLimit.split(',')[0];
         } else {
           return storeLimit.split(',')[1];
@@ -1336,7 +1336,7 @@ export default function Index() {
     } else {
       if (loaderData?.priceLimitFieldValue) {
         const priceLimit = loaderData?.priceLimitFieldValue;
-        if(range === "priceMin"){
+        if (range === "priceMin") {
           return priceLimit.split(',')[0];
         } else {
           return priceLimit.split(',')[1];
@@ -1350,13 +1350,13 @@ export default function Index() {
 
   const getWeightQuantityLimit = (range) => {
     const weightLimit = quantityLimit.find(item => item.id === range);
-    
+
     if (weightLimit) {
       return parseInt(weightLimit.value);
     } else {
       if (loaderData?.weightLimitFieldValue) {
         const weightLimit = loaderData?.weightLimitFieldValue;
-        if(range === "weightMin"){
+        if (range === "weightMin") {
           return weightLimit.split(',')[0];
         } else {
           return weightLimit.split(',')[1];
@@ -1708,10 +1708,10 @@ export default function Index() {
                 >
                   <IndexTable.Row>
                     <IndexTable.Cell>
-                     Total Cart Price ({loaderData?.currencyCode})
+                      Total Cart Price ({loaderData?.currencyCode})
                     </IndexTable.Cell>
                     <IndexTable.Cell>
-                    <FormLayout>
+                      <FormLayout>
                         <TextField
                           value={getPriceQuantityLimit("priceMin")}
                           label="Quantity Limit"
@@ -1736,7 +1736,7 @@ export default function Index() {
                       Total Cart Weight ({loaderData?.weightUnit})
                     </IndexTable.Cell>
                     <IndexTable.Cell>
-                    <FormLayout>
+                      <FormLayout>
                         <TextField
                           value={getWeightQuantityLimit("weightMin")}
                           label="Quantity Limit"
