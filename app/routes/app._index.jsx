@@ -546,7 +546,7 @@ export async function action({ request, params }) {
 
           }
 
-          if (Number(limiter.value) > 0 && limiter.type === 'Product Wise') {
+          if ( limiter.type === 'Product Wise' ) {
 
             if (limiter.id.includes("ProductVariant")) {
               //console.log('product variant id in action', limiter.id);
@@ -1141,31 +1141,31 @@ export default function Index() {
   }
 
   const handleQuantityLimit = (value, id, range='') => {
-    console.log('value and id in handlequantity', value, id, quantityLimit);
+    console.log('value and id in handlequantity', value);
     let limitValue = '';
     if(range === 'min') {
-      if(id.includes('shop')) {
-        let max = getStoreQuantityLimit(id, 'max');
-        limitValue = limitValue + value + ',' + max;
-      } else if(id.includes("ProductVariant")) {
+      if(id.includes("ProductVariant")) {
         let max = getProductVariantQuantityLimit(id, 'max');
         limitValue = limitValue + value + ',' + max;
       } else if(id.includes("Product")) {
-        let max = getPriceQuantityLimit(id, 'max');
+        let max = getProductQuantityLimit(id, 'max');
+        limitValue = limitValue + value + ',' + max;
+      }else if(id.includes('shop')) {
+        let max = getStoreQuantityLimit(id, 'max');
         limitValue = limitValue + value + ',' + max;
       } else {
         let max = getCategoryQuantityLimit(id, 'max');
         limitValue = limitValue + value + ',' + max;
       }
     } else {
-        if(id.includes('shop')) {
-          let min = getStoreQuantityLimit(id, 'min');
-          limitValue = limitValue + min + ',' + value;
-        } else if(id.includes("ProductVariant")) {
+        if(id.includes("ProductVariant")) {
           let min = getProductVariantQuantityLimit(id, 'min');
           limitValue = limitValue + min + ',' + value;
         } else if(id.includes("Product")) {
-          let min = getPriceQuantityLimit(id, 'min');
+          let min = getProductQuantityLimit(id, 'min');
+          limitValue = limitValue + min + ',' + value;
+        } else if(id.includes('shop')) {
+          let min = getStoreQuantityLimit(id, 'min');
           limitValue = limitValue + min + ',' + value;
         } else {
           let min = getCategoryQuantityLimit(id, 'min');
@@ -1200,13 +1200,27 @@ export default function Index() {
   };
 
   const getProductQuantityLimit = (productId, range) => {
+    //console.log('quantitylimits in getProduct', quantityLimit);
+    //console.log('range in getProduct', range);
     const productLimit = quantityLimit.find(item => item.id === productId);
+    //console.log('productLimit in getProduct ', productLimit);
     if (productLimit) {
-      return parseInt(productLimit.value); // Return the quantity limit if found and greater than 0
+      const productLimitValue = productLimit.value;
+      if(range === "min"){
+        return productLimitValue.split(',')[0];
+      } else {
+        return productLimitValue.split(',')[1];
+      }
     } else {
-      const productLimitField = allProductsData.find(product => product.node.id === productId)?.node.productLimitField?.value;
-      if (productLimitField) {
-        return parseInt(productLimitField); // Return the quantity limit from productLimitField if found and greater than 0
+      const productLimitFieldValue = allProductsData.find(product => product.node.id === productId)?.node.productLimitField?.value;
+      //console.log('productLimitValue in getProduct ', productLimitFieldValue);
+
+      if (productLimitFieldValue) {
+        if(range === "min"){
+          return productLimitFieldValue.split(',')[0];
+        } else {
+          return productLimitFieldValue.split(',')[1];
+        } // Return the quantity limit from productLimitField if found and greater than 0
       } else {
         return 0; // Return 0 if no quantity limit found
       }
@@ -1481,7 +1495,7 @@ export default function Index() {
                           <FormLayout>
                             <TextField
                               value={getProductQuantityLimit(product.node.id, 'min')}
-                              label="Quantity Limit"
+                              label="Quantity Min Limit"
                               type="number"
                               onChange={(value) => { handleQuantityLimit(value, product.node.id, 'min') }}
                             />
@@ -1491,7 +1505,7 @@ export default function Index() {
                           <FormLayout>
                             <TextField
                               value={getProductQuantityLimit(product.node.id, 'max')}
-                              label="Quantity Limit"
+                              label="Quantiy Max Limit"
                               type="number"
                               onChange={(value) => { handleQuantityLimit(value, product.node.id, 'max') }}
                             />

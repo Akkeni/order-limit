@@ -119,12 +119,12 @@ export function run(input) {
           }
 
           // Check if total quantity exceeds category limit
-          if (Number(categoryQuantities.get(categoryName)) > Number(categoryMax)) {
+          if (Number(categoryQuantities.get(categoryName)) > Number(categoryMax) && Number(categoryMax) !== 0) {
             errors.push({
               localizedMessage: `Can't select more than ${categoryMax} products from the category "${categoryName}".`,
               target: "cart",
             });
-          } else if (Number(categoryQuantities.get(categoryName)) < Number(categoryMin)) {
+          } else if (Number(categoryQuantities.get(categoryName)) < Number(categoryMin) && Number(categoryMin) !== 0) {
             errors.push({
               localizedMessage: `You have to select minimun ${categoryMin} products from the category "${categoryName}".`,
               target: "cart",
@@ -143,11 +143,17 @@ export function run(input) {
             target: "cart",
           });
         }
-      } else if (product.productLimitField && parseInt(product.productLimitField.value) > 0) {
+      } else if (product.productLimitField) {
         const productLimit = parseInt(product.productLimitField.value);
-        if (quantity > productLimit) {
+        const [productMin, productMax] = product.productLimitField.value.split(',').map(Number);
+        if (quantity > productMax && productMax !== 0) {
           errors.push({
-            localizedMessage: `Quantity limit reached, you can't select more than ${productLimit}.`,
+            localizedMessage: `Quantity limit reached, you can't select more than ${productMax}.`,
+            target: "cart",
+          });
+        } else if (quantity < productMin && productMin !== 0) {
+          errors.push({
+            localizedMessage: `you can't select less than ${productMin} for this product.`,
             target: "cart",
           });
         }
