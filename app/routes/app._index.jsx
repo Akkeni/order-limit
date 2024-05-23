@@ -241,19 +241,25 @@ export async function loader({ request }) {
 
     const storeLimit = allProductsData.length; // allProductsData?.data?.products?.edges.length;
 
-    const categoryLimits = {}
-    for (const category of allProductCategories) {
-      const productTaxonomyNode = category.productTaxonomyNode;
-      let quantityLimit = 0;
-      let name = productTaxonomyNode.name
-      for (const edge of allProductsData/*.data.products.edges*/) {
-        const productCategory = edge.node.category ? edge.node.category.name : null;
-        // If the product category matches the current category, increment the count
-        if (productCategory === productTaxonomyNode.name) {
-          quantityLimit++;
+    const categoriesData = [];
+    if(allProductCategories) {
+      for (const category of allProductCategories) {
+        const productTaxonomyNode = category.productTaxonomyNode;
+        let quantityLimit = 0;
+        let name = productTaxonomyNode.name;
+        let obj = {};
+        for (const edge of allProductsData/*.data.products.edges*/) {
+          const productCategory = edge.node.category ? edge.node.category.name : null;
+          // If the product category matches the current category, increment the count
+          if (productCategory === productTaxonomyNode.name) {
+            quantityLimit++;
+          }
         }
+        obj['categoryName'] = productTaxonomyNode.name;
+        obj['quantityLimit'] = quantityLimit;
+        categoriesData.push(obj);
+        //categoryLimits[name] = quantityLimit;
       }
-      categoryLimits[name] = quantityLimit;
     }
 
     //console.log('shop id in loader', shopId);
@@ -265,7 +271,6 @@ export async function loader({ request }) {
       ok: true,
       data,
       allProductsData,
-      categoryLimits,
       storeLimit,
       shopId,
       shopName,
@@ -274,6 +279,7 @@ export async function loader({ request }) {
       weightLimitFieldValue,
       currencyCode,
       weightUnit,
+      categoriesData,
     });
 
   } catch (error) {
@@ -965,7 +971,7 @@ export default function Index() {
   }
 
  
-  const categoryLimits = loaderData?.categoryLimits;
+  //const categoryLimits = loaderData?.categoryLimits;
   const categoryOptions = [];
   const categoryIds = {};
   const allProductCategories = loaderData?.data?.data.shop.allProductCategories;
@@ -973,7 +979,7 @@ export default function Index() {
   const shopLimit = loaderData.storeLimit;
   const allProductsData = loaderData?.allProductsData;
 
-  const categoriesData = [];
+  const categoriesData = loaderData?.categoriesData;
 
   
 
@@ -993,7 +999,7 @@ export default function Index() {
 
   
 
-  //to populate the category arrays
+  /*//to populate the category arrays
   for (const category of allProductCategories) {
     let obj = {};
     const productTaxonomyNode = category.productTaxonomyNode;
@@ -1002,13 +1008,13 @@ export default function Index() {
     obj['quantityLimit'] = categoryLimits[productTaxonomyNode.name];
     categoryIds[productTaxonomyNode.name] = productTaxonomyNode.id;
     categoriesData.push(obj);
-  }
+  }*/
 
-  //console.log('categoriesData in index', categoriesData);
+  console.log('categoriesData in index', categoriesData);
   //abscent of categories in the store
-  if (!(categoryOptions.length)) {
+  if (!(categoriesData.length)) {
     //console.log('no categories');
-    categoryOptions.push('No Categories');
+    categoriesData.push('No Categories');
   }
 
 
@@ -1019,7 +1025,8 @@ export default function Index() {
     }
     if (actionData?.created || actionData?.updated || actionData?.deleted) {
       setIsSaving(false);
-      toggleSuccess();
+      //toggleSuccess();
+      setSuccess(true);
     }
   }, [actionData]);
 
@@ -1105,7 +1112,7 @@ export default function Index() {
         fetchVariantQuantityLimit(variant.node.id);
       });
     });
-  }, [quantityLimit]);
+  }, []);
 
   
 
@@ -1145,7 +1152,7 @@ export default function Index() {
     let limitValue = '';
     if(range === 'min') {
       if(id.includes("ProductVariant")) {
-        let max = getProductVariantQuantityLimit(id, 'max');
+        let max = getVariantQunatity(id, 'max');
         limitValue = limitValue + value + ',' + max;
       } else if(id.includes("Product")) {
         let max = getProductQuantityLimit(id, 'max');
@@ -1159,7 +1166,7 @@ export default function Index() {
       }
     } else {
         if(id.includes("ProductVariant")) {
-          let min = getProductVariantQuantityLimit(id, 'min');
+          let min = getVariantQunatity(id, 'min');
           limitValue = limitValue + min + ',' + value;
         } else if(id.includes("Product")) {
           let min = getProductQuantityLimit(id, 'min');
@@ -1196,6 +1203,10 @@ export default function Index() {
           return [...prevQuantityLimit, { id, value, type: tagValue }];
         }
       });
+      setVariantQuantityLimits(prevState => ({
+        ...prevState,
+        [id]: value
+      }));
     }
   };
 
@@ -1227,12 +1238,14 @@ export default function Index() {
     }
   };
 
+
+  //to populate variantQuantityLimits array
   const getProductVariantQuantityLimit = async (productId, range) => {
 
     try {
       const productLimit = quantityLimit.find(item => item.id === productId);
       if (productLimit) {
-        return parseInt(productLimit.value); // Return the quantity limit if found and greater than 0
+        return productLimit.value; // Return the quantity limit if found and greater than 0
       } else {
         const lastNumberId = productId.match(/\d+$/)[0];
         const response = await fetch(`/api/getVariantLimit/${lastNumberId}`);
@@ -1240,9 +1253,9 @@ export default function Index() {
         //console.log('responseData in getvariant quantity', responseData);
         const productVariantLimitField = responseData?.productVariantLimitField;
         if (productVariantLimitField?.value) {
-          return parseInt(productVariantLimitField?.value);
+          return productVariantLimitField?.value;
         } else {
-          return 0;
+          return '0,0';
         }
       }
     } catch (error) {
@@ -1250,6 +1263,15 @@ export default function Index() {
     }
   }
 
+  const getVariantQunatity = (id, range) => {
+    const variantQuantityLimitValue = variantQuantityLimits[id];
+    console.log('variantQuantityLimitValue in getVariantQuantity', variantQuantityLimitValue);
+    if(range === "min") {
+      return variantQuantityLimitValue.split(',')[0];  
+    } else {
+      return variantQuantityLimitValue.split(',')[1];
+    }
+  }
   
 
   const getCategoryQuantityLimit = (name, range) => {
@@ -1384,7 +1406,7 @@ export default function Index() {
           <Banner
             title="Saved successfully!"
             tone="success"
-            onDismiss={toggleSuccess}
+            onDismiss={() => setSuccess(false)}
           />
           {/*<Card padding="0">
             <div style={{ display: "flex", alignItems: "center", flexDirection: "row", alignContent: "stretch", justifyContent: "space-between", backgroundColor: "rgb(80 220 169)" }}>
@@ -1529,7 +1551,7 @@ export default function Index() {
                             <IndexTable.Cell>
                               <FormLayout>
                                 <TextField
-                                  value={variantQuantityLimits[variant.node.id]}
+                                  value={getVariantQunatity(variant.node.id, 'min')}
                                   label="Quantity Limit"
                                   type="number"
                                   onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'min') }}
@@ -1539,7 +1561,7 @@ export default function Index() {
                             <IndexTable.Cell>
                               <FormLayout>
                                 <TextField
-                                  value={variantQuantityLimits[variant.node.id]}
+                                  value={getVariantQunatity(variant.node.id, 'max')}
                                   label="Quantity Limit"
                                   type="number"
                                   onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'max') }}

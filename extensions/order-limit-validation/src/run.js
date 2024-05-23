@@ -135,11 +135,17 @@ export function run(input) {
 
 
       // Check product limit
-      if (merchandise.productVariantLimitField && parseInt(merchandise.productVariantLimitField.value) > 0) {
+      if (merchandise.productVariantLimitField ) {
         const productVariantLimit = parseInt(merchandise.productVariantLimitField.value);
-        if (quantity > productVariantLimit) {
+        const [productVariantMin, productVariantMax] = merchandise.productVariantLimitField.value.split(',').map(Number);
+        if (quantity > productVariantMax && productVariantMax !== 0) {
           errors.push({
-            localizedMessage: `Quantity limit reached, you can't select more than ${productVariantLimit}.`,
+            localizedMessage: `Quantity limit reached, you can't select more than ${productVariantMax}.`,
+            target: "cart",
+          });
+        } else if (quantity < productVariantMin && productVariantMin !== 0) {
+          errors.push({
+            localizedMessage: `you can't select less than ${productVariantMin} for this product variant.`,
             target: "cart",
           });
         }
