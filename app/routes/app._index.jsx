@@ -214,6 +214,9 @@ export async function loader({ request }) {
           weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") {
             value
           }
+          errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs"){
+            value
+          }  
           allProductCategories {
           productTaxonomyNode {
             fullName
@@ -237,6 +240,7 @@ export async function loader({ request }) {
     const storeLimitFieldValue = data?.data?.shop?.storeLimitField?.value;
     const priceLimitFieldValue = data?.data?.shop?.priceLimitField?.value;
     const weightLimitFieldValue = data?.data?.shop?.weightLimitField?.value;
+    const errorMsgsFieldValue = data?.data?.shop?.errorMsgsField?.value;
 
 
     const storeLimit = allProductsData.length; // allProductsData?.data?.products?.edges.length;
@@ -280,6 +284,7 @@ export async function loader({ request }) {
       currencyCode,
       weightUnit,
       categoriesData,
+      errorMsgsFieldValue,
     });
 
   } catch (error) {
@@ -305,11 +310,49 @@ export async function action({ request, params }) {
 
       const limiters = JSON.parse(formData.get('quantityLimit'));
       //console.log('limiters in action', limiters);
+      const errorMessages = formData.get('errorMessages');
+      
+      console.log('messages value in action saveProduct',errorMessages);
+
+      if(errorMessages) {
+        const shopId = formData.get('shopId');
+        const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) {
+            metafields {
+              id
+              namespace
+              key
+              value
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }`;
+
+        const metafields = {
+          variables: {
+            metafields: [
+              {
+                "ownerId": `${shopId}`,
+                "namespace": "errorMsgs",
+                "key": "errorMsgs",
+                "type": "string",
+                "value": `${errorMessages}`
+
+              }
+            ]
+          }
+        };
+
+        const metaResponse = await admin.graphql(mutationQuery, metafields);
+        const metaData = await metaResponse.json();
+      }
 
       for (const limiter of limiters) {
 
         try {
-          //console.log('limiter value in action saveProduct', limiter.value, limiter.id);
           if (Number(limiter.value) >= 0 && limiter.type === 'General') {
             const shopId = formData.get('shopId');
             const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
@@ -345,7 +388,6 @@ export async function action({ request, params }) {
                       "key": "priceLimit",
                       "type": "string",
                       "value": `${formData.get('priceLimit')}`
-
                     }
                   ]
                 }
@@ -981,11 +1023,13 @@ export default function Index() {
 
   const categoriesData = loaderData?.categoriesData;
 
+  const existingErrMsgs = JSON.parse(loaderData?.errorMsgsFieldValue);
+
 
 
   const [searchValue, setSearchValue] = useState('');
   const [success, setSuccess] = useState(false);
-  const [tagValue, setTagValue] = useState('Store Wise');
+  const [tagValue, setTagValue] = useState('General');
   const [quantityLimit, setQuantityLimit] = useState([]);
   const [variantQuantityLimits, setVariantQuantityLimits] = useState({});
   const submit = useSubmit();
@@ -997,6 +1041,20 @@ export default function Index() {
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 4;
 
+  const [errorMessages, setErrorMessages] = useState({
+    priceMinErrMsg: '',
+    priceMaxErrMsg: '',
+    weightMinErrMsg: '',
+    weightMaxErrMsg: '',
+    shopMinErrMsg: '',
+    shopMaxErrMsg: '',
+    productMinErrMsg: '',
+    productMaxErrMsg: '',
+    variantMinErrMsg: '',
+    variantMaxErrMsg: '',
+    categoryMinErrMsg: '',
+    categoryMaxErrMsg: '',
+  });
 
 
   /*//to populate the category arrays
@@ -1125,6 +1183,12 @@ export default function Index() {
     [],
   );
 
+  const handleErrorMessages = (name, value) => {
+    setErrorMessages(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  }
 
 
   const handleTagValueChange = (value) => {
@@ -1140,7 +1204,7 @@ export default function Index() {
     priceLimit = priceLimit + getPriceQuantityLimit('priceMin') + ',' + getPriceQuantityLimit('priceMax');
     weightLimit = weightLimit + getWeightQuantityLimit('weightMin') + ',' + getWeightQuantityLimit('weightMax');
     console.log('priceLimit ', priceLimit);
-    submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit), allProductsData: JSON.stringify(allProductsData), shopId: loaderData?.shopId, priceLimit: priceLimit, weightLimit: weightLimit }, { method: 'post' }).catch((error) => {
+    submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit), allProductsData: JSON.stringify(allProductsData), shopId: loaderData?.shopId, priceLimit: priceLimit, weightLimit: weightLimit, errorMessages: JSON.stringify(errorMessages) }, { method: 'post' }).catch((error) => {
       // Handle error
       console.error('Error saving product:', error);
       setIsSaving(false); // Ensure saving state is set to false in case of error
@@ -1434,7 +1498,7 @@ export default function Index() {
               <FormLayout>
                 <Select
                   label="Limit By"
-                  options={['Store Wise', 'Product Wise', 'Category Wise', 'General']}
+                  options={['General', 'Store Wise', 'Product Wise', 'Category Wise']}
                   value={tagValue}
                   onChange={handleTagValueChange}
                 />
@@ -1458,6 +1522,7 @@ export default function Index() {
         <Layout>
           <Layout.Section>
             {tagValue === 'Product Wise' && (
+              <div>
               <Card>
                 <IndexTable
                   headings={[
@@ -1517,7 +1582,7 @@ export default function Index() {
                           <FormLayout>
                             <TextField
                               value={getProductQuantityLimit(product.node.id, 'min')}
-                              label="Quantity Min Limit"
+                              label="Product Min Limit"
                               type="number"
                               onChange={(value) => { handleQuantityLimit(value, product.node.id, 'min') }}
                             />
@@ -1527,7 +1592,7 @@ export default function Index() {
                           <FormLayout>
                             <TextField
                               value={getProductQuantityLimit(product.node.id, 'max')}
-                              label="Quantiy Max Limit"
+                              label="Product Max Limit"
                               type="number"
                               onChange={(value) => { handleQuantityLimit(value, product.node.id, 'max') }}
                             />
@@ -1552,7 +1617,7 @@ export default function Index() {
                               <FormLayout>
                                 <TextField
                                   value={getVariantQunatity(variant.node.id, 'min')}
-                                  label="Quantity Limit"
+                                  label="Variant Min Limit"
                                   type="number"
                                   onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'min') }}
                                 />
@@ -1562,7 +1627,7 @@ export default function Index() {
                               <FormLayout>
                                 <TextField
                                   value={getVariantQunatity(variant.node.id, 'max')}
-                                  label="Quantity Limit"
+                                  label="Variant Max Limit"
                                   type="number"
                                   onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'max') }}
                                 />
@@ -1581,9 +1646,54 @@ export default function Index() {
                   <Button icon={ChevronRightIcon} accessibilityLabel="Next Page" disabled={currentPage === totalPages} onClick={handleNextPage} />
                 </div>
               </Card>
+              
+              <br/>
+              <br/>
+
+              <Card>
+                <TextField
+                  label="Error Message for Product Minimum limit"
+                  value={errorMessages.productMinErrMsg || existingErrMsgs?.productMinErrMsg}
+                  onChange={(value) => { handleErrorMessages("productMinErrMsg", value) }}
+                  placeholder="you can't select less than {productMin} for this product."
+                  helpText="use {productMin} to include minimum limit"
+                  autoComplete="off"
+                />
+                <br/>
+                <TextField
+                  label="Error Message for Product Maximum limit"
+                  value={errorMessages.productMaxErrMsg || existingErrMsgs?.productMaxErrMsg}
+                  onChange={(value) => { handleErrorMessages("productMaxErrMsg", value) }}
+                  placeholder="Quantity limit reached, you can't select more than {productMax}."
+                  helpText="use {productMax} to include maximum limit"
+                  autoComplete="off"
+                />
+                <br/>
+                <TextField
+                  label="Error Message for Product Variant Minimum limit"
+                  value={errorMessages.variantMinErrMsg || existingErrMsgs?.variantMinErrMsg}
+                  onChange={(value) => { handleErrorMessages("variantMinErrMsg", value) }}
+                  placeholder="`you can't select less than {productVariantMin} for this product variant."
+                  helpText="use {productVariantMin} to include minimum limit"
+                  autoComplete="off"
+                />
+                <br/>
+                <TextField
+                  label="Error Message for Product Variant Maximum limit"
+                  value={errorMessages.variantMaxErrMsg || existingErrMsgs?.variantMaxErrMsg}
+                  onChange={(value) => { handleErrorMessages("variantMaxErrMsg", value) }}
+                  placeholder="Quantity limit reached, you can't select more than {productVariantMax}."
+                  helpText="use {productVariantMax} to include maximum limit"
+                  autoComplete="off"
+                />
+                <br/>
+              </Card>
+
+              </div>
             )}
 
             {tagValue === 'Category Wise' && (
+              <div>
               <Card>
                 <IndexTable
                   headings={[
@@ -1629,7 +1739,7 @@ export default function Index() {
                         <FormLayout>
                           <TextField
                             value={getCategoryQuantityLimit(category['categoryName'], 'min')}
-                            label="Quantity Limit"
+                            label="Category Min Limit"
                             type="number"
                             onChange={(value) => { handleQuantityLimit(value, category['categoryName'], 'min') }}
                           />
@@ -1639,7 +1749,7 @@ export default function Index() {
                         <FormLayout>
                           <TextField
                             value={getCategoryQuantityLimit(category['categoryName'], 'max')}
-                            label="Quantity Limit"
+                            label="Category Max Limit"
                             type="number"
                             onChange={(value) => { handleQuantityLimit(value, category['categoryName'], 'max') }}
                           />
@@ -1649,9 +1759,34 @@ export default function Index() {
                   ))}
                 </IndexTable>
               </Card>
+               <br/>
+              <br/>
+              
+              <Card>
+                <TextField
+                  label="Error Message for Category Minimum limit"
+                  value={errorMessages.categoryMinErrMsg || existingErrMsgs?.categoryMinErrMsg}
+                  onChange={(value) => { handleErrorMessages("categoryMinErrMsg", value) }}
+                  placeholder="You have to select minimun {categoryMin} products from the category {categoryName}."
+                  helpText="use {categoryMin} to include minimum limit"
+                  autoComplete="off"
+                />
+                <br/>
+                <TextField
+                  label="Error Message for Category Maximum limit"
+                  value={errorMessages.categoryMaxErrMsg || existingErrMsgs?.categoryMaxErrMsg}
+                  onChange={(value) => { handleErrorMessages("categoryMaxErrMsg", value) }}
+                  placeholder="Can't select more than {categoryMax} products from the category {categoryName}"
+                  helpText="use {categoryMax} to include maximum limit"
+                  autoComplete="off"
+                />
+                <br/>
+              </Card>
+              </div>
             )}
 
             {tagValue === 'Store Wise' && (
+              <div>
               <Card>
                 <IndexTable
                   headings={[
@@ -1675,7 +1810,7 @@ export default function Index() {
                       <FormLayout>
                         <TextField
                           value={getStoreQuantityLimit(loaderData.shopId, "min")}
-                          label="Quantity Limit"
+                          label="Shop Min Limit"
                           type="number"
                           onChange={(value) => { handleQuantityLimit(value, loaderData.shopId, "min") }}
                         />
@@ -1685,7 +1820,7 @@ export default function Index() {
                       <FormLayout>
                         <TextField
                           value={getStoreQuantityLimit(loaderData.shopId, "max")}
-                          label="Quantity Limit"
+                          label="Shop Max Limit"
                           type="number"
                           onChange={(value) => { handleQuantityLimit(value, loaderData.shopId, "max") }}
                         />
@@ -1694,8 +1829,35 @@ export default function Index() {
                   </IndexTable.Row>
                 </IndexTable>
               </Card>
+
+              <br/>
+              <br/>
+              
+              <Card>
+                <TextField
+                  label="Error Message for Store Minimum limit"
+                  value={errorMessages.shopMinErrMsg || existingErrMsgs?.shopMinErrMsg}
+                  onChange={(value) => { handleErrorMessages("shopMinErrMsg", value) }}
+                  placeholder="Minmum {shopMin} products are required for checkout"
+                  helpText="use {shopMin} to include minimum limit"
+                  autoComplete="off"
+                />
+                <br/>
+                <TextField
+                  label="Error Message for Store Maximum limit"
+                  value={errorMessages.shopMaxErrMsg || existingErrMsgs?.shopMaxErrMsg}
+                  onChange={(value) => { handleErrorMessages("shopMaxErrMsg", value) }}
+                  placeholder="Cart exceeds {shopMax} number of products. please remove some items"
+                  helpText="use {shopMax} to include maximum limit"
+                  autoComplete="off"
+                />
+                <br/>
+              </Card>
+              </div>
             )}
+
             {tagValue === 'General' && (
+            <div>
               <Card>
                 <IndexTable
                   headings={[
@@ -1714,7 +1876,7 @@ export default function Index() {
                       <FormLayout>
                         <TextField
                           value={getPriceQuantityLimit("priceMin")}
-                          label="Quantity Limit"
+                          label="Price Min Limit"
                           type="number"
                           onChange={(value) => { handleQuantityLimit(value, "priceMin") }}
                         />
@@ -1724,7 +1886,7 @@ export default function Index() {
                       <FormLayout>
                         <TextField
                           value={getPriceQuantityLimit("priceMax")}
-                          label="Quantity Limit"
+                          label="Price Max Limit"
                           type="number"
                           onChange={(value) => { handleQuantityLimit(value, "priceMax") }}
                         />
@@ -1739,7 +1901,7 @@ export default function Index() {
                       <FormLayout>
                         <TextField
                           value={getWeightQuantityLimit("weightMin")}
-                          label="Quantity Limit"
+                          label="Weight Min Limit"
                           type="number"
                           onChange={(value) => { handleQuantityLimit(value, "weightMin") }}
                         />
@@ -1749,7 +1911,7 @@ export default function Index() {
                       <FormLayout>
                         <TextField
                           value={getWeightQuantityLimit("weightMax")}
-                          label="Quantity Limit"
+                          label="Weight Max Limit"
                           type="number"
                           onChange={(value) => { handleQuantityLimit(value, "weightMax") }}
                         />
@@ -1758,6 +1920,49 @@ export default function Index() {
                   </IndexTable.Row>
                 </IndexTable>
               </Card>
+
+              <br/>
+              <br/>
+
+              <Card>
+                <TextField
+                  label="Error Message for Price Minimum limit"
+                  value={errorMessages.priceMinErrMsg || existingErrMsgs?.priceMinErrMsg}
+                  onChange={(value) => { handleErrorMessages("priceMinErrMsg", value) }}
+                  placeholder="Minmum amount {priceMin} is required for checkout"
+                  helpText="use {priceMin} to include minimum price"
+                  autoComplete="off"
+                />
+                <br/>
+                <TextField
+                  label="Error Message for Price Maximum limit"
+                  value={errorMessages.priceMaxErrMsg || existingErrMsgs?.priceMaxErrMsg}
+                  onChange={(value) => { handleErrorMessages("priceMaxErrMsg", value) }}
+                  placeholder="Cart exceeds amount {priceMax} please remove some items"
+                  helpText="use {priceMax} to include maximum price"
+                  autoComplete="off"
+                />
+                <br/>
+                <TextField
+                  label="Error Message for Weight Minimum limit"
+                  value={errorMessages.weightMinErrMsg || existingErrMsgs?.weightMinErrMsg}
+                  onChange={(value) => { handleErrorMessages("weightMinErrMsg", value) }}
+                  placeholder="Minmum weight {weightMin} is required for checkout"
+                  helpText="use {weightMin} to include minimum price"
+                  autoComplete="off"
+                />
+                <br/>
+                <TextField
+                  label="Error Message for Weight Maximum limit"
+                  value={errorMessages.weightMaxErrMsg || existingErrMsgs?.weightMaxErrMsg}
+                  onChange={(value) => { handleErrorMessages("weightMaxErrMsg", value) }}
+                  placeholder="Cart exceeds weight {weightMax} please remove some items"
+                  helpText="use {weightMax} to include maximum price"
+                  autoComplete="off"
+                />
+                <br/>
+              </Card>
+            </div>
             )}
           </Layout.Section>
         </Layout>

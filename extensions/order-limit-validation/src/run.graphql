@@ -40,6 +40,8 @@ query RunInput {
     weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") {
       value
     }
-          
+    errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs"){
+      value
+    }    
   }
 }
