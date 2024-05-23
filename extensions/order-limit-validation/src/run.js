@@ -25,14 +25,21 @@ export function run(input) {
       const { product } = merchandise;
 
       // Check store limit
-      if (input.shop.storeLimitField && parseInt(input.shop.storeLimitField.value) > 0) {
-        const storeLimit = parseInt(input.shop.storeLimitField.value);
+      if (input.shop.storeLimitField) {
+        const storeLimit = input.shop.storeLimitField.value;
+        const [shopMin, shopMax] = storeLimit.split(',').map(Number);
         const totalQuantity = input.cart.lines.reduce((acc, curr) => acc + curr.quantity, 0);
-        if (totalQuantity > storeLimit) {
-            errors.push({
-              localizedMessage: `Can't select more than ${storeLimit} from this store.`,
-              target: "cart",
-            });
+
+        if (shopMin > totalQuantity && shopMin !== 0) {
+          errors.push({
+            localizedMessage: `Minmum ${shopMin} products are required for checkout`,
+            target: "cart",
+          });
+        } else if (totalQuantity > shopMax && shopMax !== 0) {
+          errors.push({
+            localizedMessage: `Cart exceeds ${shopMax} number of products. please remove some items`,
+            target: "cart",
+          });
         }
       }
 
@@ -42,21 +49,21 @@ export function run(input) {
         const priceMin = priceLimit.split(',')[0];
         const priceMax = priceLimit.split(',')[1];
         const totalAmount = Number(input.cart?.cost?.totalAmount?.amount);
-        console.log( totalAmount, priceMin, priceMax);
+        console.log(totalAmount, priceMin, priceMax);
         if (totalAmount < Number(priceMin) && Number(priceMin) !== 0) {
           errors.push({
             localizedMessage: `Minmum amount ${priceMin} is required for checkout`,
             target: "cart",
           });
         } else if (totalAmount > Number(priceMax) && Number(priceMax) !== 0) {
-            errors.push({
-              localizedMessage: `Cart exceeds amount ${priceMax} please remove some items`,
-              target: "cart",
-            });
+          errors.push({
+            localizedMessage: `Cart exceeds amount ${priceMax} please remove some items`,
+            target: "cart",
+          });
         }
       }
 
-      
+
 
 
       // Check if merchandise is a ProductVariant
@@ -71,36 +78,37 @@ export function run(input) {
         cartLines.forEach(line => {
           const quantity = line.quantity;
           const weight = merchandise?.weight;
-          if(weight) {
+          if (weight) {
             totalWeight += quantity * weight;
           }
         });
 
         // Parse the weightLimitField
-        if(input.shop?.weightLimitField?.value) {
+        if (input.shop?.weightLimitField?.value) {
           const weightLimitField = input.shop?.weightLimitField?.value;
           const [weightMin, weightMax] = weightLimitField.split(',').map(Number);
-  
-  
-          if ( weightMin > totalWeight && weightMin !== 0) {
+
+
+          if (weightMin > totalWeight && weightMin !== 0) {
             errors.push({
               localizedMessage: `Minmum weight ${weightMin} is required for checkout`,
               target: "cart",
             });
           } else if (totalWeight > weightMax && weightMax !== 0) {
-              errors.push({
-                localizedMessage: `Cart exceeds weight ${weightMax} please remove some items`,
-                target: "cart",
-              });
+            errors.push({
+              localizedMessage: `Cart exceeds weight ${weightMax} please remove some items`,
+              target: "cart",
+            });
           }
-  
+
         }
-        
+
         console.log(totalWeight);
 
         // Check if product has category information
-        if (product.categoryNameField && product.categoryLimitField) {
-          const categoryName = product.categoryNameField.value;
+        if (product.categoryLimitField) {
+          const [categoryName, categoryMin, categoryMax] = product.categoryLimitField.value.split(',');
+          //const categoryName = product.categoryNameField.value;
           const categoryLimit = parseInt(product.categoryLimitField.value);
 
           // Update categoryQuantities map with quantity for current category
@@ -111,9 +119,14 @@ export function run(input) {
           }
 
           // Check if total quantity exceeds category limit
-          if (categoryQuantities.get(categoryName) > categoryLimit ) {
+          if (Number(categoryQuantities.get(categoryName)) > Number(categoryMax)) {
             errors.push({
-              localizedMessage: `Can't select more than ${categoryLimit} products from the category "${categoryName}".`,
+              localizedMessage: `Can't select more than ${categoryMax} products from the category "${categoryName}".`,
+              target: "cart",
+            });
+          } else if (Number(categoryQuantities.get(categoryName)) < Number(categoryMin)) {
+            errors.push({
+              localizedMessage: `You have to select minimun ${categoryMin} products from the category "${categoryName}".`,
               target: "cart",
             });
           }

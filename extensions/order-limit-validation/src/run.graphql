@@ -1,25 +1,22 @@
 query RunInput {
   cart {
     cost {
-        totalAmount {
-          amount
-        }
+      totalAmount {
+        amount
       }
+    }
     lines {
       quantity
       merchandise {
         __typename
         ... on ProductVariant {
-          id
+          
           weight
           productVariantLimitField: metafield(namespace: "productLimit", key: "productLimit") {
               value
           }
           product {
-            id
-            categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
-              value
-            }
+            
             categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
               value
             }

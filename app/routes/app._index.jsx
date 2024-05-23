@@ -377,7 +377,7 @@ export async function action({ request, params }) {
             }
           }
 
-          if (Number(limiter.value) > 0 && limiter.type === 'Store Wise') {
+          if ( limiter.type === 'Store Wise' ) {
 
             const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
                 metafieldsSet(metafields: $metafields) {
@@ -425,7 +425,7 @@ export async function action({ request, params }) {
              const result = await addLimiter(limiter);
           }*/
 
-          if (Number(limiter.value) > 0 && limiter.type === 'Category Wise') {
+          if (limiter.type === 'Category Wise') {
             //console.log('limiter in category wise in action', limiter);
 
             // Initialize an empty array to store product IDs
@@ -466,7 +466,7 @@ export async function action({ request, params }) {
                   }
                 }
               }`;
-
+              let categoryLimitValue = limiter.id + ',' + limiter.value;
               const variables = {
                 variables: {
                   input: {
@@ -481,7 +481,7 @@ export async function action({ request, params }) {
                       {
                         "namespace": "categoryLimit",
                         "key": "categoryLimit",
-                        "value": `${limiter.value}`,
+                        "value": `${categoryLimitValue}`,
                         "type": "string"
                       },
                       {
@@ -1140,10 +1140,43 @@ export default function Index() {
     });
   }
 
-  const handleQuantityLimit = (value, id) => {
+  const handleQuantityLimit = (value, id, range='') => {
     console.log('value and id in handlequantity', value, id, quantityLimit);
-
-    if (value >= 0) {
+    let limitValue = '';
+    if(range === 'min') {
+      if(id.includes('shop')) {
+        let max = getStoreQuantityLimit(id, 'max');
+        limitValue = limitValue + value + ',' + max;
+      } else if(id.includes("ProductVariant")) {
+        let max = getProductVariantQuantityLimit(id, 'max');
+        limitValue = limitValue + value + ',' + max;
+      } else if(id.includes("Product")) {
+        let max = getPriceQuantityLimit(id, 'max');
+        limitValue = limitValue + value + ',' + max;
+      } else {
+        let max = getCategoryQuantityLimit(id, 'max');
+        limitValue = limitValue + value + ',' + max;
+      }
+    } else {
+        if(id.includes('shop')) {
+          let min = getStoreQuantityLimit(id, 'min');
+          limitValue = limitValue + min + ',' + value;
+        } else if(id.includes("ProductVariant")) {
+          let min = getProductVariantQuantityLimit(id, 'min');
+          limitValue = limitValue + min + ',' + value;
+        } else if(id.includes("Product")) {
+          let min = getPriceQuantityLimit(id, 'min');
+          limitValue = limitValue + min + ',' + value;
+        } else {
+          let min = getCategoryQuantityLimit(id, 'min');
+          limitValue = limitValue + min + ',' + value;
+        }
+    }
+    if (id.includes('price') || id.includes('weight')){
+      limitValue = value;
+    }
+    value = limitValue;
+    if (value) {
       // Update quantityLimit state to contain objects with id as keys and quantity limits as values
       setQuantityLimit((prevQuantityLimit) => {
         // Check if the id already exists in the state
@@ -1166,7 +1199,7 @@ export default function Index() {
     }
   };
 
-  const getProductQuantityLimit = (productId) => {
+  const getProductQuantityLimit = (productId, range) => {
     const productLimit = quantityLimit.find(item => item.id === productId);
     if (productLimit) {
       return parseInt(productLimit.value); // Return the quantity limit if found and greater than 0
@@ -1180,7 +1213,7 @@ export default function Index() {
     }
   };
 
-  const getProductVariantQuantityLimit = async (productId) => {
+  const getProductVariantQuantityLimit = async (productId, range) => {
 
     try {
       const productLimit = quantityLimit.find(item => item.id === productId);
@@ -1205,10 +1238,15 @@ export default function Index() {
 
   
 
-  const getCategoryQuantityLimit = (name) => {
+  const getCategoryQuantityLimit = (name, range) => {
     const categoryLimit = quantityLimit.find(item => item.id === name);
     if (categoryLimit) {
-      return parseInt(categoryLimit.value);
+      const categoryLimitValue = categoryLimit.value;
+      if(range === "min"){
+        return categoryLimitValue.split(',')[0];
+      } else {
+        return categoryLimitValue.split(',')[1];
+      }
     } else {
 
       const categoryLimitFieldValue = loaderData?.allProductsData.find((item) =>
@@ -1218,20 +1256,37 @@ export default function Index() {
       )?.node?.categoryLimitField?.value;
 
       if (categoryLimitFieldValue) {
-        return parseInt(categoryLimitFieldValue);
+        if(range === "min"){
+          return categoryLimitFieldValue.split(',')[1];
+        } else {
+          return categoryLimitFieldValue.split(',')[2];
+        }
       } else {
         return 0;
       }
     }
   }
 
-  const getStoreQuantityLimit = (shopId) => {
+  const getStoreQuantityLimit = (shopId, range) => {
+    //console.log('quantitylimit in getStore', quantityLimit);
+    //console.log('range in getStore', range);
     const storeLimit = quantityLimit.find(item => item.id === shopId);
     if (storeLimit) {
-      return parseInt(storeLimit.value);
+      const storeLimitValue = storeLimit.value;
+      if(range === "min"){
+        return storeLimitValue.split(',')[0];
+      } else {
+        return storeLimitValue.split(',')[1];
+      }
     } else {
       if (loaderData?.storeLimitFieldValue) {
-        return parseInt(loaderData?.storeLimitFieldValue);
+        console.log('storeLimitFieldValue in getStore', loaderData?.storeLimitFieldValue);
+        const storeLimit = loaderData?.storeLimitFieldValue;
+        if(range === "min"){
+          return storeLimit.split(',')[0];
+        } else {
+          return storeLimit.split(',')[1];
+        }
       } else {
         return 0;
       }
@@ -1240,7 +1295,7 @@ export default function Index() {
 
   const getPriceQuantityLimit = (range) => {
     const priceLimit = quantityLimit.find(item => item.id === range);
-    if (priceLimit || priceLimit === '0') {
+    if (priceLimit) {
       return parseInt(priceLimit.value);
     } else {
       if (loaderData?.priceLimitFieldValue) {
@@ -1387,11 +1442,9 @@ export default function Index() {
                       title: (
                         <ButtonGroup>
                           <Button onClick={() => handleSort('totalInventory')} variant="tertiary">
-                            Quantity Available
+                            Quantity
                           </Button>
-                          <Button onClick={() => handleSort('totalInventory')} variant="tertiary">
-                            <Icon source={SelectIcon} />
-                          </Button>
+                          <Button icon={SelectIcon} onClick={() => handleSort('totalInventory')} variant="tertiary" size="micro" />
                         </ButtonGroup>
                       )
                     },
@@ -1401,13 +1454,12 @@ export default function Index() {
                           <Button onClick={() => handleSort('priceRangeV2')} variant="tertiary">
                             Price ({loaderData?.currencyCode})
                           </Button>
-                          <Button onClick={() => handleSort('priceRangeV2')} variant="tertiary">
-                            <Icon source={SelectIcon} />
-                          </Button>
+                          <Button icon={SelectIcon} onClick={() => handleSort('priceRangeV2')} variant="tertiary" size="micro" />
                         </ButtonGroup>
                       )
                     },
-                    { title: 'Quantity Limit' },
+                    { title: 'Min Limit' },
+                    { title: 'Max Limit' }
                   ]}
                   itemCount={allProductsData.length}
                   selectable={false}
@@ -1428,10 +1480,20 @@ export default function Index() {
                         <IndexTable.Cell>
                           <FormLayout>
                             <TextField
-                              value={getProductQuantityLimit(product.node.id)}
+                              value={getProductQuantityLimit(product.node.id, 'min')}
                               label="Quantity Limit"
                               type="number"
-                              onChange={(value) => { handleQuantityLimit(value, product.node.id) }}
+                              onChange={(value) => { handleQuantityLimit(value, product.node.id, 'min') }}
+                            />
+                          </FormLayout>
+                        </IndexTable.Cell>
+                        <IndexTable.Cell>
+                          <FormLayout>
+                            <TextField
+                              value={getProductQuantityLimit(product.node.id, 'max')}
+                              label="Quantity Limit"
+                              type="number"
+                              onChange={(value) => { handleQuantityLimit(value, product.node.id, 'max') }}
                             />
                           </FormLayout>
                         </IndexTable.Cell>
@@ -1456,7 +1518,17 @@ export default function Index() {
                                   value={variantQuantityLimits[variant.node.id]}
                                   label="Quantity Limit"
                                   type="number"
-                                  onChange={(value) => { handleQuantityLimit(value, variant.node.id) }}
+                                  onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'min') }}
+                                />
+                              </FormLayout>
+                            </IndexTable.Cell>
+                            <IndexTable.Cell>
+                              <FormLayout>
+                                <TextField
+                                  value={variantQuantityLimits[variant.node.id]}
+                                  label="Quantity Limit"
+                                  type="number"
+                                  onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'max') }}
                                 />
                               </FormLayout>
                             </IndexTable.Cell>
@@ -1503,7 +1575,8 @@ export default function Index() {
                         </ButtonGroup>
                       )
                     },
-                    { title: 'Quantity Limit' },
+                    { title: 'Min Limit' },
+                    { title: 'Max Limit' },
                   ]}
                   itemCount={categoriesData.length}
                   selectable={false}
@@ -1519,10 +1592,20 @@ export default function Index() {
                       <IndexTable.Cell>
                         <FormLayout>
                           <TextField
-                            value={getCategoryQuantityLimit(category['categoryName'])}
+                            value={getCategoryQuantityLimit(category['categoryName'], 'min')}
                             label="Quantity Limit"
                             type="number"
-                            onChange={(value) => { handleQuantityLimit(value, category['categoryName']) }}
+                            onChange={(value) => { handleQuantityLimit(value, category['categoryName'], 'min') }}
+                          />
+                        </FormLayout>
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        <FormLayout>
+                          <TextField
+                            value={getCategoryQuantityLimit(category['categoryName'], 'max')}
+                            label="Quantity Limit"
+                            type="number"
+                            onChange={(value) => { handleQuantityLimit(value, category['categoryName'], 'max') }}
                           />
                         </FormLayout>
                       </IndexTable.Cell>
@@ -1538,7 +1621,8 @@ export default function Index() {
                   headings={[
                     { title: 'Store Name' },
                     { title: 'Quantity Available' },
-                    { title: 'Quantity Limit' },
+                    { title: 'Min Limit' },
+                    { title: 'Max Limit' }
                   ]}
                   itemCount={1}
                   selectable={false}
@@ -1554,10 +1638,20 @@ export default function Index() {
                     <IndexTable.Cell>
                       <FormLayout>
                         <TextField
-                          value={getStoreQuantityLimit(loaderData.shopId)}
+                          value={getStoreQuantityLimit(loaderData.shopId, "min")}
                           label="Quantity Limit"
                           type="number"
-                          onChange={(value) => { handleQuantityLimit(value, loaderData.shopId) }}
+                          onChange={(value) => { handleQuantityLimit(value, loaderData.shopId, "min") }}
+                        />
+                      </FormLayout>
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>
+                      <FormLayout>
+                        <TextField
+                          value={getStoreQuantityLimit(loaderData.shopId, "max")}
+                          label="Quantity Limit"
+                          type="number"
+                          onChange={(value) => { handleQuantityLimit(value, loaderData.shopId, "max") }}
                         />
                       </FormLayout>
                     </IndexTable.Cell>
@@ -1632,7 +1726,6 @@ export default function Index() {
           </Layout.Section>
         </Layout>
       </BlockStack>
-
     </Page>
   );
 }
