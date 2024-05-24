@@ -3,7 +3,7 @@
 client_id = "e60e7d7df0bd0c9279dc812041e250aa"
 name = "order-limit"
 handle = "order-limit-9"
-application_url = "https://infants-uni-liver-dominican.trycloudflare.com"
+application_url = "https://devices-gcc-neighbor-sept.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_products,read_publications,write_products"
 
 [auth]
 redirect_urls = [
-  "https://infants-uni-liver-dominican.trycloudflare.com/auth/callback",
-  "https://infants-uni-liver-dominican.trycloudflare.com/auth/shopify/callback",
-  "https://infants-uni-liver-dominican.trycloudflare.com/api/auth/callback"
+  "https://devices-gcc-neighbor-sept.trycloudflare.com/auth/callback",
+  "https://devices-gcc-neighbor-sept.trycloudflare.com/auth/shopify/callback",
+  "https://devices-gcc-neighbor-sept.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
