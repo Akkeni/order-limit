@@ -16,6 +16,7 @@ export function run(input) {
 
   // Create a map to store the total quantity for each category
   const categoryQuantities = new Map();
+  const collectionQuantities = new Map();
 
   
   let errorMessagesFieldValue = {}
@@ -153,7 +154,7 @@ export function run(input) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.categoryMaxErrMsg
-            ? errorMessagesFieldValue.categoryMaxErrMsg.replace("{categoryMax}", categoryMax)
+            ? errorMessagesFieldValue.categoryMaxErrMsg.replace("{categoryMax}", categoryMax).replace("{categoryName}", categoryName)
             : `Can't select more than ${categoryMax} products from the category "${categoryName}".`,
             target: "cart",
           });
@@ -162,13 +163,51 @@ export function run(input) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.categoryMinErrMsg
-            ? errorMessagesFieldValue.categoryMinErrMsg.replace("{categoryMin}", categoryMin)
+            ? errorMessagesFieldValue.categoryMinErrMsg.replace("{categoryMin}", categoryMin).replace("{categoryName}", categoryName)
             : `You have to select minimun ${categoryMin} products from the category "${categoryName}".`,
             target: "cart",
           });
 
         }
       }
+
+      // Check if product has collection information
+      if (product.collectionLimitField) {
+
+        const [collectionName, collectionMin, collectionMax] = product.collectionLimitField.value.split(',');
+        
+
+        // Update categoryQuantities map with quantity for current collection
+        if (collectionQuantities.has(collectionName)) {
+          collectionQuantities.set(collectionName, collectionQuantities.get(collectionName) + quantity);
+        } else {
+          collectionQuantities.set(collectionName, quantity);
+        }
+
+        // Check if total quantity exceeds collection limit
+        if (Number(collectionQuantities.get(collectionName)) > Number(collectionMax) && Number(collectionMax) !== 0) {
+
+          errors.push({
+            localizedMessage: errorMessagesFieldValue?.collectionMaxErrMsg
+            ? errorMessagesFieldValue.collectionMaxErrMsg.replace("{collectionMax}", collectionMax).replace("{collectionName}", collectionName)
+            : `Can't select more than ${collectionMax} products from the collection "${collectionName}".`,
+            target: "cart",
+          });
+
+        } else if (Number(collectionQuantities.get(collectionName)) < Number(collectionMin) && Number(collectionMin) !== 0) {
+
+          errors.push({
+            localizedMessage: errorMessagesFieldValue?.collectionMinErrMsg
+            ? errorMessagesFieldValue.collectionMinErrMsg.replace("{collectionMin}", collectionMin).replace("{collectionName}", collectionName)
+            : `You have to select minimun ${collectionMin} products from the collection "${collectionName}".`,
+            target: "cart",
+          });
+
+        }
+      }
+
+
+
       // Check product limit
       if (merchandise.productVariantLimitField) {
 

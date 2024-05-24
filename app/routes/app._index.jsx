@@ -322,6 +322,23 @@ export async function loader({ request }) {
 
     let allProductsData = await getAllProductsData(admin.graphql);
 
+    const collectionResponse = await admin.graphql(`query AllCollections {
+      collections(first: 250) {
+        edges {
+          node {
+            id
+            title
+            productsCount {
+              count
+            }
+          }
+        }
+      }
+    }`);
+
+    const collectionData = await collectionResponse.json();
+    const allCollectionsData = collectionData?.data?.collections?.edges;
+
     const response = await admin.graphql(
       `{
         shop {
@@ -418,6 +435,7 @@ export async function loader({ request }) {
       categoriesData,
       errorMsgsFieldValue,
       needsConfirmation,
+      allCollectionsData,
     });
 
   } catch (error) {
@@ -468,7 +486,8 @@ export async function action({ request, params }) {
         'productVariantLimitField',
         'productStatusField',
         'categoryStatusField',
-        'categoryNameField'
+        'categoryNameField',
+        'collectionLimitField'
       ];
       
       for (let product of allProductsData) {
@@ -1013,190 +1032,107 @@ export async function action({ request, params }) {
             }
           }
 
-          if (Number(limiter.value) === 0 && limiter.type === 'Store Wise') {
-            const response = await admin.graphql(
-              `{
-                shop {
-                  id
-                  name
-                  storeLimitField: metafield(namespace: "$app:storeLimit", key: "storeLimit") {
-                    value
-                    id
+          if(limiter.type === 'Collection Wise') {
+            console.log('collectionsData in action ', formData.get('allCollectionsData'));
+            const allCollectionsData = JSON.parse(formData.get('allCollectionsData'));
+            console.log('limiter id in collection ', limiter.id)
+            const collectionId = allCollectionsData.find((item) => item.node.title === limiter.id)?.node?.id;
+            console.log('collection id in collection wise ', collectionId);         
+            for(const product of allProductsData) {
+              const productId = product?.node?.id;
+              console.log('product id in collection wise ', productId);        
+              let response = await admin.graphql(
+                ` {
+                  collection(id: "${collectionId}"){
+                    hasProduct(id: "${productId}")
                   }
-                  storeStatusField: metafield(namespace: "$app:storeStatus", key: "storeStatus") {
-                    value
-                    id
-                  }
-                }
-              }
-            `);
-            const shopData = await response.json();
-            const ids = [shopData?.data?.shop?.storeLimitField?.id, shopData?.data?.shop?.storeStatusField?.id];
-            for (const id of ids) {
-              if (id) {
-                // Delete the conflicting metafield
-                await admin.graphql(
-                  `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                  metafieldDelete(input: $input) {
+              }`);
+              const responseData = await response.json();
+              console.log('responseData in collection wise ', responseData?.data);
+              if(responseData?.data?.collection?.hasProduct) {
+                const mutationQuery = `mutation productUpdate($input: ProductInput!) {
+                  productUpdate(input: $input) {
+                    product {
+                      id
+                      title
+                      collectionLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+                        id
+                      }
+                    }
                     userErrors {
                       field
                       message
                     }
                   }
-                }`,
-                  {
-                    variables: {
-                      input: {
-                        id: `${id}`
-                      }
+                }`;
+                let collectionLimitValue = limiter.id + ',' + limiter.value;
+                const variables = {
+                  variables: {
+                    input: {
+                      id: `${productId}`,
+                      metafields: [
+                        
+                        {
+                          "namespace": "collectionLimit",
+                          "key": "collectionLimit",
+                          "value": `${collectionLimitValue}`,
+                          "type": "string"
+                        }
+                      ]
                     }
                   }
-                );
-              }
-            }
-          }
-
-          if (Number(limiter.value) === 0 && limiter.type === 'Category Wise') {
-            // Initialize an empty array to store product IDs
-            const productIds = [];
-
-            // Iterate through the edges of the products
-            allProductsData.forEach(edge => {
-              const category = edge.node.category;
-              if (category && category?.name === limiter.id) {
-                productIds.push(edge.node.id);
-              }
-            });
-
-
-            //console.log('productIds in action', productIds);
-            for (const id of productIds) {
-              const productResponse = await admin.graphql(
-                `{  
-                    product(id: "${id}") {
-                      id
-                      categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
-                        id
-                      }
-                      categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
-                        id
-                      }
-                      categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
-                        id
-                      }
-                    }
-                  }`
-              );
-              const productData = await productResponse.json();
-              const ids = [productData?.data?.product?.categoryLimitField?.id, productData?.data?.product?.categoryNameField?.id, productData?.data?.product?.categoryStatusField?.id];
-              // Delete metafields one by one based on the given keys
-              for (const id of ids) {
-                if (id) {
-                  // Delete the conflicting metafield
-                  await admin.graphql(
-                    `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                    metafieldDelete(input: $input) {
-                      userErrors {
-                        field
-                        message
-                      }
-                    }
-                  }`,
-                    {
-                      variables: {
-                        input: {
-                          id: `${id}`
+                };
+  
+                const metaResponse = await admin.graphql(mutationQuery, variables);
+                const metaData = await metaResponse.json();
+                //const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
+  
+                const errorMessages = metaData.data.productUpdate.userErrors;
+  
+                //console.log('existingerrorMessages in action', errorMessages);
+                //console.log('existingMetafields in action', existingMetafields);
+                //console.log('existingrecords', existingMetafields);
+  
+                if (errorMessages && errorMessages.length > 0) {
+  
+                  const ids = [metaData?.data?.productUpdate?.product?.collectionLimitField?.id];
+                  // Delete metafields one by one based on the given keys
+                  for (const id of ids) {
+                    if (id) {
+                      // Delete the conflicting metafield
+                      await admin.graphql(
+                        `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+                        metafieldDelete(input: $input) {
+                          userErrors {
+                            field
+                            message
+                          }
                         }
-                      }
+                      }`,
+                        {
+                          variables: {
+                            input: {
+                              id: `${id}`
+                            }
+                          }
+                        }
+                      );
                     }
-                  );
+                  }
+                  // Now, execute the updateProduct query with the updated metafields
+                  const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
+                  const updatedMetaData = await updatedMetaResponse.json();
+                  const updatedMetafields = updatedMetaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node);
+  
+                  //console.log('updatedrecords in action', updatedErrorMessages);
+                  //console.log('updatedMetafields in action', updatedMetafields);
                 }
               }
             }
+
           }
 
-          if (Number(limiter.value) === 0 && limiter.type === 'Product Wise') {
-
-            if (limiter.id.includes("ProductVariant")) {
-              const productResponse = await admin.graphql(
-                `{  
-                  productVariant(id: "${limiter.id}") {
-                    id
-                    productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
-                      id
-                    }
-                    productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
-                      id
-                    }
-                  }
-                }`
-              );
-              const productData = await productResponse.json();
-              const ids = [productData?.data?.productVariant?.productLimitField?.id, productData?.data?.productVariant?.productStatusField?.id];
-              for (const id of ids) {
-                if (id) {
-                  // Delete the conflicting metafield
-                  await admin.graphql(
-                    `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                    metafieldDelete(input: $input) {
-                      userErrors {
-                        field
-                        message
-                      }
-                    }
-                  }`,
-                    {
-                      variables: {
-                        input: {
-                          id: `${id}`
-                        }
-                      }
-                    }
-                  );
-                }
-              }
-
-            } else {
-
-              const productResponse = await admin.graphql(
-                `{  
-                  product(id: "${limiter.id}") {
-                    id
-                    productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
-                      id
-                    }
-                    productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
-                      id
-                    }
-                  }
-                }`
-              );
-              const productData = await productResponse.json();
-              const ids = [productData?.data?.product?.productLimitField?.id, productData?.data?.product?.productStatusField?.id];
-              for (const id of ids) {
-                if (id) {
-                  // Delete the conflicting metafield
-                  await admin.graphql(
-                    `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                    metafieldDelete(input: $input) {
-                      userErrors {
-                        field
-                        message
-                      }
-                    }
-                  }`,
-                    {
-                      variables: {
-                        input: {
-                          id: `${id}`
-                        }
-                      }
-                    }
-                  );
-                }
-              }
-            }
-          }
+          
 
         } catch (error) {
 
@@ -1305,6 +1241,7 @@ export default function Index() {
   const shopName = loaderData.shopName;
   const shopLimit = loaderData.storeLimit;
   const allProductsData = loaderData?.allProductsData;
+  const allCollectionsData = loaderData?.allCollectionsData;
 
   const categoriesData = loaderData?.categoriesData;
 
@@ -1344,21 +1281,18 @@ export default function Index() {
     variantMaxErrMsg: '',
     categoryMinErrMsg: '',
     categoryMaxErrMsg: '',
+    collectionMinErrMsg: '',
+    collectionMaxErrMsg: '',
   });
 
+  const collectionIds = [];
 
   /*//to populate the category arrays
-  for (const category of allProductCategories) {
-    let obj = {};
-    const productTaxonomyNode = category.productTaxonomyNode;
-    categoryOptions.push(productTaxonomyNode.name);
-    obj['categoryName'] = productTaxonomyNode.name;
-    obj['quantityLimit'] = categoryLimits[productTaxonomyNode.name];
-    categoryIds[productTaxonomyNode.name] = productTaxonomyNode.id;
-    categoriesData.push(obj);
+  for (const collection of allCollectionsData) {
+    collectionIds.push(collection?.node?.id);
   }*/
 
-  console.log('categoriesData in index', categoriesData);
+  console.log('collections in index', collectionIds);
   //abscent of categories in the store
   if (!(categoriesData.length)) {
     //console.log('no categories');
@@ -1393,6 +1327,11 @@ export default function Index() {
 
   );
 
+  const filteredCollectionRows = allCollectionsData.filter(collection =>
+    collection.node.title.toLowerCase().includes(searchValue.toLowerCase()) ||
+    (collection.node.productsCount?.count.toString().toLowerCase().includes(searchValue.toLowerCase()))  
+  );
+
   // Sort the filtered rows based on the current sort column and direction
   const sortedCategoryFilteredRows = filteredCategoryRows.sort((a, b) => {
     const aValue = a[selectedSortColumn];
@@ -1410,6 +1349,20 @@ export default function Index() {
       const aPrice = a?.node.priceRangeV2?.maxVariantPrice?.amount;
       const bPrice = b?.node.priceRangeV2?.maxVariantPrice?.amount;
       return sortDirection === 'ascending' ? aPrice - bPrice : bPrice - aPrice;
+    }
+    const aValue = a.node[selectedSortColumn];
+    const bValue = b.node[selectedSortColumn];
+    if (aValue === bValue) return 0;
+    return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
+  });
+
+   // Sort the filtered rows based on the current sort column and direction
+   const sortedCollectionFilteredRows = filteredCollectionRows.sort((a, b) => {
+    // Custom comparison logic for priceRangeV2
+    if (selectedSortColumn === 'count') {
+      const aCount = a?.node?.productsCount?.count;
+      const bCount = b?.node?.productsCount?.count;
+      return sortDirection === 'ascending' ? aCount - bCount : bCount - aCount;
     }
     const aValue = a.node[selectedSortColumn];
     const bValue = b.node[selectedSortColumn];
@@ -1497,6 +1450,8 @@ export default function Index() {
     [],
   );
 
+  console.log('collections in index ', allCollectionsData);
+
   const handleErrorMessages = (name, value) => {
     setErrorMessages(prevState => ({
       ...prevState,
@@ -1518,7 +1473,7 @@ export default function Index() {
     priceLimit = priceLimit + getPriceQuantityLimit('priceMin') + ',' + getPriceQuantityLimit('priceMax');
     weightLimit = weightLimit + getWeightQuantityLimit('weightMin') + ',' + getWeightQuantityLimit('weightMax');
     console.log('priceLimit ', priceLimit);
-    submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit), allProductsData: JSON.stringify(allProductsData), shopId: loaderData?.shopId, priceLimit: priceLimit, weightLimit: weightLimit, errorMessages: JSON.stringify(errorMessages) }, { method: 'post' }).catch((error) => {
+    submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit), allProductsData: JSON.stringify(allProductsData), shopId: loaderData?.shopId, priceLimit: priceLimit, weightLimit: weightLimit, errorMessages: JSON.stringify(errorMessages), allCollectionsData: JSON.stringify(allCollectionsData) }, { method: 'post' }).catch((error) => {
       // Handle error
       console.error('Error saving product:', error);
       setIsSaving(false); // Ensure saving state is set to false in case of error
@@ -1529,7 +1484,10 @@ export default function Index() {
     console.log('value and id in handlequantity', value);
     let limitValue = '';
     if (range === 'min') {
-      if (id.includes("ProductVariant")) {
+      if (tagValue === "Collection Wise") {
+        let max = getCollectionQuantityLimit(id, 'max');
+        limitValue = limitValue + value + ',' + max;
+      } else if (id.includes("ProductVariant")) {
         let max = getVariantQunatity(id, 'max');
         limitValue = limitValue + value + ',' + max;
       } else if (id.includes("Product")) {
@@ -1543,7 +1501,10 @@ export default function Index() {
         limitValue = limitValue + value + ',' + max;
       }
     } else {
-      if (id.includes("ProductVariant")) {
+      if (tagValue === "Collection Wise") {
+        let min = getCollectionQuantityLimit(id, 'min');
+        limitValue = limitValue + min + ',' + value;
+      } else if (id.includes("ProductVariant")) {
         let min = getVariantQunatity(id, 'min');
         limitValue = limitValue + min + ',' + value;
       } else if (id.includes("Product")) {
@@ -1680,6 +1641,37 @@ export default function Index() {
       }
     }
   }
+
+  const getCollectionQuantityLimit = (name, range) => {
+    const collectionLimit = quantityLimit.find(item => item.id === name);
+    if (collectionLimit) {
+      const collectionLimitValue = collectionLimit.value;
+      if (range === "min") {
+        return collectionLimitValue.split(',')[0];
+      } else {
+        return collectionLimitValue.split(',')[1];
+      }
+    } else {
+
+      const collectionLimitFieldValue = loaderData?.allProductsData.find((item) => {
+        if(item.node?.collectionLimitField && item.node?.collectionLimitField.value !== "undefined") {
+            return item.node?.collectionLimitField?.value.split(',')[0] === name;
+          }
+      }
+      )?.node?.collectionLimitField?.value;
+
+      if (collectionLimitFieldValue) {
+        if (range === "min") {
+          return collectionLimitFieldValue.split(',')[1];
+        } else {
+          return collectionLimitFieldValue.split(',')[2];
+        }
+      } else {
+        return 0;
+      }
+    }
+  }
+
 
   const getStoreQuantityLimit = (shopId, range) => {
     //console.log('quantitylimit in getStore', quantityLimit);
@@ -1837,7 +1829,7 @@ export default function Index() {
               <FormLayout>
                 <Select
                   label="Limit By"
-                  options={['General', 'Store Wise', 'Product Wise', 'Category Wise']}
+                  options={['General', 'Store Wise', 'Product Wise', 'Category Wise', 'Collection Wise']}
                   value={tagValue}
                   onChange={handleTagValueChange}
                 />
@@ -2107,7 +2099,7 @@ export default function Index() {
                   value={errorMessages.categoryMinErrMsg || existingErrMsgs?.categoryMinErrMsg}
                   onChange={(value) => { handleErrorMessages("categoryMinErrMsg", value) }}
                   placeholder="You have to select minimun {categoryMin} products from the category {categoryName}."
-                  helpText="use {categoryMin} to include minimum limit"
+                  helpText="use {categoryMin} to include minimum limit and {categoryName} to include name"
                   autoComplete="off"
                 />
                 <br/>
@@ -2116,13 +2108,106 @@ export default function Index() {
                   value={errorMessages.categoryMaxErrMsg || existingErrMsgs?.categoryMaxErrMsg}
                   onChange={(value) => { handleErrorMessages("categoryMaxErrMsg", value) }}
                   placeholder="Can't select more than {categoryMax} products from the category {categoryName}"
-                  helpText="use {categoryMax} to include maximum limit"
+                  helpText="use {categoryMax} to include maximum limit and {categoryName} to include name"
                   autoComplete="off"
                 />
                 <br/>
               </Card>
               </div>
             )}
+
+            {tagValue === 'Collection Wise' && (
+              <div>
+              <Card>
+                <IndexTable
+                  headings={[
+                    {
+                      title: (
+                        <ButtonGroup>
+                          <Button onClick={() => handleSort('title')} variant="tertiary">
+                            Collection Name
+                          </Button>
+                          <Button onClick={() => handleSort('title')} variant="tertiary">
+                            <Icon source={SelectIcon} />
+                          </Button>
+                        </ButtonGroup>
+                      )
+                    },
+                    {
+                      title: (
+                        <ButtonGroup>
+                          <Button onClick={() => handleSort('count')} variant="tertiary">
+                            Quantity Available
+                          </Button>
+                          <Button onClick={() => handleSort('count')} variant="tertiary">
+                            <Icon source={SelectIcon} />
+                          </Button>
+                        </ButtonGroup>
+                      )
+                    },
+                    { title: 'Min Limit' },
+                    { title: 'Max Limit' },
+                  ]}
+                  itemCount={allCollectionsData.length}
+                  selectable={false}
+                >
+                  {sortedCollectionFilteredRows.map((collection, index) => (
+                    <IndexTable.Row key={index}>
+                      <IndexTable.Cell>
+                        {collection?.node?.title}
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        {collection?.node?.productsCount?.count}
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        <FormLayout>
+                          <TextField
+                            value={getCollectionQuantityLimit(collection?.node?.title, 'min')}
+                            label="Collection Min Limit"
+                            type="number"
+                            onChange={(value) => { handleQuantityLimit(value, collection?.node?.title, 'min') }}
+                          />
+                        </FormLayout>
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        <FormLayout>
+                          <TextField
+                            value={getCollectionQuantityLimit(collection?.node?.title, 'max')}
+                            label="Collection Max Limit"
+                            type="number"
+                            onChange={(value) => { handleQuantityLimit(value, collection?.node?.title, 'max') }}
+                          />
+                        </FormLayout>
+                      </IndexTable.Cell>
+                    </IndexTable.Row>
+                  ))}
+                </IndexTable>
+              </Card>
+               <br/>
+              <br/>
+              
+              <Card>
+                <TextField
+                  label="Error Message for Collection Minimum limit"
+                  value={errorMessages.collectionMinErrMsg || existingErrMsgs?.collectionMinErrMsg}
+                  onChange={(value) => { handleErrorMessages("collectionMinErrMsg", value) }}
+                  placeholder="You have to select minimun {collectionMin} products from the collection {collectionName}."
+                  helpText="use {collectionMin} to include minimum limit and {collectionName} to include name"
+                  autoComplete="off"
+                />
+                <br/>
+                <TextField
+                  label="Error Message for Collection Maximum limit"
+                  value={errorMessages.collectionMaxErrMsg || existingErrMsgs?.collectionMaxErrMsg}
+                  onChange={(value) => { handleErrorMessages("collectionMaxErrMsg", value) }}
+                  placeholder="Can't select more than {collectionMax} products from the collection {collectionName}"
+                  helpText="use {collectionMax} to include maximum limit and {collectionName} to include name"
+                  autoComplete="off"
+                />
+                <br/>
+              </Card>
+              </div>
+            )}  
 
             {tagValue === 'Store Wise' && (
               <div>
