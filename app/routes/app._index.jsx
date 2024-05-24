@@ -47,9 +47,12 @@ export async function loader({ request }) {
 
   try {
 
+    let needsConfirmation = false;
+
     if(orderLimit) {
       if(orderLimit?.shopName === session.shop && orderLimit?.hasToDelete === true) {
-        let allProductsData = await getAllProductsData(admin.graphql);
+        needsConfirmation = true;
+        /*let allProductsData = await getAllProductsData(admin.graphql);
         const deleteMetafield = async (metafieldId) => {
           if (metafieldId) {
             await admin.graphql(
@@ -142,17 +145,17 @@ export async function loader({ request }) {
           if(id) {
             await deleteMetafield(id);
           }
-        }
+        }*/
 
       }
-      await db.order_Limit.update({
+      /*await db.order_Limit.update({
         where: {
           shopName: session.shop
         },
         data: {
           hasToDelete: false
         }
-      })
+      })*/
     }
 
     /*const resProduct = await admin.graphql(
@@ -414,6 +417,7 @@ export async function loader({ request }) {
       weightUnit,
       categoriesData,
       errorMsgsFieldValue,
+      needsConfirmation,
     });
 
   } catch (error) {
@@ -433,6 +437,128 @@ export async function action({ request, params }) {
     const formData = await request.formData();
 
     const allProductsData = JSON.parse(formData.get('allProductsData')) //await res.json();
+    
+    if(formData.get('deletePreviousData') === "true") {
+      console.log('deletePreviousDataValue in if', formData.get('deletePreviousData'));
+      const deleteMetafield = async (metafieldId) => {
+        if (metafieldId) {
+          await admin.graphql(
+            `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+              metafieldDelete(input: $input) {
+                userErrors {
+                  field
+                  message
+                }
+              }
+            }`,
+            {
+              variables: {
+                input: {
+                  id: metafieldId
+                }
+              }
+            }
+          );
+        }
+      };
+      
+      const fields = [
+        'productLimitField',
+        'categoryLimitField',
+        'productVariantLimitField',
+        'productStatusField',
+        'categoryStatusField',
+        'categoryNameField'
+      ];
+      
+      for (let product of allProductsData) {
+        for (let field of fields) {
+          // Check and delete metafields at the product level
+          let productMetafieldId = product.node[field]?.id;
+          await deleteMetafield(productMetafieldId);
+      
+          // Check and delete metafields at the variant level if the field is productVariantLimitField
+          if (field === 'productVariantLimitField') {
+            for (let variant of product.node.variants.edges) {
+              let variantMetafieldId = variant.node[field]?.id;
+              await deleteMetafield(variantMetafieldId);
+            }
+          }
+        }
+      }
+
+      const response = await admin.graphql(
+        `{
+          shop {
+            id
+            name
+            currencyCode
+            weightUnit
+            storeLimitField: metafield(namespace: "$app:storeLimit", key: "storeLimit") {
+              id
+              value
+            }
+            storeStatusField: metafield(namespace: "$app:storeStatus", key: "storeStatus") {
+              id
+              value
+            }
+            priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") {
+              id
+              value
+            }
+            weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") {
+              id
+              value
+            }
+            errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs"){
+              id
+              value
+            }  
+          }
+        }
+      `);
+  
+  
+      const data = await response.json();
+  
+      const storeFieldIds = [
+        data?.data?.shop?.storeLimitField?.id, 
+        data?.data?.shop?.priceLimitField?.id, 
+        data?.data?.shop?.weightLimitField?.id,
+        data?.data?.shop?.errorMsgsField?.id
+      ]
+
+      for(const id of storeFieldIds) {
+        if(id) {
+          await deleteMetafield(id);
+        }
+      }
+
+      await db.order_Limit.update({
+        where: {
+          shopName: session.shop
+        },
+        data: {
+          hasToDelete: false
+        }
+      })
+
+      //return redirect('/app');
+      return json({
+        deleted: true,
+      });
+
+    } else if(formData.get('deletePreviousData') === "false"){
+      await db.order_Limit.update({
+        where: {
+          shopName: session.shop
+        },
+        data: {
+          hasToDelete: false
+        }
+      })
+      return redirect('/app');
+    }
 
 
     if (formData.get('action') == 'saveProduct') {
@@ -1100,6 +1226,30 @@ export async function action({ request, params }) {
 }
 
 
+// Component to handle deletion confirmation
+const DeleteConfirmation = ({ onConfirm, onCancel }) => {
+  return (
+    <Modal
+      open
+      onClose={onCancel}
+      title="Confirm Deletion"
+      primaryAction={{
+        content: 'Confirm',
+        onAction: onConfirm,
+      }}
+      secondaryAction={{
+        content: 'Cancel',
+        onAction: onCancel,
+      }}
+    >
+      <Modal.Section>
+        <p>Do you want to delete previous data?</p>
+      </Modal.Section>
+    </Modal>
+  );
+};
+
+
 export default function Index() {
 
   const loaderData = useLoaderData();
@@ -1141,6 +1291,12 @@ export default function Index() {
     renderErrorMessage();
   }
 
+  const [showConfirmation, setShowConfirmation] = useState(loaderData?.needsConfirmation);
+  const navigate = useNavigate();
+  const submit = useSubmit();
+
+  
+
 
   //const categoryLimits = loaderData?.categoryLimits;
   const categoryOptions = [];
@@ -1166,7 +1322,7 @@ export default function Index() {
   const [tagValue, setTagValue] = useState('General');
   const [quantityLimit, setQuantityLimit] = useState([]);
   const [variantQuantityLimits, setVariantQuantityLimits] = useState({});
-  const submit = useSubmit();
+  //const submit = useSubmit();
   const [isSaving, setIsSaving] = useState(false);
 
   const [selectedSortColumn, setSelectedSortColumn] = useState('id');
@@ -1215,7 +1371,7 @@ export default function Index() {
       //console.log('exist', actionData?.exist);
       toggleAlert();
     }
-    if (actionData?.created || actionData?.updated || actionData?.deleted) {
+    if (actionData?.created || actionData?.updated) {
       setIsSaving(false);
       //toggleSuccess();
       setSuccess(true);
@@ -1307,6 +1463,30 @@ export default function Index() {
   }, []);
 
 
+  const handleConfirm = () => {
+    setIsSaving(true);
+    const deletePreviousData = true;
+    submit({deletePreviousData: deletePreviousData, allProductsData: JSON.stringify(loaderData?.allProductsData)}, { method: 'post' });
+    setShowConfirmation(false);
+  };
+
+  const handleCancel = () => {
+    const deletePreviousData = false;
+    submit({deletePreviousData: deletePreviousData, allProductsData: JSON.stringify(loaderData?.allProductsData)}, { method: 'post' });
+    setShowConfirmation(false);
+  };
+
+  useEffect(() => {
+    if (actionData?.deleted) {
+      //return <DeleteConfirmation onConfirm={handleConfirm} onCancel={handleCancel} />;
+      setIsSaving(false);
+      navigate('/app');
+    }
+  }, [actionData]);
+  /*if (!(showConfirmation)) {
+    //return <DeleteConfirmation onConfirm={handleConfirm} onCancel={handleCancel} />;
+    setIsSaving(false);
+  }*/
 
   const toggleAlert = useCallback(
     () => setAlert((alert) => !alert),
@@ -1593,8 +1773,33 @@ export default function Index() {
       </div>
     );
   }
-
+  console.log('showconfirmation', showConfirmation);
   return (
+
+    <div>
+      {showConfirmation && (
+       <Modal
+        open
+        onClose={handleCancel}
+        title="Confirm Deletion"
+        primaryAction={{
+          content: 'Confirm',
+          onAction: handleConfirm,
+        }}
+        secondaryActions={[
+          {
+            content: 'Cancel',
+            onAction: handleCancel,
+          },
+        ]}
+      >
+       <Modal.Section>
+         <p>Do you want to delete previous data?</p>
+       </Modal.Section>
+     </Modal>
+      )}
+      {!showConfirmation && (
+
     <Page fullWidth={true}>
       <ui-title-bar title="Order Wise Limit"></ui-title-bar>
 
@@ -2102,5 +2307,7 @@ export default function Index() {
         </Layout>
       </BlockStack>
     </Page>
+     )}
+     </div>
   );
 }
