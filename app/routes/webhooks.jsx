@@ -12,6 +12,32 @@ export const action = async ({ request }) => {
   switch (topic) {
     case "APP_UNINSTALLED":
       if (session) {
+
+        const orderLimit = await db.order_Limit.findFirst({
+          where: {
+            shopName: session.shop
+          } 
+        });
+
+        if(orderLimit) {
+          if(orderLimit?.hasToDelete === false) {
+            await db.order_Limit.update({
+              where: {
+                shopName: session.shop
+              },
+              data: {
+                hasToDelete: true
+              }
+            })
+          }
+        } else {
+          await db.order_Limit.create({
+            data: {
+              shopName: session.shop
+            },
+          })
+        }
+
         await db.session.deleteMany({ where: { shop } });
       }
 

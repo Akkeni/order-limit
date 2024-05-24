@@ -32,17 +32,130 @@ import { ImageIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, L
 import { authenticate } from '../shopify.server';
 import db from '../db.server';
 import React from 'react';
+import { getAllProductsData } from '../models/orderLimit.server';
 
 
 //fetches the category data
 export async function loader({ request }) {
   const { admin, session } = await authenticate.admin(request);
-  const orderLimit = await db.order_Limit.findMany();
+
+  const orderLimit = await db.order_Limit.findFirst({
+    where: {
+      shopName: session.shop
+    } 
+  });
+
   try {
 
+    if(orderLimit) {
+      if(orderLimit?.shopName === session.shop && orderLimit?.hasToDelete === true) {
+        let allProductsData = await getAllProductsData(admin.graphql);
+        const deleteMetafield = async (metafieldId) => {
+          if (metafieldId) {
+            await admin.graphql(
+              `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+                metafieldDelete(input: $input) {
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }`,
+              {
+                variables: {
+                  input: {
+                    id: metafieldId
+                  }
+                }
+              }
+            );
+          }
+        };
+        
+        const fields = [
+          'productLimitField',
+          'categoryLimitField',
+          'productVariantLimitField',
+          'productStatusField',
+          'categoryStatusField',
+          'categoryNameField'
+        ];
+        
+        for (let product of allProductsData) {
+          for (let field of fields) {
+            // Check and delete metafields at the product level
+            let productMetafieldId = product.node[field]?.id;
+            await deleteMetafield(productMetafieldId);
+        
+            // Check and delete metafields at the variant level if the field is productVariantLimitField
+            if (field === 'productVariantLimitField') {
+              for (let variant of product.node.variants.edges) {
+                let variantMetafieldId = variant.node[field]?.id;
+                await deleteMetafield(variantMetafieldId);
+              }
+            }
+          }
+        }
 
-    let allProductsData = [];
-    const resProduct = await admin.graphql(
+        const response = await admin.graphql(
+          `{
+            shop {
+              id
+              name
+              currencyCode
+              weightUnit
+              storeLimitField: metafield(namespace: "$app:storeLimit", key: "storeLimit") {
+                id
+                value
+              }
+              storeStatusField: metafield(namespace: "$app:storeStatus", key: "storeStatus") {
+                id
+                value
+              }
+              priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") {
+                id
+                value
+              }
+              weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") {
+                id
+                value
+              }
+              errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs"){
+                id
+                value
+              }  
+            }
+          }
+        `);
+    
+    
+        const data = await response.json();
+    
+        const storeFieldIds = [
+          data?.data?.shop?.storeLimitField?.id, 
+          data?.data?.shop?.priceLimitField?.id, 
+          data?.data?.shop?.weightLimitField?.id,
+          data?.data?.shop?.errorMsgsField?.id
+        ]
+
+        for(const id of storeFieldIds) {
+          if(id) {
+            await deleteMetafield(id);
+          }
+        }
+
+      }
+      await db.order_Limit.update({
+        where: {
+          shopName: session.shop
+        },
+        data: {
+          hasToDelete: false
+        }
+      })
+    }
+
+    /*const resProduct = await admin.graphql(
       `query AllProducts{
         products(first: 5) {
           edges {
@@ -68,18 +181,23 @@ export async function loader({ request }) {
               }
               totalInventory
         			productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+                id
               	value
         			}
         			productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
+                id
           			value
         			}
               categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+                id
                 value
               }
               categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
+                id
                 value
               }
               categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
+                id
                 value
               }
         			priceRangeV2 {
@@ -135,18 +253,23 @@ export async function loader({ request }) {
                   }
                   totalInventory
                   productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+                    id
                     value
                   }
                   productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
+                    id
                     value
                   }
                   categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+                    id
                     value
                   }
                   categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
+                    id
                     value
                   }
                   categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
+                    id
                     value
                   }
                   priceRangeV2 {
@@ -192,8 +315,9 @@ export async function loader({ request }) {
       } else {
         break;
       }
-    }
+    }*/
 
+    let allProductsData = await getAllProductsData(admin.graphql);
 
     const response = await admin.graphql(
       `{
@@ -203,18 +327,23 @@ export async function loader({ request }) {
           currencyCode
           weightUnit
           storeLimitField: metafield(namespace: "$app:storeLimit", key: "storeLimit") {
+            id
             value
           }
           storeStatusField: metafield(namespace: "$app:storeStatus", key: "storeStatus") {
+            id
             value
           }
           priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") {
+            id
             value
           }
           weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") {
+            id
             value
           }
           errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs"){
+            id
             value
           }  
           allProductCategories {
@@ -1023,7 +1152,12 @@ export default function Index() {
 
   const categoriesData = loaderData?.categoriesData;
 
-  const existingErrMsgs = JSON.parse(loaderData?.errorMsgsFieldValue);
+  let existingErrMsgs = {};
+
+  if(loaderData?.errorMsgsFieldValue) {
+    existingErrMsgs = JSON.parse(loaderData?.errorMsgsFieldValue);
+  }
+  
 
 
 

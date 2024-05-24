@@ -26,10 +26,11 @@ model Session {
 
 model Order_Limit {
   id            Int      @id @default(autoincrement())
-  type          String
+  shopName      String   @unique
+  hasToDelete   Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  typeId        String?
-  quantityLimit Int
-  status        String
+  //typeId        String?
+  //quantityLimit Int
+  //status        String
 }
