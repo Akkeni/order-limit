@@ -99,8 +99,8 @@ export function run(input) {
       let totalWeight = 0;
 
       cartLines.forEach(line => {
-        const quantity = line.quantity;
-        const weight = merchandise?.weight;
+        const quantity = Number(line.quantity);
+        const weight = Number(merchandise?.weight);
         if (weight) {
           totalWeight += quantity * weight;
         }
@@ -227,7 +227,7 @@ export function run(input) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.variantMinErrMsg
-            ? errorMessagesFieldValue.variantMinErrMsg.replace("{varaintMin}", productVariantMin)
+            ? errorMessagesFieldValue.variantMinErrMsg.replace("{productVariantMin}", productVariantMin)
             : `you can't select less than ${productVariantMin} for this product variant.`,
             target: "cart",
           });

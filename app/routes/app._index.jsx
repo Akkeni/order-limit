@@ -1247,7 +1247,7 @@ export default function Index() {
 
   let existingErrMsgs = {};
 
-  if(loaderData?.errorMsgsFieldValue) {
+  if(loaderData?.errorMsgsFieldValue && showConfirmation === false) {
     existingErrMsgs = JSON.parse(loaderData?.errorMsgsFieldValue);
   }
   
@@ -1269,20 +1269,20 @@ export default function Index() {
   const recordsPerPage = 4;
 
   const [errorMessages, setErrorMessages] = useState({
-    priceMinErrMsg: '',
-    priceMaxErrMsg: '',
-    weightMinErrMsg: '',
-    weightMaxErrMsg: '',
-    shopMinErrMsg: '',
-    shopMaxErrMsg: '',
-    productMinErrMsg: '',
-    productMaxErrMsg: '',
-    variantMinErrMsg: '',
-    variantMaxErrMsg: '',
-    categoryMinErrMsg: '',
-    categoryMaxErrMsg: '',
-    collectionMinErrMsg: '',
-    collectionMaxErrMsg: '',
+    priceMinErrMsg: existingErrMsgs.priceMinErrMsg || '',
+    priceMaxErrMsg: existingErrMsgs.priceMaxErrMsg || '',
+    weightMinErrMsg: existingErrMsgs.weightMinErrMsg || '',
+    weightMaxErrMsg: existingErrMsgs.weightMaxErrMsg || '',
+    shopMinErrMsg: existingErrMsgs.shopMinErrMsg || '',
+    shopMaxErrMsg: existingErrMsgs.shopMaxErrMsg || '', 
+    productMinErrMsg: existingErrMsgs.productMinErrMsg || '',
+    productMaxErrMsg: existingErrMsgs.productMaxErrMsg || '',
+    variantMinErrMsg: existingErrMsgs.variantMinErrMsg || '',
+    variantMaxErrMsg: existingErrMsgs.variantMaxErrMsg || '',
+    categoryMinErrMsg: existingErrMsgs.categoryMinErrMsg || '',
+    categoryMaxErrMsg: existingErrMsgs.categoryMaxErrMsg || '',
+    collectionMinErrMsg: existingErrMsgs.collectionMinErrMsg || '',
+    collectionMaxErrMsg:  existingErrMsgs.collectionMaxErrMsg || '',
   });
 
   const collectionIds = [];
@@ -1296,7 +1296,7 @@ export default function Index() {
   //abscent of categories in the store
   if (!(categoriesData.length)) {
     //console.log('no categories');
-    categoriesData.push('No Categories');
+    categoriesData.push({categoryName: 'No Categories'});
   }
 
 
@@ -1481,7 +1481,7 @@ export default function Index() {
   }
 
   const handleQuantityLimit = (value, id, range = '') => {
-    console.log('value and id in handlequantity', value);
+    console.log('value and id in handlequantity', value, id);
     let limitValue = '';
     if (range === 'min') {
       if (tagValue === "Collection Wise") {
@@ -1518,11 +1518,11 @@ export default function Index() {
         limitValue = limitValue + min + ',' + value;
       }
     }
-    if (id.includes('price') || id.includes('weight')) {
-      limitValue = value;
+    if (!(tagValue === 'General')) {
+      value = limitValue;
     }
-    value = limitValue;
-    if (value) {
+    
+    
       // Update quantityLimit state to contain objects with id as keys and quantity limits as values
       setQuantityLimit((prevQuantityLimit) => {
         // Check if the id already exists in the state
@@ -1546,7 +1546,7 @@ export default function Index() {
         ...prevState,
         [id]: value
       }));
-    }
+    
   };
 
   const getProductQuantityLimit = (productId, range) => {
@@ -2234,7 +2234,7 @@ export default function Index() {
                       <FormLayout>
                         <TextField
                           value={getStoreQuantityLimit(loaderData.shopId, "min")}
-                          label="Shop Min Limit"
+                          label="Store Min Limit"
                           type="number"
                           onChange={(value) => { handleQuantityLimit(value, loaderData.shopId, "min") }}
                         />
@@ -2244,7 +2244,7 @@ export default function Index() {
                       <FormLayout>
                         <TextField
                           value={getStoreQuantityLimit(loaderData.shopId, "max")}
-                          label="Shop Max Limit"
+                          label="Store Max Limit"
                           type="number"
                           onChange={(value) => { handleQuantityLimit(value, loaderData.shopId, "max") }}
                         />
