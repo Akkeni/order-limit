@@ -159,7 +159,7 @@ export function run(input) {
             target: "cart",
           });
 
-        } else if (Number(categoryQuantities.get(categoryName)) < Number(categoryMin) && Number(categoryMin) !== 0) {
+        } /*else if (Number(categoryQuantities.get(categoryName)) < Number(categoryMin) && Number(categoryMin) !== 0) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.categoryMinErrMsg
@@ -168,7 +168,7 @@ export function run(input) {
             target: "cart",
           });
 
-        }
+        }*/
       }
 
       // Check if product has collection information
@@ -194,7 +194,7 @@ export function run(input) {
             target: "cart",
           });
 
-        } else if (Number(collectionQuantities.get(collectionName)) < Number(collectionMin) && Number(collectionMin) !== 0) {
+        } /*else if (Number(collectionQuantities.get(collectionName)) < Number(collectionMin) && Number(collectionMin) !== 0) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.collectionMinErrMsg
@@ -203,7 +203,7 @@ export function run(input) {
             target: "cart",
           });
 
-        }
+        }*/
       }
 
 

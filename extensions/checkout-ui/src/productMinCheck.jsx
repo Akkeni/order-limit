@@ -30,14 +30,15 @@ function App() {
     key: "productLimit"
   });
 
+  
   const cartLineTarget = useCartLineTarget();
 
-  console.log('productVariantLimitField in app ', productVariantLimitFields);
+  
 
   const [errorMessage, setErrorMessage] = useState("");
 
   const canBlockProgress = useExtensionCapability("block_progress");
-  console.log('canBlockProgress in app', canBlockProgress);
+  //console.log('canBlockProgress in app', canBlockProgress);
 
   useEffect(() => {
     // Get the product ID from the cart line item
@@ -51,7 +52,7 @@ function App() {
       return;
     }
 
-    console.log('cartLineTarget in app ', cartLineTarget);
+    //console.log('cartLineTarget in app ', cartLineTarget);
     const quantity = cartLineTarget?.quantity;
 
     const productMetafield = productLimitFields.find(({ target }) => {
@@ -64,7 +65,9 @@ function App() {
       return `gid://shopify/ProductVariant/${target.id}` === productVariantId;
     });
 
-    console.log('productMetaField', productVariantMetafield);
+    //console.log('productMetaField', productVariantMetafield);
+
+    
 
     if (productMetafield ||  productVariantMetafield) {
       const productMeta = productMetafield?.metafield;
@@ -73,7 +76,7 @@ function App() {
       const productVariantMeta = productVariantMetafield?.metafield;
       const productVariantMin = Number(productVariantMeta?.value.split(',')[0]);
 
-      console.log('quantity ', quantity);
+      //console.log('quantity ', quantity);
 
       // If we find the metafield, set the watering instructions for this cart line
       if (quantity < productMin && productMin !== 0) {

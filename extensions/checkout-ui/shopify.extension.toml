@@ -53,6 +53,12 @@ key = "storeLimit"
  [[extensions.metafields]]
 namespace = "productLimit"
 key = "productLimit"
+ [[extensions.metafields]]
+namespace = "categoryLimit"
+key = "categoryLimit"
+[[extensions.metafields]]
+namespace = "collectionLimit"
+key = "collectionLimit"
 
 # Defines settings that will be collected from merchants installing
 # your extension. Learn more:
