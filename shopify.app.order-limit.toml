@@ -3,7 +3,7 @@
 client_id = "e60e7d7df0bd0c9279dc812041e250aa"
 name = "order-limit"
 handle = "order-limit-9"
-application_url = "https://devices-gcc-neighbor-sept.trycloudflare.com"
+application_url = "https://enters-cities-homeland-precious.trycloudflare.com"
 embedded = true
 
 [build]
@@ -13,13 +13,13 @@ include_config_on_deploy = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_products,read_publications,write_products"
+scopes = "read_orders,read_products,read_publications,write_products"
 
 [auth]
 redirect_urls = [
-  "https://devices-gcc-neighbor-sept.trycloudflare.com/auth/callback",
-  "https://devices-gcc-neighbor-sept.trycloudflare.com/auth/shopify/callback",
-  "https://devices-gcc-neighbor-sept.trycloudflare.com/api/auth/callback"
+  "https://enters-cities-homeland-precious.trycloudflare.com/auth/callback",
+  "https://enters-cities-homeland-precious.trycloudflare.com/auth/shopify/callback",
+  "https://enters-cities-homeland-precious.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

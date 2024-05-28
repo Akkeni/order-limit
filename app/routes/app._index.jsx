@@ -47,6 +47,30 @@ export async function loader({ request }) {
 
   try {
 
+
+    const mutationQuery = `mutation webhookSubscriptionCreate($topic: WebhookSubscriptionTopic!, $webhookSubscription: WebhookSubscriptionInput!) {
+      webhookSubscriptionCreate(topic: $topic, webhookSubscription: $webhookSubscription) {
+        userErrors {
+          field
+          message
+        }
+      }
+    }`;
+
+    const variables = {
+      variables: {
+        "topic": "CHECKOUTS_CREATE",
+        "webhookSubscription": {
+          "callbackUrl": "https://enters-cities-homeland-precious.trycloudflare.com/checkoutValidation",
+          "format": "JSON",
+        }
+      }
+    };
+
+    const mutationResponse = await admin.graphql(mutationQuery, variables);
+    const mutationData = await mutationResponse.json();
+    console.log('mutation data in loader', mutationData?.data?.webhookSubscriptionCreate?.userErrors);
+
     let needsConfirmation = false;
 
     if(orderLimit) {

@@ -49,6 +49,10 @@ export async function getAllProductsData(graphql) {
                     id
                     value
                 }
+                collectionLimitField: metafield(namespace: "collectionLimit", key: "collectionLimit") {
+                  id
+                  value
+                }
         			priceRangeV2 {
         				maxVariantPrice {
             				amount
@@ -122,6 +126,10 @@ export async function getAllProductsData(graphql) {
                     value
                   }
                   categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
+                    id
+                    value
+                  }
+                  collectionLimitField: metafield(namespace: "collectionLimit", key: "collectionLimit") {
                     id
                     value
                   }
