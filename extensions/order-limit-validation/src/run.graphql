@@ -33,7 +33,7 @@ query RunInput {
   }
 
   shop {
-    storeLimitField: metafield(namespace: "$app:storeLimit", key: "storeLimit") {
+    storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
       value
     }
     priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") {
