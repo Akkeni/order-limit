@@ -131,7 +131,7 @@ export async function loader({ request }) {
               name
               currencyCode
               weightUnit
-              storeLimitField: metafield(namespace: "$app:storeLimit", key: "storeLimit") {
+              storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
                 id
                 value
               }
@@ -370,7 +370,7 @@ export async function loader({ request }) {
           name
           currencyCode
           weightUnit
-          storeLimitField: metafield(namespace: "$app:storeLimit", key: "storeLimit") {
+          storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
             id
             value
           }
@@ -537,7 +537,7 @@ export async function action({ request, params }) {
             name
             currencyCode
             weightUnit
-            storeLimitField: metafield(namespace: "$app:storeLimit", key: "storeLimit") {
+            storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
               id
               value
             }
@@ -745,7 +745,7 @@ export async function action({ request, params }) {
                 metafields: [
                   {
                     "ownerId": `${limiter.id}`,
-                    "namespace": "$app:storeLimit",
+                    "namespace": "storeLimit",
                     "key": "storeLimit",
                     "type": "string",
                     "value": `${limiter.value}`
