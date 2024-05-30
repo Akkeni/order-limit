@@ -59,6 +59,9 @@ key = "categoryLimit"
 [[extensions.metafields]]
 namespace = "collectionLimit"
 key = "collectionLimit"
+[[extensions.metafields]]
+namespace = "errorMsgs"
+key = "errorMsgs"
 
 # Defines settings that will be collected from merchants installing
 # your extension. Learn more:

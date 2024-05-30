@@ -1056,7 +1056,7 @@ export async function action({ request, params }) {
                     product {
                       id
                       title
-                      collectionLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+                      collectionLimitField: metafield(namespace: "collectionLimit", key: "collectionLimit") {
                         id
                       }
                     }
@@ -1284,6 +1284,7 @@ export default function Index() {
     categoryMaxErrMsg: existingErrMsgs.categoryMaxErrMsg || '',
     collectionMinErrMsg: existingErrMsgs.collectionMinErrMsg || '',
     collectionMaxErrMsg:  existingErrMsgs.collectionMaxErrMsg || '',
+    extensionMsg: existingErrMsgs?.extensionMsg || 'Cart Extension',
   });
 
   const collectionIds = [];
@@ -1455,6 +1456,14 @@ export default function Index() {
   console.log('collections in index ', allCollectionsData);
 
   const handleErrorMessages = (name, value) => {
+    setErrorMessages(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  }
+
+  const handleExtensionChange = (value) => {
+    let name = "extensionMsg";
     setErrorMessages(prevState => ({
       ...prevState,
       [name]: value
@@ -1834,6 +1843,16 @@ export default function Index() {
                   options={['General', 'Store Wise', 'Product Wise', 'Category Wise', 'Collection Wise']}
                   value={tagValue}
                   onChange={handleTagValueChange}
+                />
+              </FormLayout>
+            </div>
+            <div style={{ paddingLeft: '0.5rem' }}>
+              <FormLayout>
+                <Select
+                  label="Use extension for minimum"
+                  options={['Cart Extension', 'Checkout Extension']}
+                  value={errorMessages?.extensionMsg}
+                  onChange={handleExtensionChange}
                 />
               </FormLayout>
             </div>

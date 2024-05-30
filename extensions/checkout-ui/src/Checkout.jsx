@@ -78,16 +78,16 @@ function Extension() {
 
   const errorMsgsMetaField = errorMsgsField[0]?.metafield;
   let errorMsgs = {};
-  if(errorMsgsMetaField?.value) {
+  if (errorMsgsMetaField?.value) {
     errorMsgs = JSON.parse(errorMsgsMetaField?.value);
   }
-  
+
 
   const [errorMessages, setErrorMessages] = useState("");
   const canBlockProgress = useExtensionCapability("block_progress");
   console.log('canBlockProgress in extension ', canBlockProgress);
 
-  
+
 
   const cartLines = useCartLines();
   const totalAmount = useTotalAmount();
@@ -104,11 +104,11 @@ function Extension() {
   const categoriesWithMinValues = {};
   let totalWeight = 0;
 
-  useEffect(() => {
-    for(const cartLine of cartLines) {
+  
+    for (const cartLine of cartLines) {
       const productId = cartLine?.merchandise?.product?.id;
       const productVariantId = cartLine?.merchandise?.id;
-    
+
       query(`
       {
         product(id: "${productId}"){
@@ -123,18 +123,19 @@ function Extension() {
         }
       }
       `).then(({ data }) => {
-        console.log('data in query',data);
+        console.log('data in query', data);
         const variant = data?.product?.variants?.edges.find(variant => variant.node.id === productVariantId);
         console.log('variant from query ', variant);
         if (variant) {
-          totalWeight += Number(variant.node.weight);
+          console.log('weight of variant ', Number(variant.node.weight));
+          totalWeight = totalWeight + Number(variant.node.weight);
+          console.log('totalWeight in useeffect ', totalWeight);
         }
       }).catch((error) => {
         console.error(error);
       });
     }
-  
-  }, [cartLines]);
+
 
   console.log('totalWeight ', totalWeight);
   console.log('weight min', weightMin);
@@ -163,13 +164,13 @@ function Extension() {
   console.log('category min values extenison', categoriesWithMinValues);
 
   const totalCategoriesQuantity = {};
-  for(const name in categoriesWithProducts){
+  for (const name in categoriesWithProducts) {
     let c = 0;
-    for(const id of categoriesWithProducts[name]) {
-        const quantity = cartLines.find((item)=> item?.merchandise?.product?.id === `gid://shopify/Product/${id}`)?.quantity;
-        if(quantity) {
-          c += quantity;
-        }
+    for (const id of categoriesWithProducts[name]) {
+      const quantity = cartLines.find((item) => item?.merchandise?.product?.id === `gid://shopify/Product/${id}`)?.quantity;
+      if (quantity) {
+        c += quantity;
+      }
     }
     totalCategoriesQuantity[name] = c;
   }
@@ -180,7 +181,7 @@ function Extension() {
     console.log('cartLine in extension ', cartLine);
   }
 
-  
+
 
   let categoryErrors = [];
 
@@ -189,7 +190,12 @@ function Extension() {
     const totalQuantity = totalCategoriesQuantity[category] || 0;
     console.log('minQuantity in object', minQuantity);
     if (totalQuantity < minQuantity) {
-      categoryErrors.push(`Minimum ${minQuantity} products required from this category: ${category}`);    
+
+      let msg = errorMsgs?.categoryMinErrMsg
+      ? errorMsgs.categoryMinErrMsg.replace("{categoryMin}", minQuantity).replace("{categoryName}", category)
+      : `You have to select minimun ${minQuantity} products from the category "${category}".`;
+
+      categoryErrors.push(msg);
     }
   });
   categoryErrors = categoryErrors.join(' and ');
@@ -222,13 +228,13 @@ function Extension() {
   console.log('collection min values extenison', collectionsWithMinValues);
 
   const totalCollectionsQuantity = {};
-  for(const name in collectionsWithProducts){
+  for (const name in collectionsWithProducts) {
     let c = 0;
-    for(const id of collectionsWithProducts[name]) {
-        const quantity = cartLines.find((item)=> item?.merchandise?.product?.id === `gid://shopify/Product/${id}`)?.quantity;
-        if(quantity) {
-          c += quantity;
-        }
+    for (const id of collectionsWithProducts[name]) {
+      const quantity = cartLines.find((item) => item?.merchandise?.product?.id === `gid://shopify/Product/${id}`)?.quantity;
+      if (quantity) {
+        c += quantity;
+      }
     }
     totalCollectionsQuantity[name] = c;
   }
@@ -242,87 +248,102 @@ function Extension() {
     const totalQuantity = totalCollectionsQuantity[collection] || 0;
     console.log('minQuantity of collection in object', minQuantity);
     if (totalQuantity < minQuantity) {
-      collectionErrors.push(`Minimum ${minQuantity} products required from this collection: ${collection}`);  
+
+      let msg = errorMsgs?.collectionMinErrMsg
+      ? errorMsgs.collectionMinErrMsg.replace("{collectionMin}", minQuantity).replace("{collectionName}", collection)
+      : `You have to select minimun ${minQuantity} products from the collection "${collection}".`;
+
+      collectionErrors.push(msg);
     }
   });
 
   collectionErrors = collectionErrors.join(' and ');
   console.log('collection errors in extension ', collectionErrors);
 
-  useBuyerJourneyIntercept(({canBlockProgress}) => {
+  useBuyerJourneyIntercept(({ canBlockProgress }) => {
 
-    if (canBlockProgress && totalAmountValue < priceMin) {
-      return {
-        behavior: "block",
-        reason: "Minimum price required",
-        errors: [
-          {
-            // Show a validation error on the page
-            message:
-              `Minimum price is ${priceMin}`,
-          },
-        ],
-      };
+    if (errorMsgs?.extensionMsg === "Checkout Extension") {
+
+
+
+      if (canBlockProgress && totalAmountValue < priceMin) {
+        return {
+          behavior: "block",
+          reason: "Minimum price required",
+          errors: [
+            {
+              // Show a validation error on the page
+              message:
+              errorMsgs?.priceMinErrMsg
+              ? errorMsgs.priceMinErrMsg.replace("{priceMin}", priceMin)
+              : `Minimum amount ${priceMin} is required for checkout`,
+            },
+          ],
+        };
+      }
+
+      if (canBlockProgress && totalQuantity < storeMin) {
+        return {
+          behavior: "block",
+          reason: "Minimum products quantity required",
+          errors: [
+            {
+              // Show a validation error on the page
+              message:
+                errorMsgs?.shopMinErrMsg
+                  ? errorMsgs.shopMinErrMsg.replace("{shopMin}", storeMin)
+                  : `Minmum ${storeMin} products are required for checkout`,
+            },
+          ],
+        };
+      }
+
+      console.log('total weight in useBuyer ', totalWeight);
+
+      if (canBlockProgress && totalWeight < Number(weightMin)) {
+        return {
+          behavior: "block",
+          reason: "Minimum weight required",
+          errors: [
+            {
+              // Show a validation error on the page
+              message:
+                errorMsgs?.weightMinErrMsg
+                  ? errorMsgs.weightMinErrMsg.replace("{weightMin}", weightMin)
+                  : `Minmum weight ${weightMin} is required for checkout`,
+            },
+          ],
+        };
+      }
+
+      if (canBlockProgress && categoryErrors) {
+        return {
+          behavior: "block",
+          reason: "Minimum products quantity required",
+          errors: [
+            {
+              // Show a validation error on the page
+              message: categoryErrors,
+            },
+          ],
+        };
+
+      }
+
+      if (canBlockProgress && collectionErrors) {
+        return {
+          behavior: "block",
+          reason: "Minimum products quantity required",
+          errors: [
+            {
+              // Show a validation error on the page
+              message: collectionErrors,
+            },
+          ],
+        };
+
+      }
     }
-
-    if (canBlockProgress && totalQuantity < storeMin) {
-      return {
-        behavior: "block",
-        reason: "Minimum products quantity required",
-        errors: [
-          {
-            // Show a validation error on the page
-            message:
-              `Minimum number of products required for checkout is ${storeMin}`,
-          },
-        ],
-      };
-    }
-
-    if (canBlockProgress && totalWeight < Number(weightMin)) {
-      return {
-        behavior: "block",
-        reason: "Minimum weight required",
-        errors: [
-          {
-            // Show a validation error on the page
-            message:
-            errorMsgs?.weightMinErrMsg
-            ? errorMsgs.weightMinErrMsg.replace("{weightMin}", weightMin)
-            : `Minmum weight ${weightMin} is required for checkout`,
-          },
-        ],
-      };
-    }
-
-    if(canBlockProgress && categoryErrors) {
-          return {
-            behavior: "block",
-            reason: "Minimum products quantity required",
-            errors: [
-              {
-                // Show a validation error on the page
-                message: categoryErrors,
-              },
-            ],
-          };
-
-    }
-
-    if(canBlockProgress && collectionErrors) {
-      return {
-        behavior: "block",
-        reason: "Minimum products quantity required",
-        errors: [
-          {
-            // Show a validation error on the page
-            message: collectionErrors,
-          },
-        ],
-      };
-
-}
-
     return {
       behavior: "allow",
       perform: () => {

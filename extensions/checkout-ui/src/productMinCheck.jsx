@@ -30,6 +30,11 @@ function App() {
     key: "productLimit"
   });
 
+  const errorMsgsField = useAppMetafields({
+    type: "shop",
+    namespace: "errorMsgs",
+    key: "errorMsgs"
+  });
   
   const cartLineTarget = useCartLineTarget();
 
@@ -39,6 +44,13 @@ function App() {
 
   const canBlockProgress = useExtensionCapability("block_progress");
   //console.log('canBlockProgress in app', canBlockProgress);
+
+  const errorMsgsMetaField = errorMsgsField[0]?.metafield;
+  let errorMsgs = {};
+  if (errorMsgsMetaField?.value) {
+    errorMsgs = JSON.parse(errorMsgsMetaField?.value);
+  }
+
 
   useEffect(() => {
     // Get the product ID from the cart line item
@@ -80,29 +92,41 @@ function App() {
 
       // If we find the metafield, set the watering instructions for this cart line
       if (quantity < productMin && productMin !== 0) {
-        setErrorMessage(`Minimum required products ${productMin}`);
+
+        let msg = errorMsgs?.productMinErrMsg
+        ? errorMsgs.productMinErrMsg.replace("{productMin}", productMin)
+        : `you can't select less than ${productMin} for this product.`;
+
+        setErrorMessage(msg);
+
       }else if (quantity < productVariantMin && productVariantMin !== 0) {
-        setErrorMessage(`Minimum required products ${productVariantMin}`);
+
+        let msg = errorMsgs?.variantMinErrMsg
+        ? errorMsgs.variantMinErrMsg.replace("{productVariantMin}", productVariantMin)
+        : `you can't select less than ${productVariantMin} for this product variant.`;
+
+        setErrorMessage(msg);
+        
       }
     }
   }, [cartLineTarget, productLimitFields, productVariantLimitFields]);
 
   useBuyerJourneyIntercept(({canBlockProgress}) => {
-
-    if (canBlockProgress && errorMessage) {
-      return {
-        behavior: "block",
-        reason: "Minimum products required",
-        errors: [
-          {
-            // Show a validation error on the page
-            message:
-              `please refer to the error messages at the below of the products`,
-          },
-        ],
-      };
+    if (errorMsgs?.extensionMsg === "Checkout Extension") {
+      if (canBlockProgress && errorMessage) {
+        return {
+          behavior: "block",
+          reason: "Minimum products required",
+          errors: [
+            {
+              // Show a validation error on the page
+              message:
+                `please refer to the messages at the below of the products`,
+            },
+          ],
+        };
+      }
     }
-
     return {
       behavior: "allow",
       perform: () => {
@@ -115,7 +139,7 @@ function App() {
   
 
   // Render the minimum limit error message if applicable
-  if (errorMessage && canBlockProgress) {
+  if (errorMessage && canBlockProgress && errorMsgs?.extensionMsg === "Checkout Extension") {
 
     return (
       <Text>
