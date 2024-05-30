@@ -12,12 +12,13 @@ import {
   useCartLineTarget,
 } from '@shopify/ui-extensions-react/checkout';
 
+
 // Set the entry points for the extension
 export default reactExtension("purchase.checkout.block.render", () => <Extension />);
 
 function Extension() {
   const translate = useTranslate();
-  const { extension } = useApi();
+  const { extension, query } = useApi();
 
   const priceLimit = 2000;
 
@@ -37,6 +38,12 @@ function Extension() {
     type: "shop",
     namespace: "storeLimit",
     key: "storeLimit"
+  });
+
+  const errorMsgsField = useAppMetafields({
+    type: "shop",
+    namespace: "errorMsgs",
+    key: "errorMsgs"
   });
 
   const productLimitFields = useAppMetafields({
@@ -66,6 +73,16 @@ function Extension() {
   const storeMetaField = storeLimitField[0]?.metafield;
   const storeMin = storeMetaField?.value.split(',')[0];
 
+  const weightMetaField = weightLimitField[0]?.metafield;
+  const weightMin = weightMetaField?.value.split(',')[0];
+
+  const errorMsgsMetaField = errorMsgsField[0]?.metafield;
+  let errorMsgs = {};
+  if(errorMsgsMetaField?.value) {
+    errorMsgs = JSON.parse(errorMsgsMetaField?.value);
+  }
+  
+
   const [errorMessages, setErrorMessages] = useState("");
   const canBlockProgress = useExtensionCapability("block_progress");
   console.log('canBlockProgress in extension ', canBlockProgress);
@@ -85,6 +102,42 @@ function Extension() {
 
   const categoriesWithProducts = {};
   const categoriesWithMinValues = {};
+  let totalWeight = 0;
+
+  useEffect(() => {
+    for(const cartLine of cartLines) {
+      const productId = cartLine?.merchandise?.product?.id;
+      const productVariantId = cartLine?.merchandise?.id;
+    
+      query(`
+      {
+        product(id: "${productId}"){
+          variants(first:250){
+            edges{
+              node {
+                id
+                weight
+              }
+            }
+          }
+        }
+      }
+      `).then(({ data }) => {
+        console.log('data in query',data);
+        const variant = data?.product?.variants?.edges.find(variant => variant.node.id === productVariantId);
+        console.log('variant from query ', variant);
+        if (variant) {
+          totalWeight += Number(variant.node.weight);
+        }
+      }).catch((error) => {
+        console.error(error);
+      });
+    }
+  
+  }, [cartLines]);
+
+  console.log('totalWeight ', totalWeight);
+  console.log('weight min', weightMin);
 
   categoryLimitFields.forEach(item => {
     const valueParts = item.metafield.value.split(',');
@@ -221,6 +274,22 @@ function Extension() {
             // Show a validation error on the page
             message:
               `Minimum number of products required for checkout is ${storeMin}`,
+          },
+        ],
+      };
+    }
+
+    if (canBlockProgress && totalWeight < Number(weightMin)) {
+      return {
+        behavior: "block",
+        reason: "Minimum weight required",
+        errors: [
+          {
+            // Show a validation error on the page
+            message:
+            errorMsgs?.weightMinErrMsg
+            ? errorMsgs.weightMinErrMsg.replace("{weightMin}", weightMin)
+            : `Minmum weight ${weightMin} is required for checkout`,
           },
         ],
       };

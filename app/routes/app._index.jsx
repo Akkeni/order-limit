@@ -48,29 +48,6 @@ export async function loader({ request }) {
   try {
 
 
-    const mutationQuery = `mutation webhookSubscriptionCreate($topic: WebhookSubscriptionTopic!, $webhookSubscription: WebhookSubscriptionInput!) {
-      webhookSubscriptionCreate(topic: $topic, webhookSubscription: $webhookSubscription) {
-        userErrors {
-          field
-          message
-        }
-      }
-    }`;
-
-    const variables = {
-      variables: {
-        "topic": "CHECKOUTS_CREATE",
-        "webhookSubscription": {
-          "callbackUrl": "https://enters-cities-homeland-precious.trycloudflare.com/checkoutValidation",
-          "format": "JSON",
-        }
-      }
-    };
-
-    const mutationResponse = await admin.graphql(mutationQuery, variables);
-    const mutationData = await mutationResponse.json();
-    console.log('mutation data in loader', mutationData?.data?.webhookSubscriptionCreate?.userErrors);
-
     let needsConfirmation = false;
 
     if(orderLimit) {
@@ -1318,7 +1295,8 @@ export default function Index() {
 
   console.log('collections in index', collectionIds);
   //abscent of categories in the store
-  if (!(categoriesData.length)) {
+  if (!(categoriesData)) {
+    console.log('categoriesData in if not', categoriesData);
     //console.log('no categories');
     categoriesData.push({categoryName: 'No Categories'});
   }
@@ -1437,7 +1415,7 @@ export default function Index() {
         fetchVariantQuantityLimit(variant.node.id);
       });
     });
-  }, []);
+  }, [allProductsData]);
 
 
   const handleConfirm = () => {
@@ -2008,7 +1986,7 @@ export default function Index() {
               <Card>
                 <TextField
                   label="Error Message for Product Minimum limit"
-                  value={errorMessages.productMinErrMsg || existingErrMsgs?.productMinErrMsg}
+                  value={errorMessages.productMinErrMsg}
                   onChange={(value) => { handleErrorMessages("productMinErrMsg", value) }}
                   placeholder="you can't select less than {productMin} for this product."
                   helpText="use {productMin} to include minimum limit"
@@ -2017,7 +1995,7 @@ export default function Index() {
                 <br/>
                 <TextField
                   label="Error Message for Product Maximum limit"
-                  value={errorMessages.productMaxErrMsg || existingErrMsgs?.productMaxErrMsg}
+                  value={errorMessages.productMaxErrMsg}
                   onChange={(value) => { handleErrorMessages("productMaxErrMsg", value) }}
                   placeholder="Quantity limit reached, you can't select more than {productMax}."
                   helpText="use {productMax} to include maximum limit"
@@ -2026,7 +2004,7 @@ export default function Index() {
                 <br/>
                 <TextField
                   label="Error Message for Product Variant Minimum limit"
-                  value={errorMessages.variantMinErrMsg || existingErrMsgs?.variantMinErrMsg}
+                  value={errorMessages.variantMinErrMsg}
                   onChange={(value) => { handleErrorMessages("variantMinErrMsg", value) }}
                   placeholder="`you can't select less than {productVariantMin} for this product variant."
                   helpText="use {productVariantMin} to include minimum limit"
@@ -2035,7 +2013,7 @@ export default function Index() {
                 <br/>
                 <TextField
                   label="Error Message for Product Variant Maximum limit"
-                  value={errorMessages.variantMaxErrMsg || existingErrMsgs?.variantMaxErrMsg}
+                  value={errorMessages.variantMaxErrMsg}
                   onChange={(value) => { handleErrorMessages("variantMaxErrMsg", value) }}
                   placeholder="Quantity limit reached, you can't select more than {productVariantMax}."
                   helpText="use {productVariantMax} to include maximum limit"
@@ -2120,7 +2098,7 @@ export default function Index() {
               <Card>
                 <TextField
                   label="Error Message for Category Minimum limit"
-                  value={errorMessages.categoryMinErrMsg || existingErrMsgs?.categoryMinErrMsg}
+                  value={errorMessages.categoryMinErrMsg }
                   onChange={(value) => { handleErrorMessages("categoryMinErrMsg", value) }}
                   placeholder="You have to select minimun {categoryMin} products from the category {categoryName}."
                   helpText="use {categoryMin} to include minimum limit and {categoryName} to include name"
@@ -2129,7 +2107,7 @@ export default function Index() {
                 <br/>
                 <TextField
                   label="Error Message for Category Maximum limit"
-                  value={errorMessages.categoryMaxErrMsg || existingErrMsgs?.categoryMaxErrMsg}
+                  value={errorMessages.categoryMaxErrMsg}
                   onChange={(value) => { handleErrorMessages("categoryMaxErrMsg", value) }}
                   placeholder="Can't select more than {categoryMax} products from the category {categoryName}"
                   helpText="use {categoryMax} to include maximum limit and {categoryName} to include name"
@@ -2213,7 +2191,7 @@ export default function Index() {
               <Card>
                 <TextField
                   label="Error Message for Collection Minimum limit"
-                  value={errorMessages.collectionMinErrMsg || existingErrMsgs?.collectionMinErrMsg}
+                  value={errorMessages.collectionMinErrMsg}
                   onChange={(value) => { handleErrorMessages("collectionMinErrMsg", value) }}
                   placeholder="You have to select minimun {collectionMin} products from the collection {collectionName}."
                   helpText="use {collectionMin} to include minimum limit and {collectionName} to include name"
@@ -2222,7 +2200,7 @@ export default function Index() {
                 <br/>
                 <TextField
                   label="Error Message for Collection Maximum limit"
-                  value={errorMessages.collectionMaxErrMsg || existingErrMsgs?.collectionMaxErrMsg}
+                  value={errorMessages.collectionMaxErrMsg}
                   onChange={(value) => { handleErrorMessages("collectionMaxErrMsg", value) }}
                   placeholder="Can't select more than {collectionMax} products from the collection {collectionName}"
                   helpText="use {collectionMax} to include maximum limit and {collectionName} to include name"
@@ -2284,7 +2262,7 @@ export default function Index() {
               <Card>
                 <TextField
                   label="Error Message for Store Minimum limit"
-                  value={errorMessages.shopMinErrMsg || existingErrMsgs?.shopMinErrMsg}
+                  value={errorMessages.shopMinErrMsg }
                   onChange={(value) => { handleErrorMessages("shopMinErrMsg", value) }}
                   placeholder="Minmum {shopMin} products are required for checkout"
                   helpText="use {shopMin} to include minimum limit"
@@ -2293,7 +2271,7 @@ export default function Index() {
                 <br/>
                 <TextField
                   label="Error Message for Store Maximum limit"
-                  value={errorMessages.shopMaxErrMsg || existingErrMsgs?.shopMaxErrMsg}
+                  value={errorMessages.shopMaxErrMsg}
                   onChange={(value) => { handleErrorMessages("shopMaxErrMsg", value) }}
                   placeholder="Cart exceeds {shopMax} number of products. please remove some items"
                   helpText="use {shopMax} to include maximum limit"
@@ -2375,7 +2353,7 @@ export default function Index() {
               <Card>
                 <TextField
                   label="Error Message for Price Minimum limit"
-                  value={errorMessages.priceMinErrMsg || existingErrMsgs?.priceMinErrMsg}
+                  value={errorMessages.priceMinErrMsg}
                   onChange={(value) => { handleErrorMessages("priceMinErrMsg", value) }}
                   placeholder="Minmum amount {priceMin} is required for checkout"
                   helpText="use {priceMin} to include minimum price"
@@ -2384,7 +2362,7 @@ export default function Index() {
                 <br/>
                 <TextField
                   label="Error Message for Price Maximum limit"
-                  value={errorMessages.priceMaxErrMsg || existingErrMsgs?.priceMaxErrMsg}
+                  value={errorMessages.priceMaxErrMsg}
                   onChange={(value) => { handleErrorMessages("priceMaxErrMsg", value) }}
                   placeholder="Cart exceeds amount {priceMax} please remove some items"
                   helpText="use {priceMax} to include maximum price"
@@ -2393,7 +2371,7 @@ export default function Index() {
                 <br/>
                 <TextField
                   label="Error Message for Weight Minimum limit"
-                  value={errorMessages.weightMinErrMsg || existingErrMsgs?.weightMinErrMsg}
+                  value={errorMessages.weightMinErrMsg}
                   onChange={(value) => { handleErrorMessages("weightMinErrMsg", value) }}
                   placeholder="Minmum weight {weightMin} is required for checkout"
                   helpText="use {weightMin} to include minimum price"
@@ -2402,7 +2380,7 @@ export default function Index() {
                 <br/>
                 <TextField
                   label="Error Message for Weight Maximum limit"
-                  value={errorMessages.weightMaxErrMsg || existingErrMsgs?.weightMaxErrMsg}
+                  value={errorMessages.weightMaxErrMsg}
                   onChange={(value) => { handleErrorMessages("weightMaxErrMsg", value) }}
                   placeholder="Cart exceeds weight {weightMax} please remove some items"
                   helpText="use {weightMax} to include maximum price"
