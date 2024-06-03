@@ -20,7 +20,6 @@ export const action = async ({ request }) => {
         });
 
         if(orderLimit) {
-          if(orderLimit?.hasToDelete === false) {
             await db.order_Limit.update({
               where: {
                 shopName: session.shop
@@ -28,20 +27,20 @@ export const action = async ({ request }) => {
               data: {
                 hasToDelete: true
               }
-            })
-          }
+            });
+          
         } else {
           await db.order_Limit.create({
             data: {
               shopName: session.shop
             },
-          })
+          });
         }
 
         await db.session.deleteMany({ where: { shop } });
       }
-
       break;
+
     case "CUSTOMERS_DATA_REQUEST":
     case "CUSTOMERS_REDACT":
     case "SHOP_REDACT":
