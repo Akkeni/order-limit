@@ -52,275 +52,13 @@ export async function loader({ request }) {
 
     if(orderLimit) {
       if(orderLimit?.shopName === session.shop && orderLimit?.hasToDelete === true) {
+        
         needsConfirmation = true;
-        /*let allProductsData = await getAllProductsData(admin.graphql);
-        const deleteMetafield = async (metafieldId) => {
-          if (metafieldId) {
-            await admin.graphql(
-              `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                metafieldDelete(input: $input) {
-                  userErrors {
-                    field
-                    message
-                  }
-                }
-              }`,
-              {
-                variables: {
-                  input: {
-                    id: metafieldId
-                  }
-                }
-              }
-            );
-          }
-        };
         
-        const fields = [
-          'productLimitField',
-          'categoryLimitField',
-          'productVariantLimitField',
-          'productStatusField',
-          'categoryStatusField',
-          'categoryNameField'
-        ];
-        
-        for (let product of allProductsData) {
-          for (let field of fields) {
-            // Check and delete metafields at the product level
-            let productMetafieldId = product.node[field]?.id;
-            await deleteMetafield(productMetafieldId);
-        
-            // Check and delete metafields at the variant level if the field is productVariantLimitField
-            if (field === 'productVariantLimitField') {
-              for (let variant of product.node.variants.edges) {
-                let variantMetafieldId = variant.node[field]?.id;
-                await deleteMetafield(variantMetafieldId);
-              }
-            }
-          }
-        }
-
-        const response = await admin.graphql(
-          `{
-            shop {
-              id
-              name
-              currencyCode
-              weightUnit
-              storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
-                id
-                value
-              }
-              storeStatusField: metafield(namespace: "$app:storeStatus", key: "storeStatus") {
-                id
-                value
-              }
-              priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") {
-                id
-                value
-              }
-              weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") {
-                id
-                value
-              }
-              errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs"){
-                id
-                value
-              }  
-            }
-          }
-        `);
-    
-    
-        const data = await response.json();
-    
-        const storeFieldIds = [
-          data?.data?.shop?.storeLimitField?.id, 
-          data?.data?.shop?.priceLimitField?.id, 
-          data?.data?.shop?.weightLimitField?.id,
-          data?.data?.shop?.errorMsgsField?.id
-        ]
-
-        for(const id of storeFieldIds) {
-          if(id) {
-            await deleteMetafield(id);
-          }
-        }*/
-
       }
-      /*await db.order_Limit.update({
-        where: {
-          shopName: session.shop
-        },
-        data: {
-          hasToDelete: false
-        }
-      })*/
     }
 
-    /*const resProduct = await admin.graphql(
-      `query AllProducts{
-        products(first: 5) {
-          edges {
-            cursor
-            node {
-              id
-              title
-              variants(first: 250) {
-                edges {
-                  node {
-                    id
-                    image {
-                      url
-                    }
-                    price
-                    inventoryQuantity
-                    title
-                  }
-                }
-              }
-              category {
-                name
-              }
-              totalInventory
-        			productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
-                id
-              	value
-        			}
-        			productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
-                id
-          			value
-        			}
-              categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
-                id
-                value
-              }
-              categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
-                id
-                value
-              }
-              categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
-                id
-                value
-              }
-        			priceRangeV2 {
-        				maxVariantPrice {
-            				amount
-        				}
-        				minVariantPrice {
-           				 amount
-        				}
-              }
-              images(first: 1) {
-                edges {
-                  node {
-                    url
-                  }
-                }
-              }
-            }
-          }
-        }
-      }`
-    );
-    const allData = await resProduct.json();
-    allProductsData = allProductsData.concat(allData?.data?.products?.edges);
-
-    //const products = allProductsData?.data?.products?.edges;
-    let cursor = allProductsData[allProductsData.length - 1]?.cursor;
-
-    while (true) {
-      let productResponse = await admin.graphql(`
-          query GetProductsPaginated($after: String) {
-            products(first: 10, after: $after) {
-              edges {
-                cursor
-                node {
-                  id
-                  title
-                  variants(first: 250) {
-                    edges {
-                      node {
-                        id
-                        image {
-                          url
-                        }
-                        price
-                        inventoryQuantity
-                        title
-                      }
-                    }
-                  }
-                  category {
-                    name
-                  }
-                  totalInventory
-                  productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
-                    id
-                    value
-                  }
-                  productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
-                    id
-                    value
-                  }
-                  categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
-                    id
-                    value
-                  }
-                  categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
-                    id
-                    value
-                  }
-                  categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
-                    id
-                    value
-                  }
-                  priceRangeV2 {
-                    maxVariantPrice {
-                        amount
-                    }
-                    minVariantPrice {
-                        amount
-                    }
-                  }
-                  images(first: 1) {
-                    edges {
-                      node {
-                        url
-                      }
-                    }
-                  }
-                }
-              }
-              pageInfo {
-                hasNextPage
-              }
-            }
-          }`,
-        {
-          variables: {
-            after: cursor,
-          },
-        }
-      );
-
-      let productData = await productResponse.json();
-      //console.log('product data in loader while loop', allProductsData);
-      allProductsData = allProductsData.concat(productData?.data?.products?.edges);
-      //i++;
-      if (productData?.data?.products?.pageInfo?.hasNextPage) {
-        const products = productData?.data?.products?.edges;
-        if (products) {
-          cursor = products[products.length - 1]?.cursor;
-        } else {
-          break;
-        }
-      } else {
-        break;
-      }
-    }*/
-
+    
     let allProductsData = await getAllProductsData(admin.graphql);
 
     const collectionResponse = await admin.graphql(`query AllCollections {
@@ -646,13 +384,7 @@ export async function action({ request, params }) {
             }`;
 
             if (limiter.id === 'priceMin' || limiter.id === 'priceMax') {
-              /*let priceLimit = '';
-              console.log('limiters in action', limiters);
-              const priceMin = Number(limiters.find(item => item.id === 'priceMin')?.value) || 0;
-              const priceMax = Number(limiters.find(item => item.id === 'priceMax')?.value) || 0;
-
-              priceLimit += priceMin;
-              priceLimit += ',' + priceMax;*/
+              
               console.log('priceLimit in action ', formData.get('priceLimit'));
               const metafields = {
                 variables: {
@@ -1241,10 +973,10 @@ export default function Index() {
   const allProductCategories = loaderData?.data?.data.shop.allProductCategories;
   const shopName = loaderData.shopName;
   const shopLimit = loaderData.storeLimit;
-  const allProductsData = loaderData?.allProductsData;
-  const allCollectionsData = loaderData?.allCollectionsData;
+  const allProductsData = loaderData?.allProductsData ? loaderData?.allProductsData : [] ;
+  const allCollectionsData = loaderData?.allCollectionsData ? loaderData?.allCollectionsData : [];
 
-  const categoriesData = loaderData?.categoriesData;
+  const categoriesData = loaderData?.categoriesData ? loaderData?.categoriesData : [];
 
   let existingErrMsgs = {};
 
@@ -2393,7 +2125,7 @@ export default function Index() {
                   value={errorMessages.weightMinErrMsg}
                   onChange={(value) => { handleErrorMessages("weightMinErrMsg", value) }}
                   placeholder="Minmum weight {weightMin} is required for checkout"
-                  helpText="use {weightMin} to include minimum price"
+                  helpText="use {weightMin} to include minimum weight"
                   autoComplete="off"
                 />
                 <br/>
@@ -2402,7 +2134,7 @@ export default function Index() {
                   value={errorMessages.weightMaxErrMsg}
                   onChange={(value) => { handleErrorMessages("weightMaxErrMsg", value) }}
                   placeholder="Cart exceeds weight {weightMax} please remove some items"
-                  helpText="use {weightMax} to include maximum price"
+                  helpText="use {weightMax} to include maximum weight"
                   autoComplete="off"
                 />
                 <br/>
