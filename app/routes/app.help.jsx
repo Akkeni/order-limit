@@ -23,12 +23,39 @@ export default function HelpPage() {
                 </div>
             </Banner>
 
+
+
             <br />
             <Card sectioned>
+
+
+                <Banner title="Available Extensions for Minimum" status="info">
+                    <div>
+                        <strong>
+                            <p>
+                                Two extensions are available to select to validate the minimum limit:
+                            </p>
+                            <ul>
+                                <li>
+                                    <strong>
+                                        Cart Extension: Validates the cart for the minimum limit and displays a message on the cart UI. Requires a quantity selector before the 'Add to cart' button.
+                                    </strong>
+                                </li>
+                                <li>
+                                    <strong>
+                                        Checkout Extension: Validates products and displays a message on the checkout UI. Only works for Shopify Plus store owners.
+                                    </strong>
+                                </li>
+                            </ul>
+                        </strong>
+                    </div>
+                </Banner>
+                <br />
+
                 <div>
-                   <p> <b>Explanation for various limits supported by us: </b> </p>
+                    <p> <b>Explanation for various limits supported by us: </b> </p>
                 </div>
-                <br/>
+                <br />
                 <Banner title="General Limits" status="info">
                     <div>
                         <p>
@@ -112,6 +139,10 @@ export default function HelpPage() {
 
                 <br />
             </Card>
+
+            <br />
+
+
         </Page>
     );
 }
