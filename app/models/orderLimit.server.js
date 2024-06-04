@@ -1,7 +1,7 @@
 export async function getAllProductsData(graphql) {
-    let allProductsData = [];
-    const resProduct = await graphql(
-        `query AllProducts{
+  let allProductsData = [];
+  const resProduct = await graphql(
+    `query AllProducts{
         products(first: 5) {
           edges {
             cursor
@@ -74,15 +74,15 @@ export async function getAllProductsData(graphql) {
           }
         }
       }`
-    );
-    const allData = await resProduct.json();
-    allProductsData = allProductsData.concat(allData?.data?.products?.edges);
+  );
+  const allData = await resProduct.json();
+  allProductsData = allProductsData.concat(allData?.data?.products?.edges);
 
-    //const products = allProductsData?.data?.products?.edges;
-    let cursor = allProductsData[allProductsData.length - 1]?.cursor;
+  //const products = allProductsData?.data?.products?.edges;
+  let cursor = allProductsData[allProductsData.length - 1]?.cursor;
 
-    while (true) {
-        let productResponse = await graphql(`
+  while (true) {
+    let productResponse = await graphql(`
           query GetProductsPaginated($after: String) {
             products(first: 10, after: $after) {
               edges {
@@ -159,28 +159,28 @@ export async function getAllProductsData(graphql) {
               }
             }
           }`,
-            {
-                variables: {
-                    after: cursor,
-                },
-            }
-        );
+      {
+        variables: {
+          after: cursor,
+        },
+      }
+    );
 
-        let productData = await productResponse.json();
-        //console.log('product data in loader while loop', allProductsData);
-        allProductsData = allProductsData.concat(productData?.data?.products?.edges);
-        //i++;
-        if (productData?.data?.products?.pageInfo?.hasNextPage) {
-            const products = productData?.data?.products?.edges;
-            if (products) {
-                cursor = products[products.length - 1]?.cursor;
-            } else {
-                break;
-            }
-        } else {
-            break;
-        }
+    let productData = await productResponse.json();
+    //console.log('product data in loader while loop', allProductsData);
+    allProductsData = allProductsData.concat(productData?.data?.products?.edges);
+    //i++;
+    if (productData?.data?.products?.pageInfo?.hasNextPage) {
+      const products = productData?.data?.products?.edges;
+      if (products) {
+        cursor = products[products.length - 1]?.cursor;
+      } else {
+        break;
+      }
+    } else {
+      break;
     }
+  }
 
-    return allProductsData;
+  return allProductsData;
 } 

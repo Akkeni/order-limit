@@ -35,10 +35,10 @@ function App() {
     namespace: "errorMsgs",
     key: "errorMsgs"
   });
-  
+
   const cartLineTarget = useCartLineTarget();
 
-  
+
 
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -60,7 +60,7 @@ function App() {
     }
 
     const productVariantId = cartLineTarget?.merchandise?.id;
-    if(!productVariantId) {
+    if (!productVariantId) {
       return;
     }
 
@@ -79,9 +79,9 @@ function App() {
 
     //console.log('productMetaField', productVariantMetafield);
 
-    
 
-    if (productMetafield ||  productVariantMetafield) {
+
+    if (productMetafield || productVariantMetafield) {
       const productMeta = productMetafield?.metafield;
       const productMin = Number(productMeta?.value.split(',')[0]);
 
@@ -94,24 +94,24 @@ function App() {
       if (quantity < productMin && productMin !== 0) {
 
         let msg = errorMsgs?.productMinErrMsg
-        ? errorMsgs.productMinErrMsg.replace("{productMin}", productMin)
-        : `You can't select less than ${productMin} for this product.`;
+          ? errorMsgs.productMinErrMsg.replace("{productMin}", productMin)
+          : `You can't select less than ${productMin} for this product.`;
 
         setErrorMessage(msg);
 
-      }else if (quantity < productVariantMin && productVariantMin !== 0) {
+      } else if (quantity < productVariantMin && productVariantMin !== 0) {
 
         let msg = errorMsgs?.variantMinErrMsg
-        ? errorMsgs.variantMinErrMsg.replace("{productVariantMin}", productVariantMin)
-        : `You can't select less than ${productVariantMin} for this product variant.`;
+          ? errorMsgs.variantMinErrMsg.replace("{productVariantMin}", productVariantMin)
+          : `You can't select less than ${productVariantMin} for this product variant.`;
 
         setErrorMessage(msg);
-        
+
       }
     }
   }, [cartLineTarget, productLimitFields, productVariantLimitFields]);
 
-  useBuyerJourneyIntercept(({canBlockProgress}) => {
+  useBuyerJourneyIntercept(({ canBlockProgress }) => {
     if (errorMsgs?.extensionMsg === "Checkout Extension") {
       if (canBlockProgress && errorMessage) {
         return {
@@ -136,7 +136,7 @@ function App() {
     };
   });
 
-  
+
 
   // Render the minimum limit error message if applicable
   if (errorMessage && canBlockProgress && errorMsgs?.extensionMsg === "Checkout Extension") {

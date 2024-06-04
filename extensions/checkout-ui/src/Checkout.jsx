@@ -104,12 +104,12 @@ function Extension() {
   const categoriesWithMinValues = {};
   let totalWeight = 0;
 
-  
-    for (const cartLine of cartLines) {
-      const productId = cartLine?.merchandise?.product?.id;
-      const productVariantId = cartLine?.merchandise?.id;
 
-      query(`
+  for (const cartLine of cartLines) {
+    const productId = cartLine?.merchandise?.product?.id;
+    const productVariantId = cartLine?.merchandise?.id;
+
+    query(`
       {
         product(id: "${productId}"){
           variants(first:250){
@@ -123,18 +123,18 @@ function Extension() {
         }
       }
       `).then(({ data }) => {
-        console.log('data in query', data);
-        const variant = data?.product?.variants?.edges.find(variant => variant.node.id === productVariantId);
-        console.log('variant from query ', variant);
-        if (variant) {
-          console.log('weight of variant ', Number(variant.node.weight));
-          totalWeight = totalWeight + Number(variant.node.weight);
-          console.log('totalWeight in useeffect ', totalWeight);
-        }
-      }).catch((error) => {
-        console.error(error);
-      });
-    }
+      console.log('data in query', data);
+      const variant = data?.product?.variants?.edges.find(variant => variant.node.id === productVariantId);
+      console.log('variant from query ', variant);
+      if (variant) {
+        console.log('weight of variant ', Number(variant.node.weight));
+        totalWeight = totalWeight + Number(variant.node.weight);
+        console.log('totalWeight in useeffect ', totalWeight);
+      }
+    }).catch((error) => {
+      console.error(error);
+    });
+  }
 
 
   console.log('totalWeight ', totalWeight);
@@ -192,8 +192,8 @@ function Extension() {
     if (totalQuantity < minQuantity) {
 
       let msg = errorMsgs?.categoryMinErrMsg
-      ? errorMsgs.categoryMinErrMsg.replace("{categoryMin}", minQuantity).replace("{categoryName}", category)
-      : `You have to select minimun ${minQuantity} products from the category "${category}".`;
+        ? errorMsgs.categoryMinErrMsg.replace("{categoryMin}", minQuantity).replace("{categoryName}", category)
+        : `You have to select minimun ${minQuantity} products from the category "${category}".`;
 
       categoryErrors.push(msg);
     }
@@ -250,8 +250,8 @@ function Extension() {
     if (totalQuantity < minQuantity) {
 
       let msg = errorMsgs?.collectionMinErrMsg
-      ? errorMsgs.collectionMinErrMsg.replace("{collectionMin}", minQuantity).replace("{collectionName}", collection)
-      : `You have to select minimun ${minQuantity} products from the collection "${collection}".`;
+        ? errorMsgs.collectionMinErrMsg.replace("{collectionMin}", minQuantity).replace("{collectionName}", collection)
+        : `You have to select minimun ${minQuantity} products from the collection "${collection}".`;
 
       collectionErrors.push(msg);
     }
@@ -266,7 +266,7 @@ function Extension() {
 
   productLimitFields.forEach(item => {
     const [productMin, productMax, vendorName, vendorMin, vendorMax] = item.metafield.value.split(',');
-    if(isNaN(vendorName)){
+    if (isNaN(vendorName)) {
       const vendor = vendorName; // Extract vendor name
       const minValue = vendorMin; // Extract minimum value
       const productId = item.target.id; // Extract product id
@@ -290,7 +290,7 @@ function Extension() {
   console.log('vendor min values extenison', vendorsWithMinValues);
 
   const totalVendorsQuantity = {};
-  if(vendorsWithProducts) {
+  if (vendorsWithProducts) {
     for (const name in vendorsWithProducts) {
       let c = 0;
       for (const id of vendorsWithProducts[name]) {
@@ -307,7 +307,7 @@ function Extension() {
 
   let vendorErrors = [];
 
-  if(vendorsWithMinValues) {
+  if (vendorsWithMinValues) {
 
     Object.keys(vendorsWithMinValues).forEach(vendor => {
       const minQuantity = Number(vendorsWithMinValues[vendor]);
@@ -316,8 +316,8 @@ function Extension() {
       if (totalQuantity < minQuantity) {
 
         let msg = errorMsgs?.vendorMinErrMsg
-        ? errorMsgs.vendorMinErrMsg.replace("{vendorMin}", minQuantity).replace("{vendorName}", vendor)
-        : `You have to select minimun ${minQuantity} products from the vendor "${vendor}".`;
+          ? errorMsgs.vendorMinErrMsg.replace("{vendorMin}", minQuantity).replace("{vendorName}", vendor)
+          : `You have to select minimun ${minQuantity} products from the vendor "${vendor}".`;
 
         vendorErrors.push(msg);
       }
@@ -325,7 +325,7 @@ function Extension() {
 
     vendorErrors = vendorErrors.join(' and ');
     console.log('vendor errors in extension ', vendorErrors);
-    
+
   }
 
   useBuyerJourneyIntercept(({ canBlockProgress }) => {
@@ -342,9 +342,9 @@ function Extension() {
             {
               // Show a validation error on the page
               message:
-              errorMsgs?.priceMinErrMsg
-              ? errorMsgs.priceMinErrMsg.replace("{priceMin}", priceMin)
-              : `Minimum amount ${priceMin} is required for checkout`,
+                errorMsgs?.priceMinErrMsg
+                  ? errorMsgs.priceMinErrMsg.replace("{priceMin}", priceMin)
+                  : `Minimum amount ${priceMin} is required for checkout`,
             },
           ],
         };
