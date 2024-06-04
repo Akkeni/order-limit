@@ -17,6 +17,7 @@ export function run(input) {
   // Create a map to store the total quantity for each category
   const categoryQuantities = new Map();
   const collectionQuantities = new Map();
+  const vendorQuantities = new Map();
 
   
   let errorMessagesFieldValue = {}
@@ -206,6 +207,43 @@ export function run(input) {
         }
       }
 
+      // Check if product has collection information
+      if (product.productLimitField) {
+
+        const [productMin, productMax, vendorName, vendorMin, vendorMax] = product.productLimitField.value.split(',');
+        
+        if(vendorName !== '0') {
+
+          // Update vendorQuantities map with quantity for current collection
+          if (vendorQuantities.has(vendorName)) {
+            vendorQuantities.set(vendorName, vendorQuantities.get(vendorName) + quantity);
+          } else {
+            vendorQuantities.set(vendorName, quantity);
+          }
+
+          // Check if total quantity exceeds collection limit
+          if (Number(vendorQuantities.get(vendorName)) > Number(vendorMax) && Number(vendorMax) !== 0) {
+
+            errors.push({
+              localizedMessage: errorMessagesFieldValue?.vendorMaxErrMsg
+              ? errorMessagesFieldValue.vendorMaxErrMsg.replace("{vendorMax}", vendorMax).replace("{collectionName}", vendorName)
+              : `Can't select more than ${vendorMax} products from the vendor "${vendorName}".`,
+              target: "cart",
+            });
+
+          } else if (Number(vendorQuantities.get(vendorName)) < Number(vendorMin) && Number(vendorMin) !== 0 && errorMessagesFieldValue?.extensionMsg === "Cart Extension") {
+
+            errors.push({
+              localizedMessage: errorMessagesFieldValue?.vendorMinErrMsg
+              ? errorMessagesFieldValue.vendorMinErrMsg.replace("{vendorMin}", vendorMin).replace("{vendorName}", vendorName)
+              : `You have to select minimun ${vendorMin} products from the vendor "${vendorName}".`,
+              target: "cart",
+            });
+
+          }
+        }
+      }
+
 
 
       // Check product limit
@@ -228,7 +266,7 @@ export function run(input) {
           errors.push({
             localizedMessage: errorMessagesFieldValue?.variantMinErrMsg
             ? errorMessagesFieldValue.variantMinErrMsg.replace("{productVariantMin}", productVariantMin)
-            : `you can't select less than ${productVariantMin} for this product variant.`,
+            : `You can't select less than ${productVariantMin} for this product variant.`,
             target: "cart",
           });
 
@@ -252,7 +290,7 @@ export function run(input) {
           errors.push({
             localizedMessage: errorMessagesFieldValue?.productMinErrMsg
             ? errorMessagesFieldValue.productMinErrMsg.replace("{productMin}", productMin)
-            : `you can't select less than ${productMin} for this product.`,
+            : `You can't select less than ${productMin} for this product.`,
             target: "cart",
           });
           

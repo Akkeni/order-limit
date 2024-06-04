@@ -23,6 +23,7 @@ import {
   Icon,
   Spinner,
   Banner,
+  Badge,
 } from '@shopify/polaris';
 import { json, redirect } from '@remix-run/node';
 import { useState, useCallback, useEffect } from 'react';
@@ -33,6 +34,8 @@ import { authenticate } from '../shopify.server';
 import db from '../db.server';
 import React from 'react';
 import { getAllProductsData } from '../models/orderLimit.server';
+import {useAppBridge} from '@shopify/app-bridge-react';
+import '../resources/style.css';
 
 
 //fetches the category data
@@ -85,6 +88,11 @@ export async function loader({ request }) {
           name
           currencyCode
           weightUnit
+          productVendors(first:250){
+            edges{
+              node 
+            }
+          }
           storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
             id
             value
@@ -119,6 +127,7 @@ export async function loader({ request }) {
 
     const data = await response.json();
     const allProductCategories = data?.data?.shop?.allProductCategories;
+    const allVendors = data?.data?.shop?.productVendors?.edges;
     const shopId = data?.data?.shop?.id;
     const shopName = data?.data?.shop?.name;
     const currencyCode = data?.data?.shop?.currencyCode;
@@ -154,6 +163,28 @@ export async function loader({ request }) {
       }
     }
 
+    const vendorsData = [];
+    if (allVendors) {
+      for (const vendor of allVendors) {
+        let quantityLimit = 0;
+        let name = vendor?.node;
+        let obj = {};
+        for (const edge of allProductsData) {
+          //console.log('edge in allVendors ', edge);
+          const productVendor = edge.node?.vendor ? edge.node?.vendor : null;
+          //console.log('productVendor in allVendors ', productVendor);
+          // If the product category matches the current category, increment the count
+          if (productVendor === name) {
+            quantityLimit++;
+          }
+        }
+        obj['vendorName'] = name;
+        obj['quantityLimit'] = quantityLimit;
+        vendorsData.push(obj);
+        //categoryLimits[name] = quantityLimit;
+      }
+    }
+
     //console.log('shop id in loader', shopId);
 
 
@@ -175,6 +206,7 @@ export async function loader({ request }) {
       errorMsgsFieldValue,
       needsConfirmation,
       allCollectionsData,
+      vendorsData,
     });
 
   } catch (error) {
@@ -196,7 +228,7 @@ export async function action({ request, params }) {
     const allProductsData = JSON.parse(formData.get('allProductsData')) //await res.json();
     
     if(formData.get('deletePreviousData') === "true") {
-      console.log('deletePreviousDataValue in if', formData.get('deletePreviousData'));
+      //console.log('deletePreviousDataValue in if', formData.get('deletePreviousData'));
       const deleteMetafield = async (metafieldId) => {
         if (metafieldId) {
           await admin.graphql(
@@ -318,14 +350,16 @@ export async function action({ request, params }) {
       return redirect('/app');
     }
 
+    console.log('action value in action ', formData.get('action'));
+    console.log('limiters before if in action ', JSON.parse(formData.get('quantityLimit')));
 
     if (formData.get('action') == 'saveProduct') {
 
       const limiters = JSON.parse(formData.get('quantityLimit'));
-      //console.log('limiters in action', limiters);
+      console.log('limiters in action', limiters);
       const errorMessages = formData.get('errorMessages');
       
-      console.log('messages value in action saveProduct',errorMessages);
+      //console.log('messages value in action saveProduct',errorMessages);
 
       if(errorMessages) {
         const shopId = formData.get('shopId');
@@ -385,7 +419,7 @@ export async function action({ request, params }) {
 
             if (limiter.id === 'priceMin' || limiter.id === 'priceMax') {
               
-              console.log('priceLimit in action ', formData.get('priceLimit'));
+              //console.log('priceLimit in action ', formData.get('priceLimit'));
               const metafields = {
                 variables: {
                   metafields: [
@@ -405,13 +439,13 @@ export async function action({ request, params }) {
             }
             if (limiter.id === 'weightMin' || limiter.id === 'weightMax') {
               let weightLimit = '';
-              console.log('limiters in action', limiters);
+              
               const weightMin = Number(limiters.find(item => item.id === 'weightMin')?.value) || 0;
               const weightMax = Number(limiters.find(item => item.id === 'weightMax')?.value) || 0;
 
               weightLimit += weightMin;
               weightLimit += ',' + weightMax;
-              console.log('weightLimit in action ', weightLimit);
+              //console.log('weightLimit in action ', weightLimit);
               const metafields = {
                 variables: {
                   metafields: [
@@ -684,6 +718,31 @@ export async function action({ request, params }) {
               }
             } else {
 
+              let value = limiter?.value;
+
+              const productResponse = await admin.graphql(
+                `{
+                  product(id: "${limiter.id}") {
+                    productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+                      value
+                    }
+                  }
+                }`
+              );
+
+              const productData = await productResponse.json();
+
+              let productLimitFieldValue = productData?.data?.product?.productLimitField?.value;
+              if(productLimitFieldValue?.value) {
+                let [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
+                value = limiter.value + ',' + vendorName + ',' + vendorMin + ',' + vendorMax;
+              } else {
+                let vendor= '0,0,0';
+                value = limiter.value + ',' + vendor;
+              }
+              
+              
+
               const mutationQuery = `mutation productUpdate($input: ProductInput!) {
                 productUpdate(input: $input) {
                   product {
@@ -712,7 +771,7 @@ export async function action({ request, params }) {
                         "namespace": "productLimit",
                         "key": `productLimit`,
                         "type": "string",
-                        "value": `${limiter.value}`
+                        "value": `${value}`
                       },
                       {
                         "namespace": "productStatus",
@@ -766,14 +825,13 @@ export async function action({ request, params }) {
           }
 
           if(limiter.type === 'Collection Wise') {
-            console.log('collectionsData in action ', formData.get('allCollectionsData'));
+            
             const allCollectionsData = JSON.parse(formData.get('allCollectionsData'));
-            console.log('limiter id in collection ', limiter.id)
+            
             const collectionId = allCollectionsData.find((item) => item.node.title === limiter.id)?.node?.id;
-            console.log('collection id in collection wise ', collectionId);         
+                     
             for(const product of allProductsData) {
-              const productId = product?.node?.id;
-              console.log('product id in collection wise ', productId);        
+              const productId = product?.node?.id;      
               let response = await admin.graphql(
                 ` {
                   collection(id: "${collectionId}"){
@@ -781,7 +839,6 @@ export async function action({ request, params }) {
                   }
               }`);
               const responseData = await response.json();
-              console.log('responseData in collection wise ', responseData?.data);
               if(responseData?.data?.collection?.hasProduct) {
                 const mutationQuery = `mutation productUpdate($input: ProductInput!) {
                   productUpdate(input: $input) {
@@ -865,6 +922,128 @@ export async function action({ request, params }) {
 
           }
 
+          if( limiter.type === 'Vendor Wise') {
+            // Initialize an empty array to store product IDs
+            const productIds = [];
+
+            // Iterate through the edges of the products
+            allProductsData.forEach(edge => {
+              const vendor = edge.node.vendor;
+              // Check if the category exists and its name is "Snowboards"
+              if (vendor && vendor === limiter.id) {
+                // If it matches, add the product ID to the array
+                productIds.push(edge.node.id);
+              }
+            });
+ 
+            // Now, snowboardProductIds array contains the IDs of products belonging to the "Snowboards" category
+            //console.log('productIds in action', productIds);
+            for (const id of productIds) {
+              let value = limiter.value;
+
+              const productResponse = await admin.graphql(
+                `{
+                  product(id: "${id}") {
+                    productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+                      value
+                    }
+                  }
+                }`
+              );
+
+              const productData = await productResponse.json();
+
+              let productLimitFieldValue = productData?.data?.product?.productLimitField?.value;
+              if(productLimitFieldValue?.value) {
+                let [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
+                value = productMin + ',' + productMax + ',' + limiter.id + ',' + limiter.value;
+              } else {
+                let product = '0,0';
+                value = product + ',' + limiter.id + ',' + limiter.value;
+              }
+              
+
+              const mutationQuery = `mutation productUpdate($input: ProductInput!) {
+                productUpdate(input: $input) {
+                  product {
+                    id
+                    title
+                    productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+                      id
+                    }
+                    productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
+                      id
+                    }
+                  }
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }`;
+
+              const variables = {
+                variables: {
+                  input: {
+                    id: `${id}`,
+                    metafields: [
+                      {
+                        "namespace": "productLimit",
+                        "key": `productLimit`,
+                        "type": "string",
+                        "value": `${value}`
+                      },
+                      {
+                        "namespace": "productStatus",
+                        "key": "productStatus",
+                        "type": "string",
+                        "value": "active",
+                      }
+                    ]
+                  }
+                }
+              };
+              const metaResponse = await admin.graphql(mutationQuery, variables);
+              const metaData = await metaResponse.json();
+              //const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
+
+              const errorMessages = metaData.data.productUpdate.userErrors;
+
+              //console.log('existingrecords', existingMetafields);
+
+              if (errorMessages && errorMessages.length > 0) {
+
+                const ids = [metaData?.data?.productUpdate?.product?.productLimitField?.id, metaData?.data?.productUpdate?.product?.productStatusField?.id];
+                for (const id of ids) {
+                  if (id) {
+                    // Delete the conflicting metafield
+                    await admin.graphql(
+                      `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+                      metafieldDelete(input: $input) {
+                        userErrors {
+                          field
+                          message
+                        }
+                      }
+                    }`,
+                      {
+                        variables: {
+                          input: {
+                            id: `${id}`
+                          }
+                        }
+                      }
+                    );
+                  }
+                }
+
+                // Now, execute the updateProduct query with the updated metafields
+                const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
+                const updatedMetaData = await updatedMetaResponse.json();
+              }
+            }
+
+          }
           
 
         } catch (error) {
@@ -975,6 +1154,7 @@ export default function Index() {
   const shopLimit = loaderData.storeLimit;
   const allProductsData = loaderData?.allProductsData ? loaderData?.allProductsData : [] ;
   const allCollectionsData = loaderData?.allCollectionsData ? loaderData?.allCollectionsData : [];
+  const vendorsData = loaderData?.vendorsData ? loaderData?.vendorsData : [];
 
   const categoriesData = loaderData?.categoriesData ? loaderData?.categoriesData : [];
 
@@ -986,7 +1166,7 @@ export default function Index() {
   
 
 
-
+  const shopify = useAppBridge(); 
   const [searchValue, setSearchValue] = useState('');
   const [success, setSuccess] = useState(false);
   const [tagValue, setTagValue] = useState('General');
@@ -1016,6 +1196,8 @@ export default function Index() {
     categoryMaxErrMsg: existingErrMsgs.categoryMaxErrMsg || '',
     collectionMinErrMsg: existingErrMsgs.collectionMinErrMsg || '',
     collectionMaxErrMsg:  existingErrMsgs.collectionMaxErrMsg || '',
+    vendorMinErrMsg:  existingErrMsgs.vendorMinErrMsg || '',
+    vendorMaxErrMsg:  existingErrMsgs.vendorMaxErrMsg || '',
     extensionMsg: existingErrMsgs?.extensionMsg || 'Cart Extension',
   });
 
@@ -1026,7 +1208,7 @@ export default function Index() {
     collectionIds.push(collection?.node?.id);
   }*/
 
-  console.log('collections in index', collectionIds);
+  
   //abscent of categories in the store
   if (!(categoriesData)) {
     console.log('categoriesData in if not', categoriesData);
@@ -1055,6 +1237,13 @@ export default function Index() {
     )
   );
 
+  // Filter rows based on search value
+  const filteredVendorRows = vendorsData.filter(row =>
+    Object.values(row).some(value =>
+      value.toString().toLowerCase().includes(searchValue.toLowerCase())
+    )
+  );
+
   const filteredProductRows = allProductsData.filter(product =>
     product.node.title.toLowerCase().includes(searchValue.toLowerCase()) ||
     (product.node.priceRangeV2?.maxVariantPrice?.amount.toString().toLowerCase().includes(searchValue.toLowerCase())) ||
@@ -1069,6 +1258,14 @@ export default function Index() {
 
   // Sort the filtered rows based on the current sort column and direction
   const sortedCategoryFilteredRows = filteredCategoryRows.sort((a, b) => {
+    const aValue = a[selectedSortColumn];
+    const bValue = b[selectedSortColumn];
+    if (aValue === bValue) return 0;
+    return sortDirection === 'ascending' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
+  });
+
+  // Sort the filtered rows based on the current sort column and direction
+  const sortedVendorFilteredRows = filteredVendorRows.sort((a, b) => {
     const aValue = a[selectedSortColumn];
     const bValue = b[selectedSortColumn];
     if (aValue === bValue) return 0;
@@ -1185,7 +1382,7 @@ export default function Index() {
     [],
   );
 
-  console.log('collections in index ', allCollectionsData);
+  console.log('vendors in index ', vendorsData);
 
   const handleErrorMessages = (name, value) => {
     setErrorMessages(prevState => ({
@@ -1215,8 +1412,20 @@ export default function Index() {
     let weightLimit = '';
     priceLimit = priceLimit + getPriceQuantityLimit('priceMin') + ',' + getPriceQuantityLimit('priceMax');
     weightLimit = weightLimit + getWeightQuantityLimit('weightMin') + ',' + getWeightQuantityLimit('weightMax');
-    console.log('priceLimit ', priceLimit);
-    submit({ action: 'saveProduct', quantityLimit: JSON.stringify(quantityLimit), allProductsData: JSON.stringify(allProductsData), shopId: loaderData?.shopId, priceLimit: priceLimit, weightLimit: weightLimit, errorMessages: JSON.stringify(errorMessages), allCollectionsData: JSON.stringify(allCollectionsData) }, { method: 'post' }).catch((error) => {
+   
+    submit(
+      { 
+        action: 'saveProduct', 
+        quantityLimit: JSON.stringify(quantityLimit), 
+        allProductsData: JSON.stringify(allProductsData), 
+        shopId: loaderData?.shopId, 
+        priceLimit: priceLimit, 
+        weightLimit: weightLimit, 
+        errorMessages: JSON.stringify(errorMessages), 
+        allCollectionsData: JSON.stringify(allCollectionsData)
+      }, 
+      { method: 'post' }
+    ).catch((error) => {
       // Handle error
       console.error('Error saving product:', error);
       setIsSaving(false); // Ensure saving state is set to false in case of error
@@ -1239,6 +1448,9 @@ export default function Index() {
       } else if (id.includes('shop')) {
         let max = getStoreQuantityLimit(id, 'max');
         limitValue = limitValue + value + ',' + max;
+      } else if (tagValue === "Vendor Wise") {
+        let max = getVendorQuantityLimit(id, 'max');
+        limitValue = limitValue + value + ',' + max;
       } else {
         let max = getCategoryQuantityLimit(id, 'max');
         limitValue = limitValue + value + ',' + max;
@@ -1256,6 +1468,9 @@ export default function Index() {
       } else if (id.includes('shop')) {
         let min = getStoreQuantityLimit(id, 'min');
         limitValue = limitValue + min + ',' + value;
+      }  else if (tagValue === "Vendor Wise") {
+        let min = getVendorQuantityLimit(id, 'min');
+        limitValue = limitValue + min + ',' + value;
       } else {
         let min = getCategoryQuantityLimit(id, 'min');
         limitValue = limitValue + min + ',' + value;
@@ -1265,6 +1480,7 @@ export default function Index() {
       value = limitValue;
     }
     
+    console.log('value in handleQuantityLimit ', value);
     
       // Update quantityLimit state to contain objects with id as keys and quantity limits as values
       setQuantityLimit((prevQuantityLimit) => {
@@ -1347,7 +1563,7 @@ export default function Index() {
 
   const getVariantQunatity = (id, range) => {
     const variantQuantityLimitValue = variantQuantityLimits[id];
-    console.log('variantQuantityLimitValue in getVariantQuantity', variantQuantityLimitValue);
+    //console.log('variantQuantityLimitValue in getVariantQuantity', variantQuantityLimitValue);
     if (range === "min") {
       return variantQuantityLimitValue.split(',')[0];
     } else {
@@ -1429,7 +1645,7 @@ export default function Index() {
       }
     } else {
       if (loaderData?.storeLimitFieldValue) {
-        console.log('storeLimitFieldValue in getStore', loaderData?.storeLimitFieldValue);
+        //console.log('storeLimitFieldValue in getStore', loaderData?.storeLimitFieldValue);
         const storeLimit = loaderData?.storeLimitFieldValue;
         if (range === "min") {
           return storeLimit.split(',')[0];
@@ -1480,6 +1696,34 @@ export default function Index() {
       }
     }
   }
+
+  const getVendorQuantityLimit = (id, range) => {
+    //console.log('quantitylimits in getProduct', quantityLimit);
+    //console.log('range in getProduct', range);
+    const vendorLimit = quantityLimit.find(item => item.id === id);
+    //console.log('productLimit in getProduct ', productLimit);
+    if (vendorLimit) {
+      const vendorLimitValue = vendorLimit.value;
+      if (range === "min") {
+        return vendorLimitValue.split(',')[0];
+      } else {
+        return vendorLimitValue.split(',')[1];
+      }
+    } else {
+      const productLimitFieldValue = allProductsData.find(product => product.node.vendor === id)?.node.productLimitField?.value;
+      //console.log('productLimitValue in getProduct ', productLimitFieldValue);
+
+      if (productLimitFieldValue) {
+        if (range === "min") {
+          return productLimitFieldValue.split(',')[3];
+        } else {
+          return productLimitFieldValue.split(',')[4];
+        } // Return the quantity limit from productLimitField if found and greater than 0
+      } else {
+        return 0; // Return 0 if no quantity limit found
+      }
+    }
+  };
 
   if (isSaving) {
     //console.log('isSaving ', isSaving);
@@ -1561,18 +1805,10 @@ export default function Index() {
         <div style={{ paddingTop: '0.5rem', paddingBottom: '1.5rem', paddingRight: '1rem' }}>
           <InlineStack gap="500">
             <div style={{ paddingLeft: '0.5rem' }}>
-              <TextField
-                label="Search"
-                value={searchValue}
-                onChange={setSearchValue}
-                prefix={<Icon source={SearchIcon} color="skyDark" />}
-              />
-            </div>
-            <div style={{ paddingLeft: '0.5rem' }}>
               <FormLayout>
                 <Select
                   label="Limit By"
-                  options={['General', 'Store Wise', 'Product Wise', 'Category Wise', 'Collection Wise']}
+                  options={['General', 'Store Wise', 'Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise']}
                   value={tagValue}
                   onChange={handleTagValueChange}
                 />
@@ -1588,6 +1824,16 @@ export default function Index() {
                 />
               </FormLayout>
             </div>
+            {(tagValue !== 'General' && tagValue !== 'Store Wise') && (
+              <div style={{ paddingLeft: '0.5rem' }}>
+                <TextField
+                  label="Search"
+                  value={searchValue}
+                  onChange={setSearchValue}
+                  prefix={<Icon source={SearchIcon} color="skyDark" />}
+                />
+              </div>
+            )}
             <div style={{ marginLeft: 'auto' }}>
               <PageActions
                 primaryAction={{
@@ -1626,6 +1872,16 @@ export default function Index() {
                     {
                       title: (
                         <ButtonGroup>
+                          <Button onClick={() => handleSort('status')} variant="tertiary">
+                            Status
+                          </Button>
+                          
+                        </ButtonGroup>
+                      )
+                    },
+                    {
+                      title: (
+                        <ButtonGroup>
                           <Button onClick={() => handleSort('totalInventory')} variant="tertiary">
                             Quantity
                           </Button>
@@ -1653,15 +1909,43 @@ export default function Index() {
                     <>
                       <IndexTable.Row key={index}>
                         <IndexTable.Cell>
+                        <Button
+                            url={`shopify:admin/products/${product.node.id.match(/\d+$/)[0]}`}
+                            target="_blank"
+                            variant="tertiary"
+                          >
                           <Thumbnail
                             source={product.node.images.edges[0]?.node?.url || ImageIcon}
                             alt="Product"
                           />
-
+                          </Button>
                         </IndexTable.Cell>
-                        <IndexTable.Cell>{product.node.title}</IndexTable.Cell>
-                        <IndexTable.Cell>{product.node.totalInventory}</IndexTable.Cell>
-                        <IndexTable.Cell>{product.node.priceRangeV2?.maxVariantPrice?.amount}</IndexTable.Cell>
+                        <IndexTable.Cell>
+                          <Button
+                            url={`shopify:admin/products/${product.node.id.match(/\d+$/)[0]}`}
+                            target="_blank"
+                            variant="tertiary"
+                          >
+                            <div id='underLine'>
+                              {product.node.title}
+                            </div>
+                          </Button>
+                        </IndexTable.Cell>
+                        <IndexTable.Cell>
+                          <Badge tone={product.node?.status === 'ACTIVE' ? 'success' : 'info'}>
+                            {product.node?.status}
+                          </Badge>
+                        </IndexTable.Cell>
+                        <IndexTable.Cell>
+                          <div style={{ textAlign: 'center' }}>
+                            {product.node.totalInventory}
+                          </div>
+                        </IndexTable.Cell>
+                        <IndexTable.Cell>
+                          <div style={{ textAlign: 'center' }}>
+                            {product.node.priceRangeV2?.maxVariantPrice?.amount}
+                          </div>
+                        </IndexTable.Cell>
                         <IndexTable.Cell>
                           <FormLayout>
                             <TextField
@@ -1695,8 +1979,21 @@ export default function Index() {
                               </IndexTable.Cell>
                             </div>
                             <IndexTable.Cell>{variant.node.title}</IndexTable.Cell>
-                            <IndexTable.Cell>{variant.node.inventoryQuantity}</IndexTable.Cell>
-                            <IndexTable.Cell>{variant.node.price}</IndexTable.Cell>
+                            <IndexTable.Cell>
+                              <Badge tone={product.node?.status === 'ACTIVE' ? 'success' : 'info'}>
+                                {product.node?.status}
+                              </Badge>
+                            </IndexTable.Cell>
+                            <IndexTable.Cell>
+                              <div style={{ textAlign: 'center' }}>
+                                {variant.node.inventoryQuantity}
+                              </div>
+                            </IndexTable.Cell>
+                            <IndexTable.Cell>
+                              <div style={{ textAlign: 'center' }}>
+                                {variant.node.price}
+                              </div>
+                            </IndexTable.Cell>
                             <IndexTable.Cell>
                               <FormLayout>
                                 <TextField
@@ -1739,7 +2036,7 @@ export default function Index() {
                   label="Error Message for Product Minimum limit"
                   value={errorMessages.productMinErrMsg}
                   onChange={(value) => { handleErrorMessages("productMinErrMsg", value) }}
-                  placeholder="you can't select less than {productMin} for this product."
+                  placeholder="You can't select less than {productMin} for this product."
                   helpText="use {productMin} to include minimum limit"
                   autoComplete="off"
                 />
@@ -1757,7 +2054,7 @@ export default function Index() {
                   label="Error Message for Product Variant Minimum limit"
                   value={errorMessages.variantMinErrMsg}
                   onChange={(value) => { handleErrorMessages("variantMinErrMsg", value) }}
-                  placeholder="`you can't select less than {productVariantMin} for this product variant."
+                  placeholder="You can't select less than {productVariantMin} for this product variant."
                   helpText="use {productVariantMin} to include minimum limit"
                   autoComplete="off"
                 />
@@ -2141,6 +2438,99 @@ export default function Index() {
               </Card>
             </div>
             )}
+
+{tagValue === 'Vendor Wise' && (
+              <div>
+              <Card>
+                <IndexTable
+                  headings={[
+                    {
+                      title: (
+                        <ButtonGroup>
+                          <Button onClick={() => handleSort('node')} variant="tertiary">
+                            Vendor Name
+                          </Button>
+                          <Button onClick={() => handleSort('node')} variant="tertiary">
+                            <Icon source={SelectIcon} />
+                          </Button>
+                        </ButtonGroup>
+                      )
+                    },
+                    {
+                      title: (
+                        <ButtonGroup>
+                          <Button onClick={() => handleSort('count')} variant="tertiary">
+                            Quantity Available
+                          </Button>
+                          <Button onClick={() => handleSort('count')} variant="tertiary">
+                            <Icon source={SelectIcon} />
+                          </Button>
+                        </ButtonGroup>
+                      )
+                    },
+                    { title: 'Min Limit' },
+                    { title: 'Max Limit' },
+                  ]}
+                  itemCount={vendorsData.length}
+                  selectable={false}
+                >
+                  {vendorsData.map((vendor, index) => (
+                    <IndexTable.Row key={index}>
+                      <IndexTable.Cell>
+                        {vendor['vendorName']}
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        {vendor['quantityLimit']}
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        <FormLayout>
+                          <TextField
+                            value={getVendorQuantityLimit(vendor['vendorName'], 'min')}
+                            label="Vendor Min Limit"
+                            type="number"
+                            onChange={(value) => { handleQuantityLimit(value, vendor['vendorName'], 'min') }}
+                          />
+                        </FormLayout>
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        <FormLayout>
+                          <TextField
+                            value={getVendorQuantityLimit(vendor['vendorName'], 'max')}
+                            label="Vendor Max Limit"
+                            type="number"
+                            onChange={(value) => { handleQuantityLimit(value, vendor['vendorName'], 'max') }}
+                          />
+                        </FormLayout>
+                      </IndexTable.Cell>
+                    </IndexTable.Row>
+                  ))}
+                </IndexTable>
+              </Card>
+               <br/>
+              <br/>
+              
+              <Card>
+                <TextField
+                  label="Error Message for Vendor Minimum limit"
+                  value={errorMessages.vendorMinErrMsg}
+                  onChange={(value) => { handleErrorMessages("vendorMinErrMsg", value) }}
+                  placeholder="You have to select minimun {vendorMin} products from the vendor {vendorName}."
+                  helpText="use {vendorMin} to include minimum limit and {vendorName} to include name"
+                  autoComplete="off"
+                />
+                <br/>
+                <TextField
+                  label="Error Message for vendor Maximum limit"
+                  value={errorMessages.vendorMaxErrMsg}
+                  onChange={(value) => { handleErrorMessages("vendorMaxErrMsg", value) }}
+                  placeholder="Can't select more than {vendorMax} products from the vendor {vendorName}"
+                  helpText="use {vendorMax} to include maximum limit and {vendorName} to include name"
+                  autoComplete="off"
+                />
+                <br/>
+              </Card>
+              </div>
+            )}  
           </Layout.Section>
         </Layout>
       </BlockStack>

@@ -15,6 +15,7 @@ query RunInput {
           productVariantLimitField: metafield(namespace: "productLimit", key: "productLimit") {
               value
           }
+         
           product {
             
             categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
@@ -26,6 +27,7 @@ query RunInput {
             collectionLimitField: metafield(namespace: "collectionLimit", key: "collectionLimit") {
               value
             }
+            
           }
         }
       }

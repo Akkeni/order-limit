@@ -8,6 +8,8 @@ export async function getAllProductsData(graphql) {
             node {
               id
               title
+              vendor
+              status
               variants(first: 250) {
                 edges {
                   node {
@@ -88,6 +90,8 @@ export async function getAllProductsData(graphql) {
                 node {
                   id
                   title
+                  vendor
+                  status
                   variants(first: 250) {
                     edges {
                       node {

@@ -260,6 +260,74 @@ function Extension() {
   collectionErrors = collectionErrors.join(' and ');
   console.log('collection errors in extension ', collectionErrors);
 
+  //vendor wise min limit
+  const vendorsWithProducts = {};
+  const vendorsWithMinValues = {};
+
+  productLimitFields.forEach(item => {
+    const [productMin, productMax, vendorName, vendorMin, vendorMax] = item.metafield.value.split(',');
+    if(isNaN(vendorName)){
+      const vendor = vendorName; // Extract vendor name
+      const minValue = vendorMin; // Extract minimum value
+      const productId = item.target.id; // Extract product id
+
+      // Initialize the category key in categoriesWithProducts if it doesn't exist
+      if (!vendorsWithProducts[vendor]) {
+        vendorsWithProducts[vendor] = [];
+      }
+
+      // Add the product id to the category list
+      vendorsWithProducts[vendor].push(productId);
+
+      // Set the minimum value for the category in categoriesWithMinValues
+      if (!vendorsWithMinValues[vendor]) {
+        vendorsWithMinValues[vendor] = minValue;
+      }
+    }
+  });
+
+  console.log('venodor product ids in extension', vendorsWithProducts);
+  console.log('vendor min values extenison', vendorsWithMinValues);
+
+  const totalVendorsQuantity = {};
+  if(vendorsWithProducts) {
+    for (const name in vendorsWithProducts) {
+      let c = 0;
+      for (const id of vendorsWithProducts[name]) {
+        const quantity = cartLines.find((item) => item?.merchandise?.product?.id === `gid://shopify/Product/${id}`)?.quantity;
+        if (quantity) {
+          c += quantity;
+        }
+      }
+      totalVendorsQuantity[name] = c;
+    }
+  }
+
+  console.log('totalVendorsquantities', totalVendorsQuantity);
+
+  let vendorErrors = [];
+
+  if(vendorsWithMinValues) {
+
+    Object.keys(vendorsWithMinValues).forEach(vendor => {
+      const minQuantity = Number(vendorsWithMinValues[vendor]);
+      const totalQuantity = totalVendorsQuantity[vendor] || 0;
+      console.log('minQuantity of vendor in object', minQuantity);
+      if (totalQuantity < minQuantity) {
+
+        let msg = errorMsgs?.vendorMinErrMsg
+        ? errorMsgs.vendorMinErrMsg.replace("{vendorMin}", minQuantity).replace("{vendorName}", vendor)
+        : `You have to select minimun ${minQuantity} products from the vendor "${vendor}".`;
+
+        vendorErrors.push(msg);
+      }
+    });
+
+    vendorErrors = vendorErrors.join(' and ');
+    console.log('vendor errors in extension ', vendorErrors);
+    
+  }
+
   useBuyerJourneyIntercept(({ canBlockProgress }) => {
 
     if (errorMsgs?.extensionMsg === "Checkout Extension") {
@@ -338,6 +406,20 @@ function Extension() {
             {
               // Show a validation error on the page
               message: collectionErrors,
+            },
+          ],
+        };
+
+      }
+
+      if (canBlockProgress && vendorErrors) {
+        return {
+          behavior: "block",
+          reason: "Minimum products quantity required",
+          errors: [
+            {
+              // Show a validation error on the page
+              message: vendorErrors,
             },
           ],
         };

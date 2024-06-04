@@ -95,7 +95,7 @@ function App() {
 
         let msg = errorMsgs?.productMinErrMsg
         ? errorMsgs.productMinErrMsg.replace("{productMin}", productMin)
-        : `you can't select less than ${productMin} for this product.`;
+        : `You can't select less than ${productMin} for this product.`;
 
         setErrorMessage(msg);
 
@@ -103,7 +103,7 @@ function App() {
 
         let msg = errorMsgs?.variantMinErrMsg
         ? errorMsgs.variantMinErrMsg.replace("{productVariantMin}", productVariantMin)
-        : `you can't select less than ${productVariantMin} for this product variant.`;
+        : `You can't select less than ${productVariantMin} for this product variant.`;
 
         setErrorMessage(msg);
         
@@ -121,7 +121,7 @@ function App() {
             {
               // Show a validation error on the page
               message:
-                `please refer to the messages at the below of the products`,
+                `Please refer to the messages at the below of the products`,
             },
           ],
         };
