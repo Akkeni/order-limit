@@ -64,8 +64,8 @@ function Extension() {
     key: "collectionLimit"
   });
 
-  console.log('collectionLimitField in extension ', collectionLimitFields);
-  console.log('productLimitField in extension ', productLimitFields);
+  //console.log('collectionLimitField in extension ', collectionLimitFields);
+  //console.log('productLimitField in extension ', productLimitFields);
 
   const priceMetaField = priceLimitField[0]?.metafield;
   const priceMin = priceMetaField?.value.split(',')[0];
@@ -85,7 +85,7 @@ function Extension() {
 
   const [errorMessages, setErrorMessages] = useState("");
   const canBlockProgress = useExtensionCapability("block_progress");
-  console.log('canBlockProgress in extension ', canBlockProgress);
+  //console.log('canBlockProgress in extension ', canBlockProgress);
 
 
 
@@ -94,11 +94,11 @@ function Extension() {
   // Ensure the totalAmount is a valid number
   const totalAmountValue = Number(totalAmount?.amount);
 
-  console.log('totalAmountValue in extension ', totalAmountValue);
-  console.log('totalAmount in extension ', totalAmount);
+  //console.log('totalAmountValue in extension ', totalAmountValue);
+  //console.log('totalAmount in extension ', totalAmount);
 
   const totalQuantity = cartLines.reduce((acc, curr) => acc + curr.quantity, 0);
-  console.log('totalQuantity in extension ', totalQuantity);
+  //console.log('totalQuantity in extension ', totalQuantity);
 
   const categoriesWithProducts = {};
   const categoriesWithMinValues = {};
@@ -123,13 +123,13 @@ function Extension() {
         }
       }
       `).then(({ data }) => {
-      console.log('data in query', data);
+      //console.log('data in query', data);
       const variant = data?.product?.variants?.edges.find(variant => variant.node.id === productVariantId);
-      console.log('variant from query ', variant);
+      //console.log('variant from query ', variant);
       if (variant) {
-        console.log('weight of variant ', Number(variant.node.weight));
+        //console.log('weight of variant ', Number(variant.node.weight));
         totalWeight = totalWeight + Number(variant.node.weight);
-        console.log('totalWeight in useeffect ', totalWeight);
+        //console.log('totalWeight in useeffect ', totalWeight);
       }
     }).catch((error) => {
       console.error(error);
@@ -137,8 +137,8 @@ function Extension() {
   }
 
 
-  console.log('totalWeight ', totalWeight);
-  console.log('weight min', weightMin);
+  //console.log('totalWeight ', totalWeight);
+  //console.log('weight min', weightMin);
 
   categoryLimitFields.forEach(item => {
     const valueParts = item.metafield.value.split(',');
@@ -160,8 +160,8 @@ function Extension() {
     }
   });
 
-  console.log('category product ids in extension', categoriesWithProducts);
-  console.log('category min values extenison', categoriesWithMinValues);
+  //console.log('category product ids in extension', categoriesWithProducts);
+  //console.log('category min values extenison', categoriesWithMinValues);
 
   const totalCategoriesQuantity = {};
   for (const name in categoriesWithProducts) {
@@ -175,11 +175,9 @@ function Extension() {
     totalCategoriesQuantity[name] = c;
   }
 
-  console.log('totalCategriesquantities', totalCategoriesQuantity);
+  //console.log('totalCategriesquantities', totalCategoriesQuantity);
 
-  for (const cartLine of cartLines) {
-    console.log('cartLine in extension ', cartLine);
-  }
+ 
 
 
 
@@ -188,7 +186,7 @@ function Extension() {
   Object.keys(categoriesWithMinValues).forEach(category => {
     const minQuantity = Number(categoriesWithMinValues[category]);
     const totalQuantity = totalCategoriesQuantity[category] || 0;
-    console.log('minQuantity in object', minQuantity);
+    //console.log('minQuantity in object', minQuantity);
     if (totalQuantity < minQuantity) {
 
       let msg = errorMsgs?.categoryMinErrMsg
@@ -224,8 +222,8 @@ function Extension() {
     }
   });
 
-  console.log('collection product ids in extension', collectionsWithProducts);
-  console.log('collection min values extenison', collectionsWithMinValues);
+  //console.log('collection product ids in extension', collectionsWithProducts);
+  //console.log('collection min values extenison', collectionsWithMinValues);
 
   const totalCollectionsQuantity = {};
   for (const name in collectionsWithProducts) {
@@ -239,14 +237,14 @@ function Extension() {
     totalCollectionsQuantity[name] = c;
   }
 
-  console.log('totalCollectionsquantities', totalCollectionsQuantity);
+  //console.log('totalCollectionsquantities', totalCollectionsQuantity);
 
   let collectionErrors = [];
 
   Object.keys(collectionsWithMinValues).forEach(collection => {
     const minQuantity = Number(collectionsWithMinValues[collection]);
     const totalQuantity = totalCollectionsQuantity[collection] || 0;
-    console.log('minQuantity of collection in object', minQuantity);
+    //console.log('minQuantity of collection in object', minQuantity);
     if (totalQuantity < minQuantity) {
 
       let msg = errorMsgs?.collectionMinErrMsg
@@ -258,7 +256,7 @@ function Extension() {
   });
 
   collectionErrors = collectionErrors.join(' and ');
-  console.log('collection errors in extension ', collectionErrors);
+  //console.log('collection errors in extension ', collectionErrors);
 
   //vendor wise min limit
   const vendorsWithProducts = {};
@@ -286,8 +284,8 @@ function Extension() {
     }
   });
 
-  console.log('venodor product ids in extension', vendorsWithProducts);
-  console.log('vendor min values extenison', vendorsWithMinValues);
+  //console.log('venodor product ids in extension', vendorsWithProducts);
+  //console.log('vendor min values extenison', vendorsWithMinValues);
 
   const totalVendorsQuantity = {};
   if (vendorsWithProducts) {
@@ -303,7 +301,7 @@ function Extension() {
     }
   }
 
-  console.log('totalVendorsquantities', totalVendorsQuantity);
+  //console.log('totalVendorsquantities', totalVendorsQuantity);
 
   let vendorErrors = [];
 
@@ -312,7 +310,7 @@ function Extension() {
     Object.keys(vendorsWithMinValues).forEach(vendor => {
       const minQuantity = Number(vendorsWithMinValues[vendor]);
       const totalQuantity = totalVendorsQuantity[vendor] || 0;
-      console.log('minQuantity of vendor in object', minQuantity);
+      //console.log('minQuantity of vendor in object', minQuantity);
       if (totalQuantity < minQuantity) {
 
         let msg = errorMsgs?.vendorMinErrMsg
@@ -324,7 +322,7 @@ function Extension() {
     });
 
     vendorErrors = vendorErrors.join(' and ');
-    console.log('vendor errors in extension ', vendorErrors);
+    //console.log('vendor errors in extension ', vendorErrors);
 
   }
 
@@ -366,7 +364,7 @@ function Extension() {
         };
       }
 
-      console.log('total weight in useBuyer ', totalWeight);
+      //console.log('total weight in useBuyer ', totalWeight);
 
       if (canBlockProgress && totalWeight < Number(weightMin)) {
         return {

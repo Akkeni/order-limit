@@ -3,7 +3,7 @@
 client_id = "495b7af9a29dd8a1c2b0f9fb4eed45fa"
 name = "order-limit-2"
 handle = "order-limit-18"
-application_url = "https://perl-seal-objective-js.trycloudflare.com"
+application_url = "https://laboratory-wilderness-relief-prevent.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_orders,read_products,read_publications,write_products"
 
 [auth]
 redirect_urls = [
-  "https://perl-seal-objective-js.trycloudflare.com/auth/callback",
-  "https://perl-seal-objective-js.trycloudflare.com/auth/shopify/callback",
-  "https://perl-seal-objective-js.trycloudflare.com/api/auth/callback"
+  "https://laboratory-wilderness-relief-prevent.trycloudflare.com/auth/callback",
+  "https://laboratory-wilderness-relief-prevent.trycloudflare.com/auth/shopify/callback",
+  "https://laboratory-wilderness-relief-prevent.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

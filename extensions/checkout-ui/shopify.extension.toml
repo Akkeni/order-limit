@@ -17,6 +17,8 @@ handle = "checkout-ui"
 [[extensions.targeting]]
 target = "purchase.checkout.block.render"
 module = "./src/Checkout.jsx"
+export = "Extension"
+
 [[extensions.targeting]]
 target = "purchase.checkout.cart-line-item.render-after"
 module = "./src/productMinCheck.jsx"
@@ -29,36 +31,38 @@ block_progress = true
 # https://shopify.dev/docs/api/checkout-ui-extensions/unstable/configuration#api-access
 api_access = true
 
-
 # Gives your extension access to make external network calls, using the
 # JavaScript `fetch()` API. Learn more:
 # https://shopify.dev/docs/api/checkout-ui-extensions/unstable/configuration#network-access
- network_access = true
-
-
+network_access = true
 
 # Loads metafields on checkout resources, including the cart,
 # products, customers, and more. Learn more:
 # https://shopify.dev/docs/api/checkout-ui-extensions/unstable/configuration#metafields
-
- [[extensions.metafields]]
+[[extensions.metafields]]
 namespace = "priceLimit"
 key = "priceLimit"
- [[extensions.metafields]]
+
+[[extensions.metafields]]
 namespace = "weightLimit"
 key = "weightLimit"
- [[extensions.metafields]]
+
+[[extensions.metafields]]
 namespace = "storeLimit"
 key = "storeLimit"
- [[extensions.metafields]]
+
+[[extensions.metafields]]
 namespace = "productLimit"
 key = "productLimit"
- [[extensions.metafields]]
+
+[[extensions.metafields]]
 namespace = "categoryLimit"
 key = "categoryLimit"
+
 [[extensions.metafields]]
 namespace = "collectionLimit"
 key = "collectionLimit"
+
 [[extensions.metafields]]
 namespace = "errorMsgs"
 key = "errorMsgs"

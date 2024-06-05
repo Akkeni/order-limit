@@ -1564,10 +1564,12 @@ export default function Index() {
   const getVariantQunatity = (id, range) => {
     const variantQuantityLimitValue = variantQuantityLimits[id];
     //console.log('variantQuantityLimitValue in getVariantQuantity', variantQuantityLimitValue);
-    if (range === "min") {
-      return variantQuantityLimitValue.split(',')[0];
-    } else {
-      return variantQuantityLimitValue.split(',')[1];
+    if(variantQuantityLimitValue) {
+      if (range === "min") {
+        return variantQuantityLimitValue.split(',')[0];
+      } else {
+        return variantQuantityLimitValue.split(',')[1];
+      }
     }
   }
 
