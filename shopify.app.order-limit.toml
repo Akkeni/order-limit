@@ -3,7 +3,7 @@
 client_id = "e60e7d7df0bd0c9279dc812041e250aa"
 name = "order-limit"
 handle = "order-limit-9"
-application_url = "https://enters-cities-homeland-precious.trycloudflare.com"
+application_url = "https://module-coaching-addition-provide.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_orders,read_products,read_publications,write_products"
 
 [auth]
 redirect_urls = [
-  "https://enters-cities-homeland-precious.trycloudflare.com/auth/callback",
-  "https://enters-cities-homeland-precious.trycloudflare.com/auth/shopify/callback",
-  "https://enters-cities-homeland-precious.trycloudflare.com/api/auth/callback"
+  "https://module-coaching-addition-provide.trycloudflare.com/auth/callback",
+  "https://module-coaching-addition-provide.trycloudflare.com/auth/shopify/callback",
+  "https://module-coaching-addition-provide.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

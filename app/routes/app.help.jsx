@@ -41,9 +41,16 @@ export default function HelpPage() {
                                         Cart Extension: Validates the cart for the minimum limit and displays a message on the cart UI. Requires a quantity selector before the 'Add to cart' button.
                                     </strong>
                                 </li>
+                                <br/>
                                 <li>
                                     <strong>
                                         Checkout Extension: Validates products and displays a message on the checkout UI. Only works for Shopify Plus store owners.
+                                    </strong>
+                                </li>
+                                <br/>
+                                <li>
+                                    <strong>
+                                        Both: Validates products and displays a message on the cart UI and on the checkout UI.
                                     </strong>
                                 </li>
                             </ul>
