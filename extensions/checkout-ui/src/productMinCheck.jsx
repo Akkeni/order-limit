@@ -94,16 +94,16 @@ function App() {
       if (quantity < productMin && productMin !== 0) {
 
         let msg = errorMsgs?.productMinErrMsg
-          ? errorMsgs.productMinErrMsg.replace("{productMin}", productMin)
-          : `You can't select less than ${productMin} for this product.`;
+          ? errorMsgs.productMinErrMsg.replace("{productMin}", productMin).replace("{productName}", cartLineTarget?.merchandise?.title)
+          : `You can't select less than ${productMin} for ${cartLineTarget?.merchandise?.title}.`;
 
         setErrorMessage(msg);
 
       } else if (quantity < productVariantMin && productVariantMin !== 0) {
 
         let msg = errorMsgs?.variantMinErrMsg
-          ? errorMsgs.variantMinErrMsg.replace("{productVariantMin}", productVariantMin)
-          : `You can't select less than ${productVariantMin} for this product variant.`;
+          ? errorMsgs.variantMinErrMsg.replace("{productVariantMin}", productVariantMin).replace("{productName}", cartLineTarget?.merchandise?.title)
+          : `You can't select less than ${productVariantMin} for this product variant ${cartLineTarget?.merchandise?.title}.`;
 
         setErrorMessage(msg);
 
@@ -112,7 +112,7 @@ function App() {
   }, [cartLineTarget, productLimitFields, productVariantLimitFields]);
 
   useBuyerJourneyIntercept(({ canBlockProgress }) => {
-    if (errorMsgs?.extensionMsg === "Checkout Extension") {
+    if (errorMsgs?.extensionMsg === "Checkout Extension" || errorMsgs?.extensionMsg === "Both") {
       if (canBlockProgress && errorMessage) {
         return {
           behavior: "block",
@@ -139,7 +139,7 @@ function App() {
 
 
   // Render the minimum limit error message if applicable
-  if (errorMessage && canBlockProgress && errorMsgs?.extensionMsg === "Checkout Extension") {
+  if (errorMessage && canBlockProgress && (errorMsgs?.extensionMsg === "Checkout Extension" || errorMsgs?.extensionMsg === "Both")) {
 
     return (
       <Text>

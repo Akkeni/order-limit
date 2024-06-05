@@ -1198,7 +1198,7 @@ export default function Index() {
     collectionMaxErrMsg: existingErrMsgs.collectionMaxErrMsg || '',
     vendorMinErrMsg: existingErrMsgs.vendorMinErrMsg || '',
     vendorMaxErrMsg: existingErrMsgs.vendorMaxErrMsg || '',
-    extensionMsg: existingErrMsgs?.extensionMsg || 'Cart Extension',
+    extensionMsg: existingErrMsgs?.extensionMsg || 'Both',
   });
 
   const collectionIds = [];
@@ -1818,7 +1818,7 @@ export default function Index() {
                   <FormLayout>
                     <Select
                       label="Use extension for minimum"
-                      options={['Cart Extension', 'Checkout Extension']}
+                      options={['Both', 'Cart Extension', 'Checkout Extension']}
                       value={errorMessages?.extensionMsg}
                       onChange={handleExtensionChange}
                     />
@@ -2036,8 +2036,8 @@ export default function Index() {
                         label="Error Message for Product Minimum limit"
                         value={errorMessages.productMinErrMsg}
                         onChange={(value) => { handleErrorMessages("productMinErrMsg", value) }}
-                        placeholder="You can't select less than {productMin} for this product."
-                        helpText="use {productMin} to include minimum limit"
+                        placeholder="You can't select less than {productMin} for {productName} ."
+                        helpText="use {productMin} to include minimum limit and {productName} to include product name"
                         autoComplete="off"
                       />
                       <br />
@@ -2045,8 +2045,8 @@ export default function Index() {
                         label="Error Message for Product Maximum limit"
                         value={errorMessages.productMaxErrMsg}
                         onChange={(value) => { handleErrorMessages("productMaxErrMsg", value) }}
-                        placeholder="Quantity limit reached, you can't select more than {productMax}."
-                        helpText="use {productMax} to include maximum limit"
+                        placeholder="Quantity limit reached, you can't select more than {productMax} for {productName}."
+                        helpText="use {productMax} to include maximum limit and {productName} to include product name"
                         autoComplete="off"
                       />
                       <br />
@@ -2054,8 +2054,8 @@ export default function Index() {
                         label="Error Message for Product Variant Minimum limit"
                         value={errorMessages.variantMinErrMsg}
                         onChange={(value) => { handleErrorMessages("variantMinErrMsg", value) }}
-                        placeholder="You can't select less than {productVariantMin} for this product variant."
-                        helpText="use {productVariantMin} to include minimum limit"
+                        placeholder="You can't select less than {productVariantMin} for this product variant {productName}."
+                        helpText="use {productVariantMin} to include minimum limit and {productName} to include product name"
                         autoComplete="off"
                       />
                       <br />
@@ -2063,8 +2063,8 @@ export default function Index() {
                         label="Error Message for Product Variant Maximum limit"
                         value={errorMessages.variantMaxErrMsg}
                         onChange={(value) => { handleErrorMessages("variantMaxErrMsg", value) }}
-                        placeholder="Quantity limit reached, you can't select more than {productVariantMax}."
-                        helpText="use {productVariantMax} to include maximum limit"
+                        placeholder="Quantity limit reached, you can't select more than {productVariantMax} for {productName}."
+                        helpText="use {productVariantMax} to include maximum limit and {productName} to include product name"
                         autoComplete="off"
                       />
                       <br />

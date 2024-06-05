@@ -20,7 +20,7 @@ function Extension() {
   const translate = useTranslate();
   const { extension, query } = useApi();
 
-  const priceLimit = 2000;
+ 
 
   const priceLimitField = useAppMetafields({
     type: "shop",
@@ -330,7 +330,7 @@ function Extension() {
 
   useBuyerJourneyIntercept(({ canBlockProgress }) => {
 
-    if (errorMsgs?.extensionMsg === "Checkout Extension") {
+    if (errorMsgs?.extensionMsg === "Checkout Extension" || errorMsgs?.extensionMsg === "Both") {
 
 
 
