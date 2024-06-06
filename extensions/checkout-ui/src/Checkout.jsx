@@ -20,7 +20,7 @@ function Extension() {
   const translate = useTranslate();
   const { extension, query } = useApi();
 
- 
+ //console.log('Extension in checkout UI is working...!');
 
   const priceLimitField = useAppMetafields({
     type: "shop",
@@ -325,6 +325,8 @@ function Extension() {
     //console.log('vendor errors in extension ', vendorErrors);
 
   }
+
+  //console.log('priceMin ', priceMin);
 
   useBuyerJourneyIntercept(({ canBlockProgress }) => {
 

@@ -44,7 +44,7 @@ export default function HelpPage() {
                                 <br/>
                                 <li>
                                     <strong>
-                                        Checkout Extension: Validates products and displays a message on the checkout UI. Only works for Shopify Plus store owners.
+                                        Checkout Extension: Validates products and displays a message on the checkout UI. Only works for Shopify Plus store owners. For Checkout Extension to work, customize checkout page by adding 'app blocks' before 'contact field' and after 'items in cart'. 
                                     </strong>
                                 </li>
                                 <br/>
