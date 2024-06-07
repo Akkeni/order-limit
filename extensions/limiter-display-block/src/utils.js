@@ -2,8 +2,9 @@ export async function updateLimiters(productId, limiters) {
 
     console.log('productId in update ', productId);
     console.log('limiters in updateLimiters ', limiters);
+    const productData = await getLimiters(productId);
 
-    const productValue = limiters?.productMin + ',' + limiters?.productMax + ',' + limiters?.vendorName + ',' + limiters?.vendorMin + ',' + limiters?.vendorMax;
+    const productValue = limiters?.productMin + ',' + limiters?.productMax + ',' + limiters?.vendorName + ',' + limiters?.vendorMin + ',' + limiters?.vendorMax + ',' + productData?.data?.product?.title;
     const categoryValue = limiters?.categoryName + ',' + limiters?.categoryMin + ',' + limiters?.categoryMax;
 
     console.log('productValue in update ', productValue);
@@ -111,6 +112,7 @@ export async function getLimiters(productId) {
     return await makeGraphQLQuery(
         `query Product($id: ID!) {
         product(id: $id) {
+          title
           category {
             name
           }

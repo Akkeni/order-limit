@@ -723,6 +723,7 @@ export async function action({ request, params }) {
               const productResponse = await admin.graphql(
                 `{
                   product(id: "${limiter.id}") {
+                    title
                     productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
                       value
                     }
@@ -733,12 +734,12 @@ export async function action({ request, params }) {
               const productData = await productResponse.json();
 
               let productLimitFieldValue = productData?.data?.product?.productLimitField?.value;
-              if (productLimitFieldValue?.value) {
+              if (productLimitFieldValue) {
                 let [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
-                value = limiter.value + ',' + vendorName + ',' + vendorMin + ',' + vendorMax;
+                value = limiter.value + ',' + vendorName + ',' + vendorMin + ',' + vendorMax + ',' + productData?.data?.product?.title;
               } else {
                 let vendor = '0,0,0';
-                value = limiter.value + ',' + vendor;
+                value = limiter.value + ',' + vendor + ',' + productData?.data?.product?.title;
               }
 
 
@@ -944,6 +945,7 @@ export async function action({ request, params }) {
               const productResponse = await admin.graphql(
                 `{
                   product(id: "${id}") {
+                    title
                     productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
                       value
                     }
@@ -954,12 +956,13 @@ export async function action({ request, params }) {
               const productData = await productResponse.json();
 
               let productLimitFieldValue = productData?.data?.product?.productLimitField?.value;
-              if (productLimitFieldValue?.value) {
+              console.log('productLimitFieldValue in actions vendor wise ', productLimitFieldValue);
+              if (productLimitFieldValue) {
                 let [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
-                value = productMin + ',' + productMax + ',' + limiter.id + ',' + limiter.value;
+                value = productMin + ',' + productMax + ',' + limiter.id + ',' + limiter.value + ',' + productData?.data?.product?.title;
               } else {
                 let product = '0,0';
-                value = product + ',' + limiter.id + ',' + limiter.value;
+                value = product + ',' + limiter.id + ',' + limiter.value + ',' + '0';
               }
 
 
@@ -2371,7 +2374,7 @@ export default function Index() {
                         </IndexTable.Row>
                         <IndexTable.Row>
                           <IndexTable.Cell>
-                            Total Cart Weight ({loaderData?.weightUnit})
+                            Total Cart Weight (KILOGRAMS)
                           </IndexTable.Cell>
                           <IndexTable.Cell>
                             <FormLayout>
@@ -2423,7 +2426,7 @@ export default function Index() {
                         label="Error Message for Weight Minimum limit"
                         value={errorMessages.weightMinErrMsg}
                         onChange={(value) => { handleErrorMessages("weightMinErrMsg", value) }}
-                        placeholder="Minmum weight {weightMin} is required for checkout"
+                        placeholder="Minmum weight {weightMin} kilograms is required for checkout"
                         helpText="use {weightMin} to include minimum weight"
                         autoComplete="off"
                       />
@@ -2432,7 +2435,7 @@ export default function Index() {
                         label="Error Message for Weight Maximum limit"
                         value={errorMessages.weightMaxErrMsg}
                         onChange={(value) => { handleErrorMessages("weightMaxErrMsg", value) }}
-                        placeholder="Cart exceeds weight {weightMax} please remove some items"
+                        placeholder="Cart exceeds weight {weightMax} kilograms please remove some items"
                         helpText="use {weightMax} to include maximum weight"
                         autoComplete="off"
                       />
