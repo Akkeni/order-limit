@@ -84,7 +84,7 @@ export async function getAllProductsData(graphql) {
   while (true) {
     let productResponse = await graphql(`
           query GetProductsPaginated($after: String) {
-            products(first: 10, after: $after) {
+            products(first: 250, after: $after) {
               edges {
                 cursor
                 node {
