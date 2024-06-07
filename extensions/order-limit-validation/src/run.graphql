@@ -10,14 +10,14 @@ query RunInput {
       merchandise {
         __typename
         ... on ProductVariant {
-          
+
           weight
+          weightUnit
           productVariantLimitField: metafield(namespace: "productLimit", key: "productLimit") {
               value
           }
          
           product {
-            title
             categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
               value
             }

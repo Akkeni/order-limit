@@ -101,7 +101,16 @@ export function run(input) {
 
       cartLines.forEach(line => {
         const quantity = Number(line.quantity);
-        const weight = Number(merchandise?.weight);
+        let weight = Number(merchandise?.weight);
+        const weightUnit = merchandise?.weightUnit;
+        //converting into Kilograms
+        if(weightUnit == "POUNDS" || weightUnit.toLowerCase() == "pounds") {
+          weight = weight * 0.453592;
+        } else if (weightUnit == "OUNCES" || weightUnit.toLowerCase() == "ounces") {
+          weight = weight * 0.0283495231;
+        } else if (weightUnit == "GRAMS" || weightUnit.toLowerCase() == "grams") {
+          weight = weight * 0.001;
+        }
         if (weight) {
           totalWeight += quantity * weight;
         }
@@ -119,7 +128,7 @@ export function run(input) {
           errors.push({
             localizedMessage: errorMessagesFieldValue?.weightMinErrMsg
               ? errorMessagesFieldValue.weightMinErrMsg.replace("{weightMin}", weightMin)
-              : `Minmum weight ${weightMin} is required for checkout`,
+              : `Minmum weight ${weightMin} kilograms is required for checkout`,
             target: "cart",
           });
 
@@ -128,7 +137,7 @@ export function run(input) {
           errors.push({
             localizedMessage: errorMessagesFieldValue?.weightMaxErrMsg
               ? errorMessagesFieldValue.weightMaxErrMsg.replace("{weightMax}", weightMax)
-              : `Cart exceeds weight ${weightMax} please remove some items`,
+              : `Cart exceeds weight ${weightMax} kilograms please remove some items`,
             target: "cart",
           });
 
@@ -249,15 +258,15 @@ export function run(input) {
       // Check product limit
       if (merchandise.productVariantLimitField) {
 
-        const productName = product?.title;
+        //const productName = product?.title;
         const [productVariantMin, productVariantMax] = merchandise.productVariantLimitField.value.split(',').map(Number);
 
         if (quantity > productVariantMax && productVariantMax !== 0) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.variantMaxErrMsg
-              ? errorMessagesFieldValue.variantMaxErrMsg.replace("{productVariantMax}", productVariantMax).replace("{productName}", productName)
-              : `Quantity limit reached, you can't select more than ${productVariantMax} for ${productName}.`,
+              ? errorMessagesFieldValue.variantMaxErrMsg.replace("{productVariantMax}", productVariantMax).replace(" {productName}", '.')
+              : `Quantity limit reached, you can't select more than ${productVariantMax}.`,
             target: "cart",
           });
 
@@ -265,8 +274,8 @@ export function run(input) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.variantMinErrMsg
-              ? errorMessagesFieldValue.variantMinErrMsg.replace("{productVariantMin}", productVariantMin).replace("{productName}", productName)
-              : `You can't select less than ${productVariantMin} for this product variant ${productName}.`,
+              ? errorMessagesFieldValue.variantMinErrMsg.replace("{productVariantMin}", productVariantMin).replace(" {productName}", '.')
+              : `You can't select less than ${productVariantMin} for this product variant`,
             target: "cart",
           });
 
@@ -274,9 +283,10 @@ export function run(input) {
       } else if (product.productLimitField) {
 
         
-        const productName = product?.title;
-        console.log('productName ', productName);
+        //const productName = product?.title;
+        //console.log('productName ', productName);
         const [productMin, productMax] = product.productLimitField.value.split(',').map(Number);
+        const [productM, productMa, vendorName, vendorMin, vendorMax, productName] = product.productLimitField.value.split(',');
 
         if (quantity > productMax && productMax !== 0) {
 

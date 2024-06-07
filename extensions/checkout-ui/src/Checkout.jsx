@@ -117,6 +117,7 @@ function Extension() {
               node {
                 id
                 weight
+                weightUnit
               }
             }
           }
@@ -128,8 +129,17 @@ function Extension() {
       //console.log('variant from query ', variant);
       if (variant) {
         //console.log('weight of variant ', Number(variant.node.weight));
-        totalWeight = totalWeight + Number(variant.node.weight);
-        //console.log('totalWeight in useeffect ', totalWeight);
+        let weight = Number(variant.node.weight);
+        const weightUnit = variant.node?.weightUnit;
+        if(weightUnit == "POUNDS" || weightUnit.toLowerCase() == "pounds") {
+          weight = weight * 0.453592;
+        } else if (weightUnit == "OUNCES" || weightUnit.toLowerCase() == "ounces") {
+          weight = weight * 0.0283495231;
+        } else if (weightUnit == "GRAMS" || weightUnit.toLowerCase() == "grams") {
+          weight = weight * 0.001;
+        }
+        totalWeight = totalWeight + weight;
+        console.log('totalWeight in useeffect ', totalWeight);
       }
     }).catch((error) => {
       console.error(error);
@@ -378,7 +388,7 @@ function Extension() {
               message:
                 errorMsgs?.weightMinErrMsg
                   ? errorMsgs.weightMinErrMsg.replace("{weightMin}", weightMin)
-                  : `Minmum weight ${weightMin} is required for checkout`,
+                  : `Minmum weight ${weightMin} kilograms is required for checkout`,
             },
           ],
         };
