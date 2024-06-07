@@ -33,8 +33,6 @@ function App() {
     categoryMin: 0,
     categoryMax: 0,
   });
-  //const [categoryName, setCategoryName] = useState('');
-  //const [vendorName, setVendorName] = useState('');
 
   const [loading, setLoading] = useState(true);
   const productId = data.selected[0].id;
@@ -42,8 +40,11 @@ function App() {
 
   useEffect(() => {
     (async function getProductInfo() {
-      // Load the product's metafield of type issues
+
+      //fetch the product metafields
       const productData = await getLimiters(productId);
+
+      //category limits
       if (productData?.data?.product?.category?.name) {
 
         //setCategoryName(productData?.data?.product?.category?.name);
@@ -52,6 +53,7 @@ function App() {
           categoryName: productData?.data?.product?.category?.name
         }));
         console.log('category limit value ', productData?.data?.product?.categoryLimitField?.value);
+
         if (productData?.data?.product?.categoryLimitField?.value) {
 
           const [categoryName, categoryMin, categoryMax] = productData?.data?.product?.categoryLimitField?.value.split(',');
@@ -64,9 +66,10 @@ function App() {
 
         }
       }
+
+      //vendor limits
       if (productData?.data?.product?.vendor) {
 
-        //setVendorName(productData?.data?.product?.vendor);
         setLimiters(prevState => ({
           ...prevState,
           vendorName: productData?.data?.product?.vendor
@@ -80,7 +83,8 @@ function App() {
           }));
         }
       }
-      setLoading(false);
+
+      //product limits
       if (productData?.data?.product?.metafield?.value) {
         const [productMin, productMax, vendorName, vendorMin, vendorMax] = productData?.data?.product?.metafield?.value.split(',');
 
@@ -91,6 +95,9 @@ function App() {
         }));
 
       }
+
+      setLoading(false);
+
     })();
   }, [productId]);
 
@@ -103,7 +110,11 @@ function App() {
   }
 
   const handleSave = async () => {
-    await updateLimiters(productId, limiters);
+    setLoading(true);
+    const result = await updateLimiters(productId, limiters);
+    if(result?.success) {
+      setLoading(false);
+    }
   }
 
   console.log('categoryMin ' + limiters?.categoryMin + 'categoryMax ' + limiters?.categoryMax);
@@ -111,88 +122,97 @@ function App() {
 
   return (
     // The AdminBlock component provides an API for setting the title of the Block extension wrapper.
-    <AdminBlock title="Limiters applied to this product">
-      <BlockStack gap>
-        {/*<Text fontWeight="bold">{i18n.translate('welcome', {TARGET})}</Text>*/}
-        <Box>
-          <InlineStack gap>
-            <NumberField
-              value={limiters?.productMin}
-              label="Product Min Limit"
-              type="number"
-              onChange={(value) => { handleLimiters(value, 'productMin') }}
-            />
-            <NumberField
-              value={limiters?.productMax}
-              label="Product Max Limit"
-              type="number"
-              onChange={(value) => { handleLimiters(value, 'productMax') }}
-            />
-          </InlineStack>
-        </Box>
+    <AdminBlock title="Order Wise Limit app limiters">
 
+      {loading && (
+        <Text>
+          Loading...
+        </Text>
+      )}
 
+      {!loading && (
+        <BlockStack gap>
 
-        {limiters?.categoryName && (
-          <>
-            <Divider />
-            <Box>
-              <BlockStack blockGap='small'>
-                <Heading size="6">
-                  Category Name: {limiters?.categoryName}
-                </Heading>
-
-                <InlineStack gap>
-                  <NumberField
-                    value={limiters.categoryMin}
-                    label="Category Min Limit"
-                    type="number"
-                    onChange={(value) => { handleLimiters(value, 'categoryMin') }}
-
-                  />
-                  <NumberField
-                    value={limiters.categoryMax}
-                    label="Category Max Limit"
-                    type="number"
-                    onChange={(value) => { handleLimiters(value, 'categoryMax') }}
-
-                  />
-                </InlineStack>
-              </BlockStack>
-            </Box>
-          </>
-        )}
-
-        <Divider />
-
-        <Box>
-          <BlockStack blockGap='small'>
-            <Heading size="6">
-              Vendor Name: {limiters?.vendorName}
-            </Heading>
-
+          <Box>
             <InlineStack gap>
-
               <NumberField
-                value={limiters?.vendorMin}
-                label="vendor Min Limit"
+                value={limiters?.productMin}
+                label="Product Min Limit"
                 type="number"
-                onChange={(value) => { handleLimiters(value, 'vendorMin') }}
-
+                onChange={(value) => { handleLimiters(value, 'productMin') }}
               />
               <NumberField
-                value={limiters?.vendorMax}
-                label="vendor Max Limit"
+                value={limiters?.productMax}
+                label="Product Max Limit"
                 type="number"
-                onChange={(value) => { handleLimiters(value, 'vendorMax') }}
+                onChange={(value) => { handleLimiters(value, 'productMax') }}
               />
             </InlineStack>
-          </BlockStack>
-        </Box>
-        <InlineStack inlineAlignment="end" gap="none">
-          <Button onClick={handleSave} variant='primary'>Save</Button>
-        </InlineStack>
-      </BlockStack>
+          </Box>
+
+
+
+          {limiters?.categoryName && (
+            <>
+              <Divider />
+              <Box>
+                <BlockStack blockGap='small'>
+                  <Heading size="6">
+                    Category Name: {limiters?.categoryName}
+                  </Heading>
+
+                  <InlineStack gap>
+                    <NumberField
+                      value={limiters.categoryMin}
+                      label="Category Min Limit"
+                      type="number"
+                      onChange={(value) => { handleLimiters(value, 'categoryMin') }}
+
+                    />
+                    <NumberField
+                      value={limiters.categoryMax}
+                      label="Category Max Limit"
+                      type="number"
+                      onChange={(value) => { handleLimiters(value, 'categoryMax') }}
+
+                    />
+                  </InlineStack>
+                </BlockStack>
+              </Box>
+            </>
+          )}
+
+          <Divider />
+
+          <Box>
+            <BlockStack blockGap='small'>
+              <Heading size="6">
+                Vendor Name: {limiters?.vendorName}
+              </Heading>
+
+              <InlineStack gap>
+
+                <NumberField
+                  value={limiters?.vendorMin}
+                  label="vendor Min Limit"
+                  type="number"
+                  onChange={(value) => { handleLimiters(value, 'vendorMin') }}
+
+                />
+                <NumberField
+                  value={limiters?.vendorMax}
+                  label="vendor Max Limit"
+                  type="number"
+                  onChange={(value) => { handleLimiters(value, 'vendorMax') }}
+                />
+              </InlineStack>
+            </BlockStack>
+          </Box>
+          <InlineStack inlineAlignment="end" gap="none">
+            <Button onClick={handleSave} variant='primary'>Save</Button>
+          </InlineStack>
+        </BlockStack>
+      )}
 
     </AdminBlock>
   );
