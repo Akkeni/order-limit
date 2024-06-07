@@ -74,13 +74,15 @@ function App() {
           ...prevState,
           vendorName: productData?.data?.product?.vendor
         }));
-        const [productMin, productMax, vendorName, vendorMin, vendorMax] = productData?.data?.product?.metafield?.value.split(',');
-        if (isNaN(vendorName)) {
-          setLimiters(prevState => ({
-            ...prevState,
-            ['vendorMin']: vendorMin,
-            ['vendorMax']: vendorMax
-          }));
+        if(productData?.data?.product?.metafield?.value) {
+          const [productMin, productMax, vendorName, vendorMin, vendorMax] = productData?.data?.product?.metafield?.value.split(',');
+          if (isNaN(vendorName)) {
+            setLimiters(prevState => ({
+              ...prevState,
+              ['vendorMin']: vendorMin,
+              ['vendorMax']: vendorMax
+            }));
+          }
         }
       }
 
