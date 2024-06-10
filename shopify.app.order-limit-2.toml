@@ -3,7 +3,7 @@
 client_id = "495b7af9a29dd8a1c2b0f9fb4eed45fa"
 name = "order-limit-2"
 handle = "order-limit-18"
-application_url = "https://famous-dm-cheese-happened.trycloudflare.com"
+application_url = "https://order-limit.onrender.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_orders,read_products,read_publications,write_products"
 
 [auth]
 redirect_urls = [
-  "https://famous-dm-cheese-happened.trycloudflare.com/auth/callback",
-  "https://famous-dm-cheese-happened.trycloudflare.com/auth/shopify/callback",
-  "https://famous-dm-cheese-happened.trycloudflare.com/api/auth/callback"
+  "https://order-limit.onrender.com/auth/callback",
+  "https://order-limit.onrender.com/auth/shopify/callback",
+  "https://order-limit.onrender.com/api/auth/callback"
 ]
 
 [webhooks]

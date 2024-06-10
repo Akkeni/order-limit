@@ -23,6 +23,7 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/help">Help page</Link>
+        <Link to="/app/pricing">Plan page</Link>
       </ui-nav-menu>
       <Outlet />
     </AppProvider>

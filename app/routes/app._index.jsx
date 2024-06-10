@@ -36,11 +36,19 @@ import React from 'react';
 import { getAllProductsData } from '../models/orderLimit.server';
 import { useAppBridge } from '@shopify/app-bridge-react';
 import '../resources/style.css';
+import {getSubscriptionStatus} from '../models/Subscription.server';
 
 
-//fetches the category data
+
+//fetches the necessary data
 export async function loader({ request }) {
-  const { admin, session } = await authenticate.admin(request);
+  const { admin, billing, session } = await authenticate.admin(request);
+
+  const subscription = await getSubscriptionStatus(admin.graphql);
+  console.log(subscription);
+  const activeSubscriptions = subscription.data.app.installation.activeSubscriptions;
+  console.log(activeSubscriptions);
+
 
   const orderLimit = await db.order_Limit.findFirst({
     where: {
@@ -187,7 +195,9 @@ export async function loader({ request }) {
 
     //console.log('shop id in loader', shopId);
 
-
+    /*if(activeSubscriptions.length < 1) {
+      return redirect('/app/pricing');
+    }*/
 
 
     return json({
@@ -207,7 +217,9 @@ export async function loader({ request }) {
       needsConfirmation,
       allCollectionsData,
       vendorsData,
+      activeSubscriptions,
     });
+  
 
   } catch (error) {
     console.error('Error in loader:', error);
@@ -1146,7 +1158,14 @@ export default function Index() {
   const navigate = useNavigate();
   const submit = useSubmit();
 
+  const activeSubscriptions = loaderData?.activeSubscriptions ? loaderData.activeSubscriptions : [];
 
+  useEffect(() => {
+    if(activeSubscriptions.length < 1) {
+      navigate('/app/pricing');
+    }
+  }, [loaderData]);
+  
 
 
   //const categoryLimits = loaderData?.categoryLimits;
