@@ -28,7 +28,8 @@ function App() {
   const [limiters, setLimiters] = useState({
     collectionName: '',
     collectionMin: 0,
-    collectionMax: 0
+    collectionMax: 0,
+    plan: '',
   });
   const [loading, setLoading] = useState(true);
 
@@ -44,6 +45,7 @@ function App() {
           collectionName: collectionData?.collectionName ? collectionData?.collectionName : '',
           collectionMin: collectionData?.collectionMin ? Number(collectionData?.collectionMin) : 0,
           collectionMax: collectionData?.collectionMax ? Number(collectionData?.collectionMax) : 0,
+          plan: collectionData?.plan ? collectionData?.plan : false
         }));
         setLoading(false);
       }
@@ -66,7 +68,7 @@ function App() {
     }
   }
 
-  console.log('collectionMin ' + limiters?.collectionMin + 'categoryMax ' + limiters?.collectionMax);
+  console.log('collectionMin ' + limiters?.collectionMin + 'collectionMax ' + limiters?.collectionMax + " plan " + limiters?.plan);
 
 
   return (
@@ -79,7 +81,13 @@ function App() {
         </Text>
       )}
 
-      { !loading && (
+      { !loading && !limiters?.plan && (
+        <Text>
+          Please select a plan to use Collection wise limit.
+        </Text>
+      )}
+
+      { !loading && limiters?.plan && (
         <Box>
           <BlockStack gap>
             <Heading size="6">

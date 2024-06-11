@@ -130,6 +130,27 @@ export async function getLimiters(productId) {
     );
 }
 
+export async function getPlan() {
+  let plan = false;
+    
+    const planDetails = await makeGraphQLQuery(`{
+      currentAppInstallation {
+        id
+        planMetaField: metafield(namespace:"hasPlan", key: "hasPlan") {
+          value
+        }
+    
+      }
+    }`,{});
+    console.log('planDetails value ', planDetails?.data?.currentAppInstallation?.planMetaField?.value);
+  
+    if(planDetails?.data?.currentAppInstallation?.planMetaField?.value == "true") {
+      plan = true;
+      console.log('plan value in utils ', plan);
+      return plan;
+    }
+}
+
 async function makeGraphQLQuery(query, variables) {
     const graphQLQuery = {
         query,

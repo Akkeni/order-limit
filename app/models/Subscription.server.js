@@ -26,3 +26,49 @@ export async function getSubscriptionStatus(graphql) {
     return res;
 }
 
+export async function createSubscriptionMetafield(graphql, value) {
+  const appIdQuery = await graphql(`
+    #graphql
+    query {
+      currentAppInstallation {
+        id
+      }
+    }
+  `);
+
+  const appIdQueryData = await appIdQuery.json();
+  const appInstallationID = appIdQueryData.data.currentAppInstallation.id;
+
+  const appMetafield = await graphql(
+    `
+      #graphql
+      mutation CreateAppDataMetafield($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) {
+          metafields {
+            id
+            namespace
+            key
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `,
+    {
+      variables: {
+        metafields: {
+          namespace: "hasPlan",
+          key: "hasPlan",
+          type: "boolean",
+          value: value,
+          ownerId: appInstallationID,
+        },
+      },
+    },
+  );
+
+  const data = await appMetafield.json();
+  return;
+}

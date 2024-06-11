@@ -22,8 +22,8 @@ export default function App() {
         <Link to="/app" rel="home">
           Home
         </Link>
-        <Link to="/app/help">Help page</Link>
-        <Link to="/app/pricing">Plan page</Link>
+        <Link to="/app/help">Help</Link>
+        <Link to="/app/pricing">Plan</Link>
       </ui-nav-menu>
       <Outlet />
     </AppProvider>

@@ -73,9 +73,28 @@ export async function updateLimiters(collectionId, limiters) {
 export async function getLimiters(collectionId) {
   // This example uses metafields to store the data. For more information, refer to https://shopify.dev/docs/apps/custom-data/metafields.
 
+  const limiters = {};
+
+  const planDetails = await makeGraphQLQuery(`{
+    currentAppInstallation {
+      id
+      planMetaField: metafield(namespace:"hasPlan", key: "hasPlan") {
+        value
+      }
+  
+    }
+  }`,{});
+
+  if(planDetails?.data?.currentAppInstallation?.planMetaField?.value == "false") {
+    limiters['plan'] = false;
+    console.log('plan value in utils ', limiters?.plan);
+    return limiters;
+  } else {
+    limiters['plan'] = true;
+  }
 
   const allProductsData = await getAllProductsData();
-  const limiters = {};
+  
 
   console.log('allProductsData in getLimiters ', allProductsData);
 

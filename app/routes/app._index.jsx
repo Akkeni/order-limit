@@ -11,8 +11,7 @@ import {
   Page,
   Button,
   ButtonGroup,
-  FullscreenBar,
-  DataTable,
+  Link,
   IndexTable,
   Popover,
   ActionList,
@@ -33,10 +32,10 @@ import { ImageIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, L
 import { authenticate } from '../shopify.server';
 import db from '../db.server';
 import React from 'react';
-import { getAllProductsData } from '../models/orderLimit.server';
+import { getAllProductsData, deleteNonPlanData } from '../models/orderLimit.server';
 import { useAppBridge } from '@shopify/app-bridge-react';
 import '../resources/style.css';
-import {getSubscriptionStatus} from '../models/Subscription.server';
+import {getSubscriptionStatus, createSubscriptionMetafield} from '../models/Subscription.server';
 
 
 
@@ -47,7 +46,15 @@ export async function loader({ request }) {
   const subscription = await getSubscriptionStatus(admin.graphql);
   console.log(subscription);
   const activeSubscriptions = subscription.data.app.installation.activeSubscriptions;
-  console.log(activeSubscriptions);
+  console.log(activeSubscriptions.length);
+
+  if (activeSubscriptions.length < 1) {
+    await createSubscriptionMetafield(admin.graphql, "false");
+  } else {
+    await createSubscriptionMetafield(admin.graphql, "true");
+  }
+  
+
 
 
   const orderLimit = await db.order_Limit.findFirst({
@@ -71,6 +78,10 @@ export async function loader({ request }) {
 
 
     let allProductsData = await getAllProductsData(admin.graphql);
+
+    if (activeSubscriptions.length < 1) {
+      await deleteNonPlanData(admin.graphql, allProductsData);
+    }
 
     const collectionResponse = await admin.graphql(`query AllCollections {
       collections(first: 250) {
@@ -1160,11 +1171,11 @@ export default function Index() {
 
   const activeSubscriptions = loaderData?.activeSubscriptions ? loaderData.activeSubscriptions : [];
 
-  useEffect(() => {
+  /*useEffect(() => {
     if(activeSubscriptions.length < 1) {
       navigate('/app/pricing');
     }
-  }, [loaderData]);
+  }, [loaderData]);*/
   
 
 
@@ -1191,7 +1202,7 @@ export default function Index() {
   const shopify = useAppBridge();
   const [searchValue, setSearchValue] = useState('');
   const [success, setSuccess] = useState(false);
-  const [tagValue, setTagValue] = useState('General');
+  const [tagValue, setTagValue] = useState('Store Wise');
   const [quantityLimit, setQuantityLimit] = useState([]);
   const [variantQuantityLimits, setVariantQuantityLimits] = useState({});
   //const submit = useSubmit();
@@ -1224,6 +1235,8 @@ export default function Index() {
   });
 
   const collectionIds = [];
+
+  const tagOptions = (activeSubscriptions.length < 1) ? [ 'Store Wise', 'Product Wise', 'Vendor Wise'] : [ 'Store Wise', 'General', 'Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise']
 
   /*//to populate the category arrays
   for (const collection of allCollectionsData) {
@@ -1806,6 +1819,14 @@ export default function Index() {
         <Page fullWidth={true}>
           <ui-title-bar title="Order Wise Limit"></ui-title-bar>
 
+          {(activeSubscriptions.length < 1) && (
+            <Banner tone="critical">
+              <p>
+                You don't have any plan. Please select any paid plan to unlock more features from here. <Link url="/app/pricing"><span style={{ color: "blue" }}>Plan selection</span></Link>
+              </p>
+            </Banner>
+          )}
+          <br/>
           {/* Alert message */}
           {success && (
             <div>
@@ -1832,7 +1853,7 @@ export default function Index() {
                   <FormLayout>
                     <Select
                       label="Limit By"
-                      options={['General', 'Store Wise', 'Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise']}
+                      options={tagOptions}
                       value={tagValue}
                       onChange={handleTagValueChange}
                     />

@@ -184,3 +184,79 @@ export async function getAllProductsData(graphql) {
 
   return allProductsData;
 } 
+
+export async function deleteNonPlanData(graphql, allProductsData) {
+    //console.log('deletePreviousDataValue in if', formData.get('deletePreviousData'));
+    
+    const deleteMetafield = async (metafieldId) => {
+      if (metafieldId) {
+        await graphql(
+          `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+            metafieldDelete(input: $input) {
+              userErrors {
+                field
+                message
+              }
+            }
+          }`,
+          {
+            variables: {
+              input: {
+                id: metafieldId
+              }
+            }
+          }
+        );
+      }
+    };
+
+    const fields = [
+      'categoryLimitField',
+      'collectionLimitField'
+    ];
+
+    for (let product of allProductsData) {
+      for (let field of fields) {
+        // Check and delete metafields at the product level
+        let productMetafieldId = product.node[field]?.id;
+        await deleteMetafield(productMetafieldId);
+      }
+    }
+
+    const response = await graphql(
+      `{
+        shop {
+          id
+          name
+          currencyCode
+          weightUnit
+          priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") {
+            id
+            value
+          }
+          weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") {
+            id
+            value
+          }
+        }
+      }
+    `);
+
+
+    const data = await response.json();
+
+    const storeFieldIds = [
+      data?.data?.shop?.priceLimitField?.id,
+      data?.data?.shop?.weightLimitField?.id,
+    ]
+
+    for (const id of storeFieldIds) {
+      if (id) {
+        await deleteMetafield(id);
+      }
+    }
+
+    //return redirect('/app');
+    return null;
+
+}

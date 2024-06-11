@@ -43,7 +43,7 @@ export async function loader({ request }) {
         // If the shop does not have an active plan, return an empty plan object
         if (error.message === 'No active plan') {
             console.log('Shop does not have any active plans.');
-            return json({ billing, plan: { name: "No plan" } });
+            return json({ billing, plan: { name: "Free Subscription" } });
         }
         // If there is another error, rethrow it
         throw error;
@@ -52,6 +52,19 @@ export async function loader({ request }) {
 
 
 let planData = [
+    {
+        title: "Free",
+        description: "Free plan",
+        price: "0",
+        action: "Subscribe",
+        name: "Free Subscription",
+        url: "/app",
+        features: [
+            "Store Wise Limit",
+            "Product Wise Limit",
+            "Vendor Wise Limit"
+        ]
+    },
     {
         title: "Monthly",
         description: "Monthly plan",
@@ -95,20 +108,20 @@ export default function PricingPage() {
         <Page>
             <ui-title-bar title="Pricing" />
 
-            {plan.name == "No plan" && (
+            {plan.name == "Free Subscription" && (
                 <Banner title="Select a plan" status="info">
                     <p>
-                        You're currently have no plan. Select a plan.
+                        You're currently on free plan. Select a plan.
                     </p>
                 </Banner>
             )}
 
-            {plan.name != "No plan" && (
+            {plan.name != "Free Subscription" && (
                 <CalloutCard
                     title="Cancel your plan"
                     illustration="https://cdn.shopify.com/s/files/1/0583/6465/7734/files/tag.png?v=1705280535"
                     primaryAction={{
-                        content: plan.name != "No plan" ? 'Cancel Plan' : 'Select a Plan',
+                        content: plan.name != "Free Subscription" ? 'Cancel Plan' : 'Select a Plan',
                         url: plan.name === "Monthly Subscription" ? '/app/cancel/monthly' : '/app/cancel/annualy',
                     }}
                 >
@@ -122,9 +135,9 @@ export default function PricingPage() {
                             You're currently on Annual plan.
                         </p>
                     )}
-                    {plan.name == "No plan" && (
+                    {plan.name == "Free plan" && (
                         <p>
-                            You're currently have no plan. Select a plan.
+                            You're currently on Free plan. Select any paid plan to access other limiters.
                         </p>
                     )}
                 </CalloutCard>
@@ -136,8 +149,8 @@ export default function PricingPage() {
             <Grid>
 
                 {planData.map((plan_item, index) => (
-                    <Grid.Cell key={index} columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
-                        <Card background={plan_item.name == plan.name ? "bg-surface-success" : "bg-surface"} sectioned>
+                    <Grid.Cell key={index} columnSpan={{ xs: 6, sm: 6, md: 4, lg: 4, xl: 4 }}>
+                        <Card background={(plan_item.name == plan.name) ? "bg-surface-success" : "bg-surface"} sectioned>
                             <Box padding="400">
                                 <Text as="h3" variant="headingMd">
                                     {plan_item.title}
@@ -172,11 +185,11 @@ export default function PricingPage() {
                                     <Divider />
                                 </div>
 
-
-                                <Button onClick={() => navigate(plan_item.url)} disabled={plan.name == plan_item.name}>
-                                    {plan_item.action}
-                                </Button>
-
+                                {(plan_item.name != 'Free Subscription') && (
+                                    <Button onClick={() => navigate(plan_item.url)} disabled={(plan_item.name == plan.name || plan_item.name == 'Free Subscription')}>
+                                        {plan_item.action}
+                                    </Button>
+                                )}
 
                                 {/*plan_item.name == "Monthly subscription" ?
                                     plan.name != "Monthly subscription" ? (

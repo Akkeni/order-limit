@@ -13,7 +13,7 @@ import {
   Button,
 } from '@shopify/ui-extensions-react/admin';
 import { useEffect, useMemo, useState } from "react";
-import { getLimiters, updateLimiters } from "./utils";
+import { getLimiters, getPlan, updateLimiters } from "./utils";
 
 // The target used here must match the target used in the extension's toml file (./shopify.extension.toml)
 const TARGET = 'admin.product-details.block.render';
@@ -32,18 +32,24 @@ function App() {
     categoryName: '',
     categoryMin: 0,
     categoryMax: 0,
+    plan: '',
   });
 
   const [loading, setLoading] = useState(true);
   const productId = data.selected[0].id;
   console.log({ data });
 
+
   useEffect(() => {
     (async function getProductInfo() {
 
       //fetch the product metafields
       const productData = await getLimiters(productId);
-
+      const plan = await getPlan();
+      setLimiters(prevState => ({
+        ...prevState,
+        plan: plan
+      }));
       //category limits
       if (productData?.data?.product?.category?.name) {
 
@@ -74,7 +80,7 @@ function App() {
           ...prevState,
           vendorName: productData?.data?.product?.vendor
         }));
-        if(productData?.data?.product?.metafield?.value) {
+        if (productData?.data?.product?.metafield?.value) {
           const [productMin, productMax, vendorName, vendorMin, vendorMax] = productData?.data?.product?.metafield?.value.split(',');
           if (isNaN(vendorName)) {
             setLimiters(prevState => ({
@@ -114,12 +120,12 @@ function App() {
   const handleSave = async () => {
     setLoading(true);
     const result = await updateLimiters(productId, limiters);
-    if(result?.success) {
+    if (result?.success) {
       setLoading(false);
     }
   }
 
-  console.log('categoryMin ' + limiters?.categoryMin + 'categoryMax ' + limiters?.categoryMax);
+  console.log('categoryMin ' + limiters?.categoryMin + 'categoryMax ' + limiters?.categoryMax + " plan" + limiters?.plan);
 
 
   return (
@@ -152,38 +158,6 @@ function App() {
             </InlineStack>
           </Box>
 
-
-
-          {limiters?.categoryName && (
-            <>
-              <Divider />
-              <Box>
-                <BlockStack blockGap='small'>
-                  <Heading size="6">
-                    Category Name: {limiters?.categoryName}
-                  </Heading>
-
-                  <InlineStack gap>
-                    <NumberField
-                      value={limiters.categoryMin}
-                      label="Category Min Limit"
-                      type="number"
-                      onChange={(value) => { handleLimiters(value, 'categoryMin') }}
-
-                    />
-                    <NumberField
-                      value={limiters.categoryMax}
-                      label="Category Max Limit"
-                      type="number"
-                      onChange={(value) => { handleLimiters(value, 'categoryMax') }}
-
-                    />
-                  </InlineStack>
-                </BlockStack>
-              </Box>
-            </>
-          )}
-
           <Divider />
 
           <Box>
@@ -210,6 +184,47 @@ function App() {
               </InlineStack>
             </BlockStack>
           </Box>
+
+          {limiters?.plan ? (
+            <>
+              {limiters?.categoryName && (
+                <>
+                  <Divider />
+                  <Box>
+                    <BlockStack blockGap='small'>
+                      <Heading size="6">
+                        Category Name: {limiters?.categoryName}
+                      </Heading>
+
+                      <InlineStack gap>
+                        <NumberField
+                          value={limiters.categoryMin}
+                          label="Category Min Limit"
+                          type="number"
+                          onChange={(value) => { handleLimiters(value, 'categoryMin') }}
+
+                        />
+                        <NumberField
+                          value={limiters.categoryMax}
+                          label="Category Max Limit"
+                          type="number"
+                          onChange={(value) => { handleLimiters(value, 'categoryMax') }}
+
+                        />
+                      </InlineStack>
+                    </BlockStack>
+                  </Box>
+                </>
+              )}
+            </>
+          ) : (
+            <Text>
+              Please select a plan to use Category wise limits.
+            </Text>
+          )}
+
+          
+
           <InlineStack inlineAlignment="end" gap="none">
             <Button onClick={handleSave} variant='primary'>Save</Button>
           </InlineStack>
