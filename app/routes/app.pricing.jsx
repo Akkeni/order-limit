@@ -11,6 +11,8 @@ import {
     ExceptionList,
     Banner,
     InlineStack,
+    Spinner,
+    Link,
 } from "@shopify/polaris";
 import { json } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
@@ -19,6 +21,7 @@ import { authenticate, MONTHLY_PLAN, ANNUAL_PLAN } from "../shopify.server";
 import {
     CheckCircleIcon
 } from '@shopify/polaris-icons'
+import { useState } from "react";
 
 export async function loader({ request }) {
     const { admin, billing } = await authenticate.admin(request);
@@ -102,11 +105,46 @@ let planData = [
 export default function PricingPage() {
     const { plan } = useLoaderData();
     const navigate = useNavigate();
+    const [isLoading, setIsLoading] = useState(false);
 
     console.log('plan', plan);
+    if (isLoading) {
+        //console.log('isSaving ', isSaving);
+        return (
+          <div style={{
+            position: "fixed",
+            top: "0",
+            left: "0",
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            zIndex: "999",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center"
+          }}>
+            <div style={{
+              backgroundColor: "#fff",
+              padding: "20px",
+              borderRadius: "5px",
+              boxShadow: "0 0 10px rgba(0, 0, 0, 0.5)",
+              fontSize: "18px",
+            }}>
+              <Spinner accessibilityLabel="Saving" size="large" />
+            </div>
+          </div>
+        );
+    }
     return (
         <Page>
             <ui-title-bar title="Pricing" />
+            <InlineStack gap ="400">
+                <Link url='/app' onClick={() => setIsLoading(true)}>Home</Link>
+                <Link url='/app/help' onClick={() => setIsLoading(true)}>Help</Link>
+            </InlineStack>
+            
+            <br/>
+            <br/>
 
             {plan.name == "Free Subscription" && (
                 <Banner title="Select a plan" status="info">
@@ -123,6 +161,7 @@ export default function PricingPage() {
                     primaryAction={{
                         content: plan.name != "Free Subscription" ? 'Cancel Plan' : 'Select a Plan',
                         url: plan.name === "Monthly Subscription" ? '/app/cancel/monthly' : '/app/cancel/annualy',
+                        onAction: () => setIsLoading(true)
                     }}
                 >
                     {plan.name == "Monthly Subscription" && (
@@ -186,7 +225,7 @@ export default function PricingPage() {
                                 </div>
 
                                 {(plan_item.name != 'Free Subscription') && (
-                                    <Button onClick={() => navigate(plan_item.url)} disabled={(plan_item.name == plan.name || plan_item.name == 'Free Subscription')}>
+                                    <Button onClick={() => {setIsLoading(true); navigate(plan_item.url);}} disabled={(plan_item.name == plan.name || plan_item.name == 'Free Subscription')}>
                                         {plan_item.action}
                                     </Button>
                                 )}

@@ -4,15 +4,54 @@ import {
     Layout,
     Page,
     Card,
-    Banner
+    Banner,
+    InlineStack,
+    Link,
+    Spinner
 } from '@shopify/polaris';
 import { useState, useCallback } from 'react';
 
 export default function HelpPage() {
 
+    const [isLoading, setIsLoading] = useState(false);
+
+    if (isLoading) {
+        //console.log('isSaving ', isSaving);
+        return (
+          <div style={{
+            position: "fixed",
+            top: "0",
+            left: "0",
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            zIndex: "999",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center"
+          }}>
+            <div style={{
+              backgroundColor: "#fff",
+              padding: "20px",
+              borderRadius: "5px",
+              boxShadow: "0 0 10px rgba(0, 0, 0, 0.5)",
+              fontSize: "18px",
+            }}>
+              <Spinner accessibilityLabel="Saving" size="large" />
+            </div>
+          </div>
+        );
+      }
     return (
         <Page>
-
+            <ui-title-bar title="Help" />
+            <InlineStack gap ="400">
+                <Link url='/app' onClick={() => setIsLoading(true)}>Home</Link>
+                <Link url='/app/pricing' onClick={() => setIsLoading(true)}>Plan</Link>
+            </InlineStack>
+            
+            <br/>
+            <br/>
             <Banner title='Contact and Support' status="info">
                 <div>
                     <strong>
