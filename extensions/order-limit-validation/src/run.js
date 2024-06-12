@@ -69,26 +69,38 @@ export function run(input) {
       //const priceMin = priceLimit.split(',')[0];
       //const priceMax = priceLimit.split(',')[1];
       const totalAmount = Number(input.cart?.cost?.totalAmount?.amount);
+      const cartCurrencyCode = input.cart?.cost?.totalAmount?.currencyCode;
+      const appliedCurrencyCode = generalLimiters?.currencyCode;
       console.log('priceMin ', Number(generalLimiters?.priceMin));
 
-      if (totalAmount < Number(generalLimiters?.priceMin) && Number(generalLimiters?.priceMin) !== 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
-
+      if (cartCurrencyCode != appliedCurrencyCode) {
+        
         errors.push({
-          localizedMessage: errorMessagesFieldValue?.priceMinErrMsg
-            ? errorMessagesFieldValue.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin)
-            : `Minimum amount ${generalLimiters?.priceMin} is required for checkout`,
+          localizedMessage: `Please change your shopping currency to ${appliedCurrencyCode} to proceed with checkout`,
           target: "cart",
         });
 
-      } else if (totalAmount > Number(generalLimiters?.priceMax) && Number(generalLimiters?.priceMax) !== 0) {
+      } else {
 
-        errors.push({
-          localizedMessage: errorMessagesFieldValue?.priceMaxErrMsg
-            ? errorMessagesFieldValue.priceMaxErrMsg.replace("{priceMax}", generalLimiters?.priceMax)
-            : `Cart exceeds amount ${generalLimiters?.priceMax} please remove some items`,
-          target: "cart",
-        });
+        if (totalAmount < Number(generalLimiters?.priceMin) && Number(generalLimiters?.priceMin) !== 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
+          errors.push({
+            localizedMessage: errorMessagesFieldValue?.priceMinErrMsg
+              ? errorMessagesFieldValue.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin)
+              : `Minimum amount ${generalLimiters?.priceMin} is required for checkout`,
+            target: "cart",
+          });
+
+        } else if (totalAmount > Number(generalLimiters?.priceMax) && Number(generalLimiters?.priceMax) !== 0) {
+
+          errors.push({
+            localizedMessage: errorMessagesFieldValue?.priceMaxErrMsg
+              ? errorMessagesFieldValue.priceMaxErrMsg.replace("{priceMax}", generalLimiters?.priceMax)
+              : `Cart exceeds amount ${generalLimiters?.priceMax} please remove some items`,
+            target: "cart",
+          });
+
+        }
       }
     }
 
@@ -104,18 +116,62 @@ export function run(input) {
       const cartLines = input.cart.lines;
       let totalWeight = 0;
 
+      const convertWeight = (value, fromUnit, toUnit) => {
+        let grams;
+        try {
+          // Convert the input weight to grams first
+          switch (fromUnit.toLowerCase()) {
+            case 'grams':
+              grams = value;
+              break;
+            case 'kilograms':
+              grams = value * 1000;
+              break;
+            case 'ounces':
+              grams = value * 28.3495;
+              break;
+            case 'pounds':
+              grams = value * 453.592;
+              break;
+            default:
+              throw new Error('Unsupported unit: ' + fromUnit);
+          }
+
+          // Convert grams to the target unit
+          let result;
+          switch (toUnit.toLowerCase()) {
+            case 'grams':
+              result = grams;
+              break;
+            case 'kilograms':
+              result = grams / 1000;
+              break;
+            case 'ounces':
+              result = grams / 28.3495;
+              break;
+            case 'pounds':
+              result = grams / 453.592;
+              break;
+            default:
+              throw new Error('Unsupported unit: ' + toUnit);
+          }
+
+          return result;
+        } catch (error) {
+          console.log('error ', error);
+        }
+      }
+
+      // Example usage:
+      console.log(convertWeight(1000, 'grams', 'kilograms'));  // Output: 1
+
       cartLines.forEach(line => {
         const quantity = Number(line.quantity);
-        let weight = Number(merchandise?.weight);
-        const weightUnit = merchandise?.weightUnit;
-        //converting into Kilograms
-        if(weightUnit == "POUNDS" || weightUnit.toLowerCase() == "pounds") {
-          weight = weight * 0.453592;
-        } else if (weightUnit == "OUNCES" || weightUnit.toLowerCase() == "ounces") {
-          weight = weight * 0.0283495231;
-        } else if (weightUnit == "GRAMS" || weightUnit.toLowerCase() == "grams") {
-          weight = weight * 0.001;
-        }
+        let cartWeight = Number(merchandise?.weight);
+        const fromWeightUnit = merchandise?.weightUnit;
+        const toWeightUnit = generalLimiters?.weightUnit;
+        let weight = convertWeight(cartWeight, fromWeightUnit, toWeightUnit);
+
         if (weight) {
           totalWeight += quantity * weight;
         }
@@ -132,8 +188,8 @@ export function run(input) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.weightMinErrMsg
-              ? errorMessagesFieldValue.weightMinErrMsg.replace("{weightMin}", generalLimiters?.weightMin)
-              : `Minmum weight ${generalLimiters?.weightMin} kilograms is required for checkout`,
+              ? errorMessagesFieldValue.weightMinErrMsg.replace("{weightMin}", generalLimiters?.weightMin).replace("{weightUnit}", generalLimiters?.weightUnit.toLowerCase())
+              : `Minmum weight ${generalLimiters?.weightMin} ${generalLimiters?.weightUnit.toLowerCase()} is required for checkout`,
             target: "cart",
           });
 
@@ -141,8 +197,8 @@ export function run(input) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.weightMaxErrMsg
-              ? errorMessagesFieldValue.weightMaxErrMsg.replace("{weightMax}", generalLimiters?.weightMax)
-              : `Cart exceeds weight ${generalLimiters?.weightMax} kilograms please remove some items`,
+              ? errorMessagesFieldValue.weightMaxErrMsg.replace("{weightMax}", generalLimiters?.weightMax).replace("{weightUnit}", generalLimiters?.weightUnit.toLowerCase())
+              : `Cart exceeds weight ${generalLimiters?.weightMax} ${generalLimiters?.weightUnit.toLowerCase()} please remove some items`,
             target: "cart",
           });
 
@@ -287,7 +343,7 @@ export function run(input) {
         }
       } else if (product.productLimitField) {
 
-        
+
         //const productName = product?.title;
         //console.log('productName ', productName);
         const [productMin, productMax] = product.productLimitField.value.split(',').map(Number);

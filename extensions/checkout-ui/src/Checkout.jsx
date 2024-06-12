@@ -107,15 +107,65 @@ function Extension() {
   const totalAmountValue = Number(totalAmount?.amount);
 
   //console.log('totalAmountValue in extension ', totalAmountValue);
-  //console.log('totalAmount in extension ', totalAmount);
+  console.log('cartlines in extension ', cartLines);
+  const cartCurrencyCode = cartLines[0]?.cost?.totalAmount?.currencyCode;
+  
 
   const totalQuantity = cartLines.reduce((acc, curr) => acc + curr.quantity, 0);
-  //console.log('totalQuantity in extension ', totalQuantity);
+  console.log('currencyCode in extension '+ cartCurrencyCode + " , " + generalLimiters?.currencyCode);
 
   const categoriesWithProducts = {};
   const categoriesWithMinValues = {};
   let totalWeight = 0;
 
+  const convertWeight = (value, fromUnit, toUnit) => {
+    let grams;
+    try {
+      // Convert the input weight to grams first
+      switch (fromUnit.toLowerCase()) {
+        case 'grams':
+          grams = value;
+          break;
+        case 'kilograms':
+          grams = value * 1000;
+          break;
+        case 'ounces':
+          grams = value * 28.3495;
+          break;
+        case 'pounds':
+          grams = value * 453.592;
+          break;
+        default:
+          throw new Error('Unsupported unit: ' + fromUnit);
+      }
+
+      // Convert grams to the target unit
+      let result;
+      switch (toUnit.toLowerCase()) {
+        case 'grams':
+          result = grams;
+          break;
+        case 'kilograms':
+          result = grams / 1000;
+          break;
+        case 'ounces':
+          result = grams / 28.3495;
+          break;
+        case 'pounds':
+          result = grams / 453.592;
+          break;
+        default:
+          throw new Error('Unsupported unit: ' + toUnit);
+      }
+
+      return result;
+    } catch (error) {
+      console.log('error ', error);
+    }
+  }
+
+  // Example usage:
+  console.log(convertWeight(1000, 'grams', 'kilograms'));  // Output: 1
 
   for (const cartLine of cartLines) {
     const productId = cartLine?.merchandise?.product?.id;
@@ -141,15 +191,11 @@ function Extension() {
       //console.log('variant from query ', variant);
       if (variant) {
         //console.log('weight of variant ', Number(variant.node.weight));
-        let weight = Number(variant.node.weight);
-        const weightUnit = variant.node?.weightUnit;
-        if(weightUnit == "POUNDS" || weightUnit.toLowerCase() == "pounds") {
-          weight = weight * 0.453592;
-        } else if (weightUnit == "OUNCES" || weightUnit.toLowerCase() == "ounces") {
-          weight = weight * 0.0283495231;
-        } else if (weightUnit == "GRAMS" || weightUnit.toLowerCase() == "grams") {
-          weight = weight * 0.001;
-        }
+        let cartWeight = Number(variant.node.weight);
+        const fromWeightUnit = variant.node?.weightUnit;
+        const toWeightUnit = generalLimiters?.weightUnit;
+        let weight = convertWeight(cartWeight, fromWeightUnit, toWeightUnit);
+        
         totalWeight = totalWeight + weight;
         console.log('totalWeight in useeffect ', totalWeight);
       }
@@ -354,22 +400,34 @@ function Extension() {
 
     if (errorMsgs?.extensionMsg === "Checkout Extension" || errorMsgs?.extensionMsg === "Both") {
 
-
-
-      if (canBlockProgress && totalAmountValue < Number(generalLimiters?.priceMin)) {
+      //checks for currency code and then proceeds with amount check
+      if(cartCurrencyCode != generalLimiters?.currencyCode) {
         return {
           behavior: "block",
-          reason: "Minimum price required",
+          reason: "correct currency code is required",
           errors: [
             {
               // Show a validation error on the page
-              message:
-                errorMsgs?.priceMinErrMsg
-                  ? errorMsgs.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin)
-                  : `Minimum amount ${generalLimiters?.priceMin} is required for checkout`,
+              message: `Please change your shopping currency to ${generalLimiters?.currencyCode} to proceed with checkout`,
             },
           ],
         };
+      } else {
+        if (canBlockProgress && totalAmountValue < Number(generalLimiters?.priceMin)) {
+          return {
+            behavior: "block",
+            reason: "Minimum price required",
+            errors: [
+              {
+                // Show a validation error on the page
+                message:
+                  errorMsgs?.priceMinErrMsg
+                    ? errorMsgs.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin)
+                    : `Minimum amount ${generalLimiters?.priceMin} is required for checkout`,
+              },
+            ],
+          };
+        }
       }
 
       if (canBlockProgress && totalQuantity < storeMin) {
@@ -399,8 +457,8 @@ function Extension() {
               // Show a validation error on the page
               message:
                 errorMsgs?.weightMinErrMsg
-                  ? errorMsgs.weightMinErrMsg.replace("{weightMin}", generalLimiters?.weightMin)
-                  : `Minmum weight ${generalLimiters?.weightMin} kilograms is required for checkout`,
+                  ? errorMsgs.weightMinErrMsg.replace("{weightMin}", generalLimiters?.weightMin).replace("{weightUnit}", generalLimiters?.weightUnit.toLowerCase())
+                  : `Minmum weight ${generalLimiters?.weightMin} ${generalLimiters?.weightUnit.toLowerCase()} is required for checkout`,
             },
           ],
         };
