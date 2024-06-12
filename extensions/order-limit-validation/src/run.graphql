@@ -3,6 +3,7 @@ query RunInput {
     cost {
       totalAmount {
         amount
+        currencyCode
       }
     }
     lines {
@@ -38,10 +39,8 @@ query RunInput {
     storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
       value
     }
-    priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") {
-      value
-    }    
-    weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") {
+     
+    generalLimitersField: metafield(namespace: "generalLimiters", key: "generalLimiters") {
       value
     }
     errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs"){

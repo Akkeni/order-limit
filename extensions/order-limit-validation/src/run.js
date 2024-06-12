@@ -25,7 +25,12 @@ export function run(input) {
     errorMessagesFieldValue = JSON.parse(input.shop?.errorMsgsField?.value);
   }
 
+  let generalLimiters = {}
+  if (input.shop.generalLimitersField) {
+    generalLimiters = JSON.parse(input.shop?.generalLimitersField?.value);
+  }
 
+  //console.log(generalLimiters);
 
   for (const line of input.cart.lines) {
     const { quantity, merchandise } = line;
@@ -58,29 +63,29 @@ export function run(input) {
     }
 
     // Check price limit
-    if (input.shop.priceLimitField) {
+    if (generalLimiters) {
 
-      const priceLimit = input.shop.priceLimitField.value;
-      const priceMin = priceLimit.split(',')[0];
-      const priceMax = priceLimit.split(',')[1];
+      //const priceLimit = input.shop.priceLimitField.value;
+      //const priceMin = priceLimit.split(',')[0];
+      //const priceMax = priceLimit.split(',')[1];
       const totalAmount = Number(input.cart?.cost?.totalAmount?.amount);
-      console.log(errorMessagesFieldValue["priceMinErrMsg"]);
+      console.log('priceMin ', Number(generalLimiters?.priceMin));
 
-      if (totalAmount < Number(priceMin) && Number(priceMin) !== 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
+      if (totalAmount < Number(generalLimiters?.priceMin) && Number(generalLimiters?.priceMin) !== 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
         errors.push({
           localizedMessage: errorMessagesFieldValue?.priceMinErrMsg
-            ? errorMessagesFieldValue.priceMinErrMsg.replace("{priceMin}", priceMin)
-            : `Minimum amount ${priceMin} is required for checkout`,
+            ? errorMessagesFieldValue.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin)
+            : `Minimum amount ${generalLimiters?.priceMin} is required for checkout`,
           target: "cart",
         });
 
-      } else if (totalAmount > Number(priceMax) && Number(priceMax) !== 0) {
+      } else if (totalAmount > Number(generalLimiters?.priceMax) && Number(generalLimiters?.priceMax) !== 0) {
 
         errors.push({
           localizedMessage: errorMessagesFieldValue?.priceMaxErrMsg
-            ? errorMessagesFieldValue.priceMaxErrMsg.replace("{priceMax}", priceMax)
-            : `Cart exceeds amount ${priceMax} please remove some items`,
+            ? errorMessagesFieldValue.priceMaxErrMsg.replace("{priceMax}", generalLimiters?.priceMax)
+            : `Cart exceeds amount ${generalLimiters?.priceMax} please remove some items`,
           target: "cart",
         });
 
@@ -117,27 +122,27 @@ export function run(input) {
       });
 
       // Parse the weightLimitField
-      if (input.shop?.weightLimitField?.value) {
+      if (generalLimiters) {
 
-        const weightLimitField = input.shop?.weightLimitField?.value;
-        const [weightMin, weightMax] = weightLimitField.split(',').map(Number);
+        //const weightLimitField = input.shop?.weightLimitField?.value;
+        //const [weightMin, weightMax] = weightLimitField.split(',').map(Number);
 
 
-        if (weightMin > totalWeight && weightMin !== 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
+        if (Number(generalLimiters?.weightMin) > totalWeight && Number(generalLimiters?.weightMin) !== 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.weightMinErrMsg
-              ? errorMessagesFieldValue.weightMinErrMsg.replace("{weightMin}", weightMin)
-              : `Minmum weight ${weightMin} kilograms is required for checkout`,
+              ? errorMessagesFieldValue.weightMinErrMsg.replace("{weightMin}", generalLimiters?.weightMin)
+              : `Minmum weight ${generalLimiters?.weightMin} kilograms is required for checkout`,
             target: "cart",
           });
 
-        } else if (totalWeight > weightMax && weightMax !== 0) {
+        } else if (totalWeight > Number(generalLimiters?.weightMax) && Number(generalLimiters?.weightMax) !== 0) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.weightMaxErrMsg
-              ? errorMessagesFieldValue.weightMaxErrMsg.replace("{weightMax}", weightMax)
-              : `Cart exceeds weight ${weightMax} kilograms please remove some items`,
+              ? errorMessagesFieldValue.weightMaxErrMsg.replace("{weightMax}", generalLimiters?.weightMax)
+              : `Cart exceeds weight ${generalLimiters?.weightMax} kilograms please remove some items`,
             target: "cart",
           });
 

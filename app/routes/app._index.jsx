@@ -132,6 +132,10 @@ export async function loader({ request }) {
             id
             value
           }  
+          generalLimitersField: metafield(namespace: "generalLimiters", key: "generalLimiters"){
+            id
+            value
+          }
           allProductCategories {
           productTaxonomyNode {
             fullName
@@ -157,6 +161,8 @@ export async function loader({ request }) {
     const priceLimitFieldValue = data?.data?.shop?.priceLimitField?.value;
     const weightLimitFieldValue = data?.data?.shop?.weightLimitField?.value;
     const errorMsgsFieldValue = data?.data?.shop?.errorMsgsField?.value;
+    const existingGeneralLimiters = data?.data?.shop?.generalLimitersField?.value;
+
 
 
     const storeLimit = allProductsData.length; // allProductsData?.data?.products?.edges.length;
@@ -229,6 +235,7 @@ export async function loader({ request }) {
       allCollectionsData,
       vendorsData,
       activeSubscriptions,
+      existingGeneralLimiters,
     });
   
 
@@ -381,10 +388,12 @@ export async function action({ request, params }) {
       const limiters = JSON.parse(formData.get('quantityLimit'));
       console.log('limiters in action', limiters);
       const errorMessages = formData.get('errorMessages');
+      const generalLimiters = formData.get('generalLimiters');
+
 
       //console.log('messages value in action saveProduct',errorMessages);
 
-      if (errorMessages) {
+      if (errorMessages || generalLimiters) {
         const shopId = formData.get('shopId');
         const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
           metafieldsSet(metafields: $metafields) {
@@ -410,6 +419,14 @@ export async function action({ request, params }) {
                 "key": "errorMsgs",
                 "type": "string",
                 "value": `${errorMessages}`
+
+              },
+              {
+                "ownerId": `${shopId}`,
+                "namespace": "generalLimiters",
+                "key": "generalLimiters",
+                "type": "string",
+                "value": `${generalLimiters}`
 
               }
             ]
@@ -1192,9 +1209,14 @@ export default function Index() {
   const categoriesData = loaderData?.categoriesData ? loaderData?.categoriesData : [];
 
   let existingErrMsgs = {};
+  let existingGeneralLimiters = {};
 
   if (loaderData?.errorMsgsFieldValue && showConfirmation === false) {
     existingErrMsgs = JSON.parse(loaderData?.errorMsgsFieldValue);
+  }
+
+  if (loaderData?.existingGeneralLimiters && showConfirmation === false) {
+    existingGeneralLimiters = JSON.parse(loaderData?.existingGeneralLimiters);
   }
 
 
@@ -1232,6 +1254,17 @@ export default function Index() {
     vendorMinErrMsg: existingErrMsgs.vendorMinErrMsg || '',
     vendorMaxErrMsg: existingErrMsgs.vendorMaxErrMsg || '',
     extensionMsg: existingErrMsgs?.extensionMsg || 'Both',
+  });
+
+  const [generalLimiters, setGeneralLimiters] = useState({
+    priceMin: existingGeneralLimiters.priceMin || 0,
+    priceMax: existingGeneralLimiters.priceMax || 0,
+    currencyCode: existingGeneralLimiters.currencyCode || loaderData?.currencyCode,
+    weightMin: existingGeneralLimiters.weightMin || 0,
+    weightMax: existingGeneralLimiters.weightMax || 0,
+    weightUnit: existingGeneralLimiters.weightUnit || loaderData?.weightUnit,
+    shopMin: existingGeneralLimiters.shopMin || '',
+    shopMax: existingGeneralLimiters.shopMax || '',
   });
 
   const collectionIds = [];
@@ -1426,6 +1459,13 @@ export default function Index() {
     }));
   }
 
+  const handleGeneralLimiters = (name, value) => {
+    setGeneralLimiters(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  }
+
   const handleExtensionChange = (value) => {
     let name = "extensionMsg";
     setErrorMessages(prevState => ({
@@ -1457,7 +1497,8 @@ export default function Index() {
         priceLimit: priceLimit,
         weightLimit: weightLimit,
         errorMessages: JSON.stringify(errorMessages),
-        allCollectionsData: JSON.stringify(allCollectionsData)
+        allCollectionsData: JSON.stringify(allCollectionsData),
+        generalLimiters: JSON.stringify(generalLimiters),
       },
       { method: 'post' }
     ).catch((error) => {
@@ -2389,50 +2430,50 @@ export default function Index() {
                       >
                         <IndexTable.Row>
                           <IndexTable.Cell>
-                            Total Cart Price ({loaderData?.currencyCode})
+                            Total Cart Price ({generalLimiters?.currencyCode})
                           </IndexTable.Cell>
                           <IndexTable.Cell>
                             <FormLayout>
                               <TextField
-                                value={getPriceQuantityLimit("priceMin")}
+                                value={generalLimiters?.priceMin}
                                 label="Price Min Limit"
                                 type="number"
-                                onChange={(value) => { handleQuantityLimit(value, "priceMin") }}
+                                onChange={(value) => { handleGeneralLimiters("priceMin", value) }}
                               />
                             </FormLayout>
                           </IndexTable.Cell>
                           <IndexTable.Cell>
                             <FormLayout>
                               <TextField
-                                value={getPriceQuantityLimit("priceMax")}
+                                value={generalLimiters?.priceMax}
                                 label="Price Max Limit"
                                 type="number"
-                                onChange={(value) => { handleQuantityLimit(value, "priceMax") }}
+                                onChange={(value) => { handleGeneralLimiters("priceMax", value) }}
                               />
                             </FormLayout>
                           </IndexTable.Cell>
                         </IndexTable.Row>
                         <IndexTable.Row>
                           <IndexTable.Cell>
-                            Total Cart Weight (KILOGRAMS)
+                            Total Cart Weight ({generalLimiters?.weightUnit})
                           </IndexTable.Cell>
                           <IndexTable.Cell>
                             <FormLayout>
                               <TextField
-                                value={getWeightQuantityLimit("weightMin")}
+                                value={generalLimiters?.weightMin}
                                 label="Weight Min Limit"
                                 type="number"
-                                onChange={(value) => { handleQuantityLimit(value, "weightMin") }}
+                                onChange={(value) => { handleGeneralLimiters("weightMin", value) }}
                               />
                             </FormLayout>
                           </IndexTable.Cell>
                           <IndexTable.Cell>
                             <FormLayout>
                               <TextField
-                                value={getWeightQuantityLimit("weightMax")}
+                                value={generalLimiters?.weightMax}
                                 label="Weight Max Limit"
                                 type="number"
-                                onChange={(value) => { handleQuantityLimit(value, "weightMax") }}
+                                onChange={(value) => { handleGeneralLimiters( "weightMax", value) }}
                               />
                             </FormLayout>
                           </IndexTable.Cell>

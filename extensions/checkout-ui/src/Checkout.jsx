@@ -46,6 +46,12 @@ function Extension() {
     key: "errorMsgs"
   });
 
+  const generalLimitersField = useAppMetafields({
+    type: "shop",
+    namespace: "generalLimiters",
+    key: "generalLimiters"
+  });
+
   const productLimitFields = useAppMetafields({
     type: "product",
     namespace: "productLimit",
@@ -80,6 +86,12 @@ function Extension() {
   let errorMsgs = {};
   if (errorMsgsMetaField?.value) {
     errorMsgs = JSON.parse(errorMsgsMetaField?.value);
+  }
+
+  const generalLimitersMetaField = generalLimitersField[0]?.metafield;
+  let generalLimiters = {};
+  if (generalLimitersMetaField?.value) {
+    generalLimiters = JSON.parse(generalLimitersMetaField?.value);
   }
 
 
@@ -344,7 +356,7 @@ function Extension() {
 
 
 
-      if (canBlockProgress && totalAmountValue < priceMin) {
+      if (canBlockProgress && totalAmountValue < Number(generalLimiters?.priceMin)) {
         return {
           behavior: "block",
           reason: "Minimum price required",
@@ -353,8 +365,8 @@ function Extension() {
               // Show a validation error on the page
               message:
                 errorMsgs?.priceMinErrMsg
-                  ? errorMsgs.priceMinErrMsg.replace("{priceMin}", priceMin)
-                  : `Minimum amount ${priceMin} is required for checkout`,
+                  ? errorMsgs.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin)
+                  : `Minimum amount ${generalLimiters?.priceMin} is required for checkout`,
             },
           ],
         };
@@ -378,7 +390,7 @@ function Extension() {
 
       //console.log('total weight in useBuyer ', totalWeight);
 
-      if (canBlockProgress && totalWeight < Number(weightMin)) {
+      if (canBlockProgress && totalWeight < Number(generalLimiters?.weightMin)) {
         return {
           behavior: "block",
           reason: "Minimum weight required",
@@ -387,8 +399,8 @@ function Extension() {
               // Show a validation error on the page
               message:
                 errorMsgs?.weightMinErrMsg
-                  ? errorMsgs.weightMinErrMsg.replace("{weightMin}", weightMin)
-                  : `Minmum weight ${weightMin} kilograms is required for checkout`,
+                  ? errorMsgs.weightMinErrMsg.replace("{weightMin}", generalLimiters?.weightMin)
+                  : `Minmum weight ${generalLimiters?.weightMin} kilograms is required for checkout`,
             },
           ],
         };

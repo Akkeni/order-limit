@@ -238,6 +238,10 @@ export async function deleteNonPlanData(graphql, allProductsData) {
             id
             value
           }
+          generalLimitersField: metafield(namespace: "generalLimiters", key: "generalLimiters"){
+            id
+            value
+          }
         }
       }
     `);
@@ -248,6 +252,7 @@ export async function deleteNonPlanData(graphql, allProductsData) {
     const storeFieldIds = [
       data?.data?.shop?.priceLimitField?.id,
       data?.data?.shop?.weightLimitField?.id,
+      data?.data?.shop?.generalLimitersField?.id,
     ]
 
     for (const id of storeFieldIds) {
