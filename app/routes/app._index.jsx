@@ -23,12 +23,13 @@ import {
   Spinner,
   Banner,
   Badge,
+  
 } from '@shopify/polaris';
 import { json, redirect } from '@remix-run/node';
 import { useState, useCallback, useEffect } from 'react';
 import { PageActions } from '@shopify/polaris';
 import { useNavigate, useSubmit, useLoaderData, useActionData } from '@remix-run/react';
-import { ImageIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, LogoXIcon } from '@shopify/polaris-icons';
+import { ImageIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, MenuVerticalIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
 import db from '../db.server';
 import React from 'react';
@@ -50,6 +51,7 @@ export async function loader({ request }) {
 
   if (activeSubscriptions.length < 1) {
     await createSubscriptionMetafield(admin.graphql, "false");
+    await deleteNonPlanData(admin.graphql);
   } else {
     await createSubscriptionMetafield(admin.graphql, "true");
   }
@@ -78,10 +80,6 @@ export async function loader({ request }) {
 
 
     let allProductsData = await getAllProductsData(admin.graphql);
-
-    if (activeSubscriptions.length < 1) {
-      await deleteNonPlanData(admin.graphql, allProductsData);
-    }
 
     const collectionResponse = await admin.graphql(`query AllCollections {
       collections(first: 250) {
@@ -1196,9 +1194,7 @@ export default function Index() {
   
 
 
-  //const categoryLimits = loaderData?.categoryLimits;
-  const categoryOptions = [];
-  const categoryIds = {};
+ 
   const allProductCategories = loaderData?.data?.data.shop.allProductCategories;
   const shopName = loaderData.shopName;
   const shopLimit = loaderData.storeLimit;
@@ -1266,6 +1262,9 @@ export default function Index() {
     shopMin: existingGeneralLimiters.shopMin || '',
     shopMax: existingGeneralLimiters.shopMax || '',
   });
+
+  const [popoverActive, setPopoverActive] = useState(false);
+
 
   const collectionIds = [];
 
@@ -1480,6 +1479,15 @@ export default function Index() {
     //console.log('tag value', tagValue);
   };
 
+  const togglePopoverActive = useCallback(
+    () => setPopoverActive((popoverActive) => !popoverActive),
+    [],
+  );
+
+  const activator = (
+    <Button onClick={togglePopoverActive} icon={MenuVerticalIcon} variant='plain' tone='base'/>
+    
+  );
 
   const handleSaveProduct = () => {
     setIsSaving(true);
@@ -1833,7 +1841,7 @@ export default function Index() {
   console.log('showconfirmation', showConfirmation);
   return (
 
-    <div>
+    <>
       {showConfirmation && (
         <Modal
           open
@@ -1859,34 +1867,26 @@ export default function Index() {
 
         <Page fullWidth={true}>
           <ui-title-bar title="Order Wise Limit"></ui-title-bar>
-
+          
           {(activeSubscriptions.length < 1) && (
             <Banner tone="critical">
               <p>
-                You don't have any plan. Please select any paid plan to unlock more features from here. <Link url="/app/pricing"><span style={{ color: "blue" }}>Plan selection</span></Link>
+                You don't have any plan. Please select any paid plan to unlock more features from here. <Link url="/app/pricing" onClick={() => setIsSaving(true)}><span style={{ color: "blue" }}>Plan selection</span></Link>
               </p>
             </Banner>
           )}
           <br/>
           {/* Alert message */}
           {success && (
-            <div>
+            <>
               <Banner
                 title="Saved successfully!"
                 tone="success"
                 onDismiss={() => setSuccess(false)}
               />
-              {/*<Card padding="0">
-            <div style={{ display: "flex", alignItems: "center", flexDirection: "row", alignContent: "stretch", justifyContent: "space-between", backgroundColor: "rgb(80 220 169)" }}>
-              <Text><span style={{ padding: "0.5rem" }}>Saved successfully!</span></Text>
-              <div style={{ float: "right" }}>
-                <Button icon={LogoXIcon} accessibilityLabel="close" onClick={toggleSuccess} size="micro" tone="critical" />
-              </div>
-            </div>
-          </Card>*/}
-            </div>
+            </>
           )}
-
+          
           <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
             <div style={{ paddingTop: '0.5rem', paddingBottom: '1.5rem', paddingRight: '1rem' }}>
               <InlineStack gap="500">
@@ -1921,12 +1921,32 @@ export default function Index() {
                   </div>
                 )}
                 <div style={{ marginLeft: 'auto' }}>
-                  <PageActions
-                    primaryAction={{
-                      content: 'Save',
-                      onAction: handleSaveProduct
-                    }}
-                  />
+                  <InlineStack gap="400" blockAlign='center'>
+                    <PageActions
+                      primaryAction={{
+                        content: 'Save',
+                        onAction: handleSaveProduct
+                      }}
+                    />
+                    <>
+                      <Popover
+                        active={popoverActive}
+                        activator={activator}
+                        autofocusTarget="first-node"
+                        onClose={togglePopoverActive}
+                      >
+                        <Popover.Pane>
+                          <ActionList
+                            actionRole="menuitem"
+                            items={[
+                              {content: 'Help', url: '/app/help'},
+                              {content: 'Plan', url: '/app/pricing'}
+                            ]}
+                          />
+                        </Popover.Pane>
+                      </Popover>
+                    </>
+                  </InlineStack>
                 </div>
               </InlineStack>
             </div>
@@ -1938,7 +1958,7 @@ export default function Index() {
             <Layout>
               <Layout.Section>
                 {tagValue === 'Product Wise' && (
-                  <div>
+                  <>
                     <Card>
                       <IndexTable
                         headings={[
@@ -2156,11 +2176,11 @@ export default function Index() {
                       <br />
                     </Card>
 
-                  </div>
+                  </>
                 )}
 
                 {tagValue === 'Category Wise' && (
-                  <div>
+                  <>
                     <Card>
                       <IndexTable
                         headings={[
@@ -2249,11 +2269,11 @@ export default function Index() {
                       />
                       <br />
                     </Card>
-                  </div>
+                  </>
                 )}
 
                 {tagValue === 'Collection Wise' && (
-                  <div>
+                  <>
                     <Card>
                       <IndexTable
                         headings={[
@@ -2342,11 +2362,11 @@ export default function Index() {
                       />
                       <br />
                     </Card>
-                  </div>
+                  </>
                 )}
 
                 {tagValue === 'Store Wise' && (
-                  <div>
+                  <>
                     <Card>
                       <IndexTable
                         headings={[
@@ -2413,11 +2433,11 @@ export default function Index() {
                       />
                       <br />
                     </Card>
-                  </div>
+                  </>
                 )}
 
                 {tagValue === 'General' && (
-                  <div>
+                  <>
                     <Card>
                       <IndexTable
                         headings={[
@@ -2507,8 +2527,8 @@ export default function Index() {
                         label="Error Message for Weight Minimum limit"
                         value={errorMessages.weightMinErrMsg}
                         onChange={(value) => { handleErrorMessages("weightMinErrMsg", value) }}
-                        placeholder="Minmum weight {weightMin} kilograms is required for checkout"
-                        helpText="use {weightMin} to include minimum weight"
+                        placeholder="Minmum weight {weightMin} {weightUnit} is required for checkout"
+                        helpText="use {weightMin} to include minimum weight, {weightUnit} to include unit."
                         autoComplete="off"
                       />
                       <br />
@@ -2516,17 +2536,17 @@ export default function Index() {
                         label="Error Message for Weight Maximum limit"
                         value={errorMessages.weightMaxErrMsg}
                         onChange={(value) => { handleErrorMessages("weightMaxErrMsg", value) }}
-                        placeholder="Cart exceeds weight {weightMax} kilograms please remove some items"
-                        helpText="use {weightMax} to include maximum weight"
+                        placeholder="Cart exceeds weight {weightMax} {weightUnit} please remove some items"
+                        helpText="use {weightMax} to include maximum weight, {weightUnit} to include unit."
                         autoComplete="off"
                       />
                       <br />
                     </Card>
-                  </div>
+                  </>
                 )}
 
                 {tagValue === 'Vendor Wise' && (
-                  <div>
+                  <>
                     <Card>
                       <IndexTable
                         headings={[
@@ -2615,13 +2635,13 @@ export default function Index() {
                       />
                       <br />
                     </Card>
-                  </div>
+                  </>
                 )}
               </Layout.Section>
             </Layout>
           </BlockStack>
         </Page>
       )}
-    </div>
+    </>
   );
 }

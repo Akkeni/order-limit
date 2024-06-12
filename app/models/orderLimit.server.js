@@ -185,8 +185,10 @@ export async function getAllProductsData(graphql) {
   return allProductsData;
 } 
 
-export async function deleteNonPlanData(graphql, allProductsData) {
+export async function deleteNonPlanData(graphql) {
     //console.log('deletePreviousDataValue in if', formData.get('deletePreviousData'));
+
+    let allProductsData = await getAllProductsData(graphql);
     
     const deleteMetafield = async (metafieldId) => {
       if (metafieldId) {
