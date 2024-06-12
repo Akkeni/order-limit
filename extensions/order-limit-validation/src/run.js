@@ -73,8 +73,8 @@ export function run(input) {
       const appliedCurrencyCode = generalLimiters?.currencyCode;
       console.log('priceMin ', Number(generalLimiters?.priceMin));
 
-      if (cartCurrencyCode != appliedCurrencyCode) {
-        
+      if (cartCurrencyCode != appliedCurrencyCode && errorMessagesFieldValue?.plan == true) {
+
         errors.push({
           localizedMessage: `Please change your shopping currency to ${appliedCurrencyCode} to proceed with checkout`,
           target: "cart",

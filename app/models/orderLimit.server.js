@@ -255,13 +255,51 @@ export async function deleteNonPlanData(graphql) {
       data?.data?.shop?.priceLimitField?.id,
       data?.data?.shop?.weightLimitField?.id,
       data?.data?.shop?.generalLimitersField?.id,
-    ]
-
+    ];
+  
     for (const id of storeFieldIds) {
       if (id) {
         await deleteMetafield(id);
       }
     }
+
+    const generalLimiters = JSON.stringify({
+      currencyCode: data?.data?.shop?.currencyCode,
+      weightUnit: data?.data?.shop?.weightUnit,
+      plan: false
+    });
+
+    const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+      metafieldsSet(metafields: $metafields) {
+        metafields {
+          id
+          namespace
+          key
+          value
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }`;
+
+    const metafields = {
+      variables: {
+        metafields: [
+          {
+            "ownerId": `${data?.data?.shop?.id}`,
+            "namespace": "generalLimiters",
+            "key": "generalLimiters",
+            "type": "string",
+            "value": `${generalLimiters}`
+
+          }
+        ]
+      }
+    };
+
+    await graphql(mutationQuery, metafields);
 
     //return redirect('/app');
     return null;

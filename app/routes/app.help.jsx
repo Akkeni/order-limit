@@ -108,8 +108,8 @@ export default function HelpPage() {
                             This tab allows you to set general limits that apply to all products in the cart, regardless of category or collection:
                         </p>
                         <ul>
-                            <li><strong>Price Limit:</strong> Maximum and Minimum price for products. Set to 0 for no restriction.</li>
-                            <li><strong>Weight Limit:</strong> Maximum and Minimum weight for products. Set to 0 for no restriction.</li>
+                            <li><strong>Price Limit:</strong> Maximum and Minimum price allowed to checkout. It considers 'Total Amount'. If there is a difference in currency codes set by you and customer's cart then it will block the checkout and asks the user to change into the currency code set by you. Set to 0 for no restriction.</li>
+                            <li><strong>Weight Limit:</strong> Maximum and Minimum weight allowed to checkout. Set to 0 for no restriction.</li>
                             <li><strong>Error Messages:</strong>Text field to enter your own error messages to be displayed in the cart. You can use the provided placeholders.</li>
                         </ul>
                     </div>
@@ -124,7 +124,7 @@ export default function HelpPage() {
                             This tab allows you to set overall limits for your entire store. These limits apply to all products and categories within the store. Here's how it works:
                         </p>
                         <ul>
-                            <li><strong>Store Limit:</strong> Maximum and Minimum number of products in your store. Set to 0 for no limit.</li>
+                            <li><strong>Store Limit:</strong> Maximum and Minimum number of products allowed to checkout. Considers all the products quantity from the cart. Set to 0 for no limit.</li>
                             <li><strong>Error Messages:</strong> Text field to enter your own error messages to be displayed in the cart. You can use the provided placeholders.</li>
                         </ul>
                     </div>
@@ -153,7 +153,7 @@ export default function HelpPage() {
                             This tab allows you to set limits on individual products or their variants. Here's how it works:
                         </p>
                         <ul>
-                            <li><strong>Product Limit:</strong> Maximum and Minimum number of variants for a product. Set to 0 for no limit.</li>
+                            <li><strong>Product Limit:</strong> Maximum and Minimum number of that particular product allowed to checkout. Set to 0 for no limit.</li>
                             <li><strong>Variant Limit:</strong> Maximum and Minimum quantity for each product variant. Set to 0 for no restriction.</li>
                             <li>
                                 <strong>Apply Limit to Product or Variant:</strong> Choose to apply the limit to the entire product (all variants) or each individual variant.

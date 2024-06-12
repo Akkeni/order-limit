@@ -401,7 +401,7 @@ function Extension() {
     if (errorMsgs?.extensionMsg === "Checkout Extension" || errorMsgs?.extensionMsg === "Both") {
 
       //checks for currency code and then proceeds with amount check
-      if(cartCurrencyCode != generalLimiters?.currencyCode) {
+      if(cartCurrencyCode != generalLimiters?.currencyCode && errorMsgs?.plan === true) {
         return {
           behavior: "block",
           reason: "correct currency code is required",

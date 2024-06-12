@@ -48,12 +48,14 @@ export async function loader({ request }) {
   console.log(subscription);
   const activeSubscriptions = subscription.data.app.installation.activeSubscriptions;
   console.log(activeSubscriptions.length);
+  let plan = false;
 
   if (activeSubscriptions.length < 1) {
     await createSubscriptionMetafield(admin.graphql, "false");
     await deleteNonPlanData(admin.graphql);
   } else {
     await createSubscriptionMetafield(admin.graphql, "true");
+    plan = true;
   }
   
 
@@ -234,6 +236,7 @@ export async function loader({ request }) {
       vendorsData,
       activeSubscriptions,
       existingGeneralLimiters,
+      plan,
     });
   
 
@@ -331,7 +334,11 @@ export async function action({ request, params }) {
             errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs"){
               id
               value
-            }  
+            }
+            generalLimitersField: metafield(namespace: "generalLimiters", key: "generalLimiters"){
+              id
+              value
+            }
           }
         }
       `);
@@ -343,7 +350,8 @@ export async function action({ request, params }) {
         data?.data?.shop?.storeLimitField?.id,
         data?.data?.shop?.priceLimitField?.id,
         data?.data?.shop?.weightLimitField?.id,
-        data?.data?.shop?.errorMsgsField?.id
+        data?.data?.shop?.errorMsgsField?.id,
+        data?.data?.shop?.generalLimitersField?.id
       ]
 
       for (const id of storeFieldIds) {
@@ -1250,6 +1258,7 @@ export default function Index() {
     vendorMinErrMsg: existingErrMsgs.vendorMinErrMsg || '',
     vendorMaxErrMsg: existingErrMsgs.vendorMaxErrMsg || '',
     extensionMsg: existingErrMsgs?.extensionMsg || 'Both',
+    plan: loaderData?.plan,
   });
 
   const [generalLimiters, setGeneralLimiters] = useState({
