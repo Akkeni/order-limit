@@ -19,6 +19,7 @@ query RunInput {
           }
          
           product {
+            title
             categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
               value
             }

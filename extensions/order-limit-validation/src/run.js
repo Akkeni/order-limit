@@ -9,10 +9,16 @@
  * @param {RunInput} input
  * @returns {FunctionRunResult}
  */
+
+//import {cartLines} from '../../checkout-ui/src/Checkout';
+
 export function run(input) {
 
 
   const errors = [];
+
+
+  //console.log('cartlines in validation ', cartLines);
 
   // Create a map to store the total quantity for each category
   const categoryQuantities = new Map();
@@ -41,7 +47,7 @@ export function run(input) {
       const [shopMin, shopMax] = storeLimit.split(',').map(Number);
       const totalQuantity = input.cart.lines.reduce((acc, curr) => acc + curr.quantity, 0);
 
-      if (shopMin > totalQuantity && shopMin !== 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
+      if (shopMin > totalQuantity && shopMin > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
         errors.push({
           localizedMessage: errorMessagesFieldValue?.shopMinErrMsg
@@ -50,7 +56,7 @@ export function run(input) {
           target: "cart",
         });
 
-      } else if (totalQuantity > shopMax && shopMax !== 0) {
+      } else if (totalQuantity > shopMax && shopMax > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
         errors.push({
           localizedMessage: errorMessagesFieldValue?.shopMaxErrMsg
@@ -82,21 +88,21 @@ export function run(input) {
 
       } else {
 
-        if (totalAmount < Number(generalLimiters?.priceMin) && Number(generalLimiters?.priceMin) !== 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
+        if (totalAmount < Number(generalLimiters?.priceMin) && Number(generalLimiters?.priceMin) > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.priceMinErrMsg
-              ? errorMessagesFieldValue.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin)
-              : `Minimum amount ${generalLimiters?.priceMin} is required for checkout`,
+              ? errorMessagesFieldValue.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin).replace("{currencyCode}", appliedCurrencyCode)
+              : `Minimum amount ${generalLimiters?.priceMin} ${appliedCurrencyCode} is required for checkout`,
             target: "cart",
           });
 
-        } else if (totalAmount > Number(generalLimiters?.priceMax) && Number(generalLimiters?.priceMax) !== 0) {
+        } else if (totalAmount > Number(generalLimiters?.priceMax) && Number(generalLimiters?.priceMax) > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.priceMaxErrMsg
-              ? errorMessagesFieldValue.priceMaxErrMsg.replace("{priceMax}", generalLimiters?.priceMax)
-              : `Cart exceeds amount ${generalLimiters?.priceMax} please remove some items`,
+              ? errorMessagesFieldValue.priceMaxErrMsg.replace("{priceMax}", generalLimiters?.priceMax).replace("{currencyCode}", appliedCurrencyCode)
+              : `Cart exceeds amount ${generalLimiters?.priceMax} ${appliedCurrencyCode} please remove some items`,
             target: "cart",
           });
 
@@ -184,7 +190,7 @@ export function run(input) {
         //const [weightMin, weightMax] = weightLimitField.split(',').map(Number);
 
 
-        if (Number(generalLimiters?.weightMin) > totalWeight && Number(generalLimiters?.weightMin) !== 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
+        if (Number(generalLimiters?.weightMin) > totalWeight && Number(generalLimiters?.weightMin) > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.weightMinErrMsg
@@ -193,7 +199,7 @@ export function run(input) {
             target: "cart",
           });
 
-        } else if (totalWeight > Number(generalLimiters?.weightMax) && Number(generalLimiters?.weightMax) !== 0) {
+        } else if (totalWeight > Number(generalLimiters?.weightMax) && Number(generalLimiters?.weightMax) > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both"))  {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.weightMaxErrMsg
@@ -221,7 +227,7 @@ export function run(input) {
         }
 
         // Check if total quantity exceeds category limit
-        if (Number(categoryQuantities.get(categoryName)) > Number(categoryMax) && Number(categoryMax) !== 0) {
+        if (Number(categoryQuantities.get(categoryName)) > Number(categoryMax) && Number(categoryMax) > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.categoryMaxErrMsg
@@ -230,7 +236,7 @@ export function run(input) {
             target: "cart",
           });
 
-        } else if (Number(categoryQuantities.get(categoryName)) < Number(categoryMin) && Number(categoryMin) !== 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
+        } else if (Number(categoryQuantities.get(categoryName)) < Number(categoryMin) && Number(categoryMin) > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.categoryMinErrMsg
@@ -256,7 +262,7 @@ export function run(input) {
         }
 
         // Check if total quantity exceeds collection limit
-        if (Number(collectionQuantities.get(collectionName)) > Number(collectionMax) && Number(collectionMax) !== 0) {
+        if (Number(collectionQuantities.get(collectionName)) > Number(collectionMax) && Number(collectionMax) > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.collectionMaxErrMsg
@@ -265,7 +271,7 @@ export function run(input) {
             target: "cart",
           });
 
-        } else if (Number(collectionQuantities.get(collectionName)) < Number(collectionMin) && Number(collectionMin) !== 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
+        } else if (Number(collectionQuantities.get(collectionName)) < Number(collectionMin) && Number(collectionMin) > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.collectionMinErrMsg
@@ -277,10 +283,10 @@ export function run(input) {
         }
       }
 
-      // Check if product has collection information
+      // Check if product has vendor information
       if (product.productLimitField) {
 
-        const [productMin, productMax, vendorName, vendorMin, vendorMax] = product.productLimitField.value.split(',');
+        const [productMin, productMax, vendorName, vendorMin, vendorMax, productName] = product.productLimitField.value.split(',');
 
         if (vendorName !== '0') {
 
@@ -292,16 +298,16 @@ export function run(input) {
           }
 
           // Check if total quantity exceeds collection limit
-          if (Number(vendorQuantities.get(vendorName)) > Number(vendorMax) && Number(vendorMax) !== 0) {
+          if (Number(vendorQuantities.get(vendorName)) > Number(vendorMax) && Number(vendorMax) > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
             errors.push({
               localizedMessage: errorMessagesFieldValue?.vendorMaxErrMsg
-                ? errorMessagesFieldValue.vendorMaxErrMsg.replace("{vendorMax}", vendorMax).replace("{collectionName}", vendorName)
+                ? errorMessagesFieldValue.vendorMaxErrMsg.replace("{vendorMax}", vendorMax).replace("{vendorName}", vendorName)
                 : `Can't select more than ${vendorMax} products from the vendor "${vendorName}".`,
               target: "cart",
             });
 
-          } else if (Number(vendorQuantities.get(vendorName)) < Number(vendorMin) && Number(vendorMin) !== 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
+          } else if (Number(vendorQuantities.get(vendorName)) < Number(vendorMin) && Number(vendorMin) > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
             errors.push({
               localizedMessage: errorMessagesFieldValue?.vendorMinErrMsg
@@ -319,23 +325,23 @@ export function run(input) {
       // Check product limit
       if (merchandise.productVariantLimitField) {
 
-        //const productName = product?.title;
+        const productName = product?.title;
         const [productVariantMin, productVariantMax] = merchandise.productVariantLimitField.value.split(',').map(Number);
 
-        if (quantity > productVariantMax && productVariantMax !== 0) {
+        if (quantity > productVariantMax && productVariantMax > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.variantMaxErrMsg
-              ? errorMessagesFieldValue.variantMaxErrMsg.replace("{productVariantMax}", productVariantMax).replace(" {productName}", '.')
+              ? errorMessagesFieldValue.variantMaxErrMsg.replace("{productVariantMax}", productVariantMax).replace(" {productName}", productName)
               : `Quantity limit reached, you can't select more than ${productVariantMax}.`,
             target: "cart",
           });
 
-        } else if (quantity < productVariantMin && productVariantMin !== 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
+        } else if (quantity < productVariantMin && productVariantMin > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.variantMinErrMsg
-              ? errorMessagesFieldValue.variantMinErrMsg.replace("{productVariantMin}", productVariantMin).replace(" {productName}", '.')
+              ? errorMessagesFieldValue.variantMinErrMsg.replace("{productVariantMin}", productVariantMin).replace(" {productName}", productName)
               : `You can't select less than ${productVariantMin} for this product variant`,
             target: "cart",
           });
@@ -349,7 +355,7 @@ export function run(input) {
         const [productMin, productMax] = product.productLimitField.value.split(',').map(Number);
         const [productM, productMa, vendorName, vendorMin, vendorMax, productName] = product.productLimitField.value.split(',');
 
-        if (quantity > productMax && productMax !== 0) {
+        if (quantity > productMax && productMax > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.productMaxErrMsg
@@ -358,7 +364,7 @@ export function run(input) {
             target: "cart",
           });
 
-        } else if (quantity < productMin && productMin !== 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
+        } else if (quantity < productMin && productMin > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
           errors.push({
             localizedMessage: errorMessagesFieldValue?.productMinErrMsg
