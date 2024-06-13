@@ -1,7 +1,5 @@
 query RunInput {
-  buyerJourney {
-    step
-  }
+  
   cart {
     cost {
       totalAmount {
@@ -50,5 +48,8 @@ query RunInput {
     errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs"){
       value
     }    
+  }
+  buyerJourney {
+    step
   }
 }
