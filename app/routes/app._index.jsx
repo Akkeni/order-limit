@@ -23,7 +23,7 @@ import {
   Spinner,
   Banner,
   Badge,
-  
+
 } from '@shopify/polaris';
 import { json, redirect } from '@remix-run/node';
 import { useState, useCallback, useEffect } from 'react';
@@ -36,7 +36,7 @@ import React from 'react';
 import { getAllProductsData, deleteNonPlanData } from '../models/orderLimit.server';
 import { useAppBridge } from '@shopify/app-bridge-react';
 import '../resources/style.css';
-import {getSubscriptionStatus, createSubscriptionMetafield} from '../models/Subscription.server';
+import { getSubscriptionStatus, createSubscriptionMetafield } from '../models/Subscription.server';
 
 
 
@@ -57,7 +57,7 @@ export async function loader({ request }) {
     await createSubscriptionMetafield(admin.graphql, "true");
     plan = true;
   }
-  
+
 
 
 
@@ -238,7 +238,7 @@ export async function loader({ request }) {
       existingGeneralLimiters,
       plan,
     });
-  
+
 
   } catch (error) {
     console.error('Error in loader:', error);
@@ -1199,10 +1199,10 @@ export default function Index() {
       navigate('/app/pricing');
     }
   }, [loaderData]);*/
-  
 
 
- 
+
+
   const allProductCategories = loaderData?.data?.data.shop.allProductCategories;
   const shopName = loaderData.shopName;
   const shopLimit = loaderData.storeLimit;
@@ -1277,7 +1277,7 @@ export default function Index() {
 
   const collectionIds = [];
 
-  const tagOptions = (activeSubscriptions.length < 1) ? [ 'Store Wise', 'Product Wise', 'Vendor Wise'] : [ 'Store Wise', 'General', 'Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise']
+  const tagOptions = (activeSubscriptions.length < 1) ? ['Store Wise', 'Product Wise', 'Vendor Wise'] : ['Store Wise', 'General', 'Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise']
 
   /*//to populate the category arrays
   for (const collection of allCollectionsData) {
@@ -1494,8 +1494,8 @@ export default function Index() {
   );
 
   const activator = (
-    <Button onClick={togglePopoverActive} icon={MenuVerticalIcon} variant='plain' tone='base'/>
-    
+    <Button onClick={togglePopoverActive} icon={MenuVerticalIcon} variant='plain' tone='base' />
+
   );
 
   const handleSaveProduct = () => {
@@ -1657,7 +1657,7 @@ export default function Index() {
   const getVariantQunatity = (id, range) => {
     const variantQuantityLimitValue = variantQuantityLimits[id];
     //console.log('variantQuantityLimitValue in getVariantQuantity', variantQuantityLimitValue);
-    if(variantQuantityLimitValue) {
+    if (variantQuantityLimitValue) {
       if (range === "min") {
         return variantQuantityLimitValue.split(',')[0];
       } else {
@@ -1876,7 +1876,7 @@ export default function Index() {
 
         <Page fullWidth={true}>
           <ui-title-bar title="Order Wise Limit"></ui-title-bar>
-          
+
           {(activeSubscriptions.length < 1) && (
             <Banner tone="critical">
               <p>
@@ -1884,7 +1884,7 @@ export default function Index() {
               </p>
             </Banner>
           )}
-          <br/>
+          <br />
           {/* Alert message */}
           {success && (
             <>
@@ -1895,7 +1895,7 @@ export default function Index() {
               />
             </>
           )}
-          
+
           <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
             <div style={{ paddingTop: '0.5rem', paddingBottom: '1.5rem', paddingRight: '1rem' }}>
               <InlineStack gap="500">
@@ -1948,8 +1948,8 @@ export default function Index() {
                           <ActionList
                             actionRole="menuitem"
                             items={[
-                              {content: 'Help', url: '/app/help'},
-                              {content: 'Plan', url: '/app/pricing'}
+                              { content: 'Help', url: '/app/help' },
+                              { content: 'Plan', url: '/app/pricing' }
                             ]}
                           />
                         </Popover.Pane>
@@ -2502,7 +2502,7 @@ export default function Index() {
                                 value={generalLimiters?.weightMax}
                                 label="Weight Max Limit"
                                 type="number"
-                                onChange={(value) => { handleGeneralLimiters( "weightMax", value) }}
+                                onChange={(value) => { handleGeneralLimiters("weightMax", value) }}
                               />
                             </FormLayout>
                           </IndexTable.Cell>

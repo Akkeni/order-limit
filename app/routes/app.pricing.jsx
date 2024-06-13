@@ -111,40 +111,40 @@ export default function PricingPage() {
     if (isLoading) {
         //console.log('isSaving ', isSaving);
         return (
-          <div style={{
-            position: "fixed",
-            top: "0",
-            left: "0",
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            zIndex: "999",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center"
-          }}>
             <div style={{
-              backgroundColor: "#fff",
-              padding: "20px",
-              borderRadius: "5px",
-              boxShadow: "0 0 10px rgba(0, 0, 0, 0.5)",
-              fontSize: "18px",
+                position: "fixed",
+                top: "0",
+                left: "0",
+                width: "100%",
+                height: "100%",
+                backgroundColor: "rgba(0, 0, 0, 0.5)",
+                zIndex: "999",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center"
             }}>
-              <Spinner accessibilityLabel="Saving" size="large" />
+                <div style={{
+                    backgroundColor: "#fff",
+                    padding: "20px",
+                    borderRadius: "5px",
+                    boxShadow: "0 0 10px rgba(0, 0, 0, 0.5)",
+                    fontSize: "18px",
+                }}>
+                    <Spinner accessibilityLabel="Saving" size="large" />
+                </div>
             </div>
-          </div>
         );
     }
     return (
         <Page>
             <ui-title-bar title="Pricing" />
-            <InlineStack gap ="400">
+            <InlineStack gap="400">
                 <Link url='/app' onClick={() => setIsLoading(true)}>Home</Link>
                 <Link url='/app/help' onClick={() => setIsLoading(true)}>Help</Link>
             </InlineStack>
-            
-            <br/>
-            <br/>
+
+            <br />
+            <br />
 
             {plan.name == "Free Subscription" && (
                 <Banner title="Select a plan" status="info">
@@ -225,7 +225,7 @@ export default function PricingPage() {
                                 </div>
 
                                 {(plan_item.name != 'Free Subscription') && (
-                                    <Button onClick={() => {setIsLoading(true); navigate(plan_item.url);}} disabled={(plan_item.name == plan.name || plan_item.name == 'Free Subscription')}>
+                                    <Button onClick={() => { setIsLoading(true); navigate(plan_item.url); }} disabled={(plan_item.name == plan.name || plan_item.name == 'Free Subscription')}>
                                         {plan_item.action}
                                     </Button>
                                 )}

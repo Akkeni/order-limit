@@ -223,7 +223,7 @@ function App() {
             </Text>
           )}
 
-          
+
 
           <InlineStack inlineAlignment="end" gap="none">
             <Button onClick={handleSave} variant='primary'>Save</Button>

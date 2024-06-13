@@ -18,7 +18,7 @@ export function run(input) {
   const errors = [];
 
 
- 
+
 
   // Create a map to store the total quantity for each category
   const categoryQuantities = new Map();
@@ -38,7 +38,7 @@ export function run(input) {
 
   //console.log(generalLimiters);
 
-  if(input.buyerJourney.step !== "CART_INTERACTION") {
+  if (input.buyerJourney.step !== "CART_INTERACTION") {
 
     for (const line of input.cart.lines) {
       const { quantity, merchandise } = line;
@@ -201,7 +201,7 @@ export function run(input) {
               target: "cart",
             });
 
-          } else if (totalWeight > Number(generalLimiters?.weightMax) && Number(generalLimiters?.weightMax) > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both"))  {
+          } else if (totalWeight > Number(generalLimiters?.weightMax) && Number(generalLimiters?.weightMax) > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
             errors.push({
               localizedMessage: errorMessagesFieldValue?.weightMaxErrMsg

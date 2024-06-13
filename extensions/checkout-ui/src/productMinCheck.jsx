@@ -109,18 +109,18 @@ function App() {
 
         setErrorMessage(msg);
 
-      } else if(quantity > productMax && productMax > 0) {
+      } else if (quantity > productMax && productMax > 0) {
         let msg = errorMsgs.productMaxErrMsg
-        ? errorMsgs.productMaxErrMsg.replace("{productMax}", productMax).replace("{productName}", cartLineTarget?.merchandise?.title)
-        : `Quantity limit reached, you can't select more than ${productMax} for ${cartLineTarget?.merchandise?.title}.`;
+          ? errorMsgs.productMaxErrMsg.replace("{productMax}", productMax).replace("{productName}", cartLineTarget?.merchandise?.title)
+          : `Quantity limit reached, you can't select more than ${productMax} for ${cartLineTarget?.merchandise?.title}.`;
         setErrorMessage(msg);
 
       } else if (quantity > productVariantMax && productVariantMax > 0) {
 
         let msg = errorMessagesFieldValue.variantMaxErrMsg
-        ? errorMessagesFieldValue.variantMaxErrMsg.replace("{productVariantMax}", productVariantMax).replace("{productName}", cartLineTarget?.merchandise?.title)
-        : `Quantity limit reached, you can't select more than ${productVariantMax}.`;
-        
+          ? errorMessagesFieldValue.variantMaxErrMsg.replace("{productVariantMax}", productVariantMax).replace("{productName}", cartLineTarget?.merchandise?.title)
+          : `Quantity limit reached, you can't select more than ${productVariantMax}.`;
+
         setErrorMessage(msg);
       }
     }

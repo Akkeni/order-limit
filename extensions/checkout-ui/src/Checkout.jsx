@@ -20,7 +20,7 @@ function Extension() {
   const translate = useTranslate();
   const { extension, query } = useApi();
 
- //console.log('Extension in checkout UI is working...!');
+  //console.log('Extension in checkout UI is working...!');
 
   const priceLimitField = useAppMetafields({
     type: "shop",
@@ -113,7 +113,7 @@ function Extension() {
   //console.log('totalAmountValue in extension ', totalAmountValue);
   //console.log('cartlines in extension ', cartLines);
   const cartCurrencyCode = cartLines[0]?.cost?.totalAmount?.currencyCode;
-  
+
 
   const totalQuantity = cartLines.reduce((acc, curr) => acc + curr.quantity, 0);
   //console.log('currencyCode in extension '+ cartCurrencyCode + " , " + generalLimiters?.currencyCode);
@@ -201,7 +201,7 @@ function Extension() {
         const fromWeightUnit = variant.node?.weightUnit;
         const toWeightUnit = generalLimiters?.weightUnit;
         let weight = convertWeight(cartWeight, fromWeightUnit, toWeightUnit);
-        
+
         totalWeight = totalWeight + (quantity * weight);
         //console.log('totalWeight ', totalWeight);
       }
@@ -255,7 +255,7 @@ function Extension() {
 
   //console.log('totalCategriesquantities', totalCategoriesQuantity);
 
- 
+
 
 
 
@@ -273,10 +273,10 @@ function Extension() {
         : `You have to select minimun ${minQuantity} products from the category "${category}".`;
 
       categoryErrors.push(msg);
-    } else if(totalQuantity > maxQuantity && maxQuantity != 0) {
+    } else if (totalQuantity > maxQuantity && maxQuantity != 0) {
       let msg = errorMsgs.categoryMaxErrMsg
-      ? errorMsgs.categoryMaxErrMsg.replace("{categoryMax}", maxQuantity).replace("{categoryName}", category)
-      : `Can't select more than ${maxQuantity} products from the category "${category}".`
+        ? errorMsgs.categoryMaxErrMsg.replace("{categoryMax}", maxQuantity).replace("{categoryName}", category)
+        : `Can't select more than ${maxQuantity} products from the category "${category}".`
       categoryErrors.push(msg);
     }
   });
@@ -342,10 +342,10 @@ function Extension() {
         : `You have to select minimun ${minQuantity} products from the collection "${collection}".`;
 
       collectionErrors.push(msg);
-    } else if(totalQuantity > maxQuantity && maxQuantity != 0) {
+    } else if (totalQuantity > maxQuantity && maxQuantity != 0) {
       let msg = errorMsgs.collectionMaxErrMsg
-      ? errorMsgs.collectionMaxErrMsg.replace("{collectionMax}", maxQuantity).replace("{collectionName}", collection)
-      : `Can't select more than ${maxQuantity} products from the collection "${collection}".`
+        ? errorMsgs.collectionMaxErrMsg.replace("{collectionMax}", maxQuantity).replace("{collectionName}", collection)
+        : `Can't select more than ${maxQuantity} products from the collection "${collection}".`
       collectionErrors.push(msg);
     }
   });
@@ -421,10 +421,10 @@ function Extension() {
           : `You have to select minimun ${minQuantity} products from the vendor "${vendor}".`;
 
         vendorErrors.push(msg);
-      } else if(totalQuantity > maxQuantity && maxQuantity != 0) { 
+      } else if (totalQuantity > maxQuantity && maxQuantity != 0) {
         let msg = errorMsgs.vendorMaxErrMsg
-        ? errorMsgs.vendorMaxErrMsg.replace("{vendorMax}", maxQuantity).replace("{vendorName}", vendor)
-        : `Can't select more than ${maxQuantity} products from the vendor "${vendor}".`;
+          ? errorMsgs.vendorMaxErrMsg.replace("{vendorMax}", maxQuantity).replace("{vendorName}", vendor)
+          : `Can't select more than ${maxQuantity} products from the vendor "${vendor}".`;
         vendorErrors.push(msg);
       }
     });
@@ -441,7 +441,7 @@ function Extension() {
     if (errorMsgs?.extensionMsg === "Checkout Extension" || errorMsgs?.extensionMsg === "Both") {
 
       //checks for currency code and then proceeds with amount check
-      if(cartCurrencyCode != generalLimiters?.currencyCode && errorMsgs?.plan === true) {
+      if (cartCurrencyCode != generalLimiters?.currencyCode && errorMsgs?.plan === true) {
         return {
           behavior: "block",
           reason: "correct currency code is required",
@@ -475,9 +475,9 @@ function Extension() {
               {
                 // Show a validation error on the page
                 message:
-                errorMsgs.priceMaxErrMsg
-                ? errorMsgs.priceMaxErrMsg.replace("{priceMax}", generalLimiters.priceMax).replace("{currencyCode}", generalLimiters?.currencyCode)
-                : `Cart exceeds amount ${generalLimiters.priceMax} ${generalLimiters?.currencyCode}. Please remove some items.`
+                  errorMsgs.priceMaxErrMsg
+                    ? errorMsgs.priceMaxErrMsg.replace("{priceMax}", generalLimiters.priceMax).replace("{currencyCode}", generalLimiters?.currencyCode)
+                    : `Cart exceeds amount ${generalLimiters.priceMax} ${generalLimiters?.currencyCode}. Please remove some items.`
               },
             ],
           };
@@ -506,9 +506,9 @@ function Extension() {
             {
               // Show a validation error on the page
               message:
-              errorMsgs?.shopMaxErrMsg
-              ? errorMsgs.shopMaxErrMsg.replace("{shopMax}", storeMax)
-              : `Cart exceeds ${storeMax} products. Please remove some items`,
+                errorMsgs?.shopMaxErrMsg
+                  ? errorMsgs.shopMaxErrMsg.replace("{shopMax}", storeMax)
+                  : `Cart exceeds ${storeMax} products. Please remove some items`,
             },
           ],
         };

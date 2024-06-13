@@ -63,7 +63,7 @@ function App() {
   const handleSave = async () => {
     setLoading(true);
     const result = await updateLimiters(collectionId, limiters);
-    if(result?.success) {
+    if (result?.success) {
       setLoading(false);
     }
   }
@@ -81,13 +81,13 @@ function App() {
         </Text>
       )}
 
-      { !loading && !limiters?.plan && (
+      {!loading && !limiters?.plan && (
         <Text>
           Please select a plan to use Collection wise limit.
         </Text>
       )}
 
-      { !loading && limiters?.plan && (
+      {!loading && limiters?.plan && (
         <Box>
           <BlockStack gap>
             <Heading size="6">
@@ -113,7 +113,7 @@ function App() {
             <InlineStack inlineAlignment="end" gap="none">
               <Button onClick={handleSave} variant='primary'>Save</Button>
             </InlineStack>
-            
+
           </BlockStack>
         </Box>
       )}

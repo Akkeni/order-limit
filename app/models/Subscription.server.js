@@ -1,6 +1,6 @@
 export async function getSubscriptionStatus(graphql) {
-    const result = await graphql(
-        `
+  const result = await graphql(
+    `
         #graphql
         query Shop {
           app {
@@ -19,11 +19,11 @@ export async function getSubscriptionStatus(graphql) {
           }
         }
       `,
-        { variables: {} },
-    );
+    { variables: {} },
+  );
 
-    const res = await result.json();
-    return res;
+  const res = await result.json();
+  return res;
 }
 
 export async function createSubscriptionMetafield(graphql, value) {

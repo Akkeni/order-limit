@@ -64,7 +64,7 @@ export async function updateLimiters(collectionId, limiters) {
     const collectionData = await getCollection(collectionId, edge?.node?.id);
 
     if (collectionData?.data?.collection?.hasProduct) {
-        await updateCollectionLimit(edge?.node?.id, limiters);
+      await updateCollectionLimit(edge?.node?.id, limiters);
     }
   }
   return ({ success: true });
@@ -83,9 +83,9 @@ export async function getLimiters(collectionId) {
       }
   
     }
-  }`,{});
+  }`, {});
 
-  if(planDetails?.data?.currentAppInstallation?.planMetaField?.value == "false") {
+  if (planDetails?.data?.currentAppInstallation?.planMetaField?.value == "false") {
     limiters['plan'] = false;
     //console.log('plan value in utils ', limiters?.plan);
     return limiters;
@@ -94,7 +94,7 @@ export async function getLimiters(collectionId) {
   }
 
   const allProductsData = await getAllProductsData();
-  
+
 
   //console.log('allProductsData in getLimiters ', allProductsData);
 

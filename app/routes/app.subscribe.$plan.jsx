@@ -10,7 +10,7 @@ export const loader = async ({ request, params }) => {
 
   //console.log('plan in app ', params.plan);
 
-  if(params.plan === "monthly" ) {
+  if (params.plan === "monthly") {
     await billing.require({
       plans: [MONTHLY_PLAN],
       isTest: true,
@@ -31,6 +31,6 @@ export const loader = async ({ request, params }) => {
       }),
     });
   }
-  
+
   return null;
 }

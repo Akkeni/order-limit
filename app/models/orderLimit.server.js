@@ -183,17 +183,17 @@ export async function getAllProductsData(graphql) {
   }
 
   return allProductsData;
-} 
+}
 
 export async function deleteNonPlanData(graphql) {
-    //console.log('deletePreviousDataValue in if', formData.get('deletePreviousData'));
+  //console.log('deletePreviousDataValue in if', formData.get('deletePreviousData'));
 
-    let allProductsData = await getAllProductsData(graphql);
-    
-    const deleteMetafield = async (metafieldId) => {
-      if (metafieldId) {
-        await graphql(
-          `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+  let allProductsData = await getAllProductsData(graphql);
+
+  const deleteMetafield = async (metafieldId) => {
+    if (metafieldId) {
+      await graphql(
+        `mutation metafieldDelete($input: MetafieldDeleteInput!) {
             metafieldDelete(input: $input) {
               userErrors {
                 field
@@ -201,32 +201,32 @@ export async function deleteNonPlanData(graphql) {
               }
             }
           }`,
-          {
-            variables: {
-              input: {
-                id: metafieldId
-              }
+        {
+          variables: {
+            input: {
+              id: metafieldId
             }
           }
-        );
-      }
-    };
-
-    const fields = [
-      'categoryLimitField',
-      'collectionLimitField'
-    ];
-
-    for (let product of allProductsData) {
-      for (let field of fields) {
-        // Check and delete metafields at the product level
-        let productMetafieldId = product.node[field]?.id;
-        await deleteMetafield(productMetafieldId);
-      }
+        }
+      );
     }
+  };
 
-    const response = await graphql(
-      `{
+  const fields = [
+    'categoryLimitField',
+    'collectionLimitField'
+  ];
+
+  for (let product of allProductsData) {
+    for (let field of fields) {
+      // Check and delete metafields at the product level
+      let productMetafieldId = product.node[field]?.id;
+      await deleteMetafield(productMetafieldId);
+    }
+  }
+
+  const response = await graphql(
+    `{
         shop {
           id
           name
@@ -249,27 +249,27 @@ export async function deleteNonPlanData(graphql) {
     `);
 
 
-    const data = await response.json();
+  const data = await response.json();
 
-    const storeFieldIds = [
-      data?.data?.shop?.priceLimitField?.id,
-      data?.data?.shop?.weightLimitField?.id,
-      data?.data?.shop?.generalLimitersField?.id,
-    ];
-  
-    for (const id of storeFieldIds) {
-      if (id) {
-        await deleteMetafield(id);
-      }
+  const storeFieldIds = [
+    data?.data?.shop?.priceLimitField?.id,
+    data?.data?.shop?.weightLimitField?.id,
+    data?.data?.shop?.generalLimitersField?.id,
+  ];
+
+  for (const id of storeFieldIds) {
+    if (id) {
+      await deleteMetafield(id);
     }
+  }
 
-    const generalLimiters = JSON.stringify({
-      currencyCode: data?.data?.shop?.currencyCode,
-      weightUnit: data?.data?.shop?.weightUnit,
-      plan: false
-    });
+  const generalLimiters = JSON.stringify({
+    currencyCode: data?.data?.shop?.currencyCode,
+    weightUnit: data?.data?.shop?.weightUnit,
+    plan: false
+  });
 
-    const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+  const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
       metafieldsSet(metafields: $metafields) {
         metafields {
           id
@@ -284,24 +284,24 @@ export async function deleteNonPlanData(graphql) {
       }
     }`;
 
-    const metafields = {
-      variables: {
-        metafields: [
-          {
-            "ownerId": `${data?.data?.shop?.id}`,
-            "namespace": "generalLimiters",
-            "key": "generalLimiters",
-            "type": "string",
-            "value": `${generalLimiters}`
+  const metafields = {
+    variables: {
+      metafields: [
+        {
+          "ownerId": `${data?.data?.shop?.id}`,
+          "namespace": "generalLimiters",
+          "key": "generalLimiters",
+          "type": "string",
+          "value": `${generalLimiters}`
 
-          }
-        ]
-      }
-    };
+        }
+      ]
+    }
+  };
 
-    await graphql(mutationQuery, metafields);
+  await graphql(mutationQuery, metafields);
 
-    //return redirect('/app');
-    return null;
+  //return redirect('/app');
+  return null;
 
 }
