@@ -1,14 +1,14 @@
 export async function updateLimiters(productId, limiters) {
 
-    console.log('productId in update ', productId);
-    console.log('limiters in updateLimiters ', limiters);
+    //console.log('productId in update ', productId);
+    //console.log('limiters in updateLimiters ', limiters);
     const productData = await getLimiters(productId);
 
     const productValue = limiters?.productMin + ',' + limiters?.productMax + ',' + limiters?.vendorName + ',' + limiters?.vendorMin + ',' + limiters?.vendorMax + ',' + productData?.data?.product?.title;
     const categoryValue = limiters?.categoryName + ',' + limiters?.categoryMin + ',' + limiters?.categoryMax;
 
-    console.log('productValue in update ', productValue);
-    console.log('categoryValue in update ', categoryValue);
+    //console.log('productValue in update ', productValue);
+    //console.log('categoryValue in update ', categoryValue);
 
     const metaData = await makeGraphQLQuery(
         `mutation SetMetafield($namespace: String!, $ownerId: ID!, $key: String!, $type: String!, $value: String!) {
@@ -67,42 +67,9 @@ export async function updateLimiters(productId, limiters) {
     //const metaData = await makeGraphQLQuery(mutationQuery, variables);
     //const metaData = await metaResponse.json();
     //const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
-    console.log('metaData ', metaData);
-    console.log('categoryData ', categoryData);
-    /*const errorMessages = metaData?.data?.productUpdate.userErrors;
-    
-    //console.log('existingrecords', existingMetafields);
-    
-    if (errorMessages && errorMessages.length > 0) {
-    
-        const ids = [metaData?.data?.productUpdate?.product?.productLimitField?.id, metaData?.data?.productUpdate?.product?.categoryLimitField?.id];
-        for (const id of ids) {
-            if (id) {
-                // Delete the conflicting metafield
-                await admin.graphql(
-                    `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-              metafieldDelete(input: $input) {
-                userErrors {
-                  field
-                  message
-                }
-              }
-            }`,
-                    {
-                        variables: {
-                            input: {
-                                id: `${id}`
-                            }
-                        }
-                    }
-                );
-            }
-        }
-    
-        // Now, execute the updateProduct query with the updated metafields
-        const updatedMetaData = await makeGraphQLQuery(mutationQuery, variables);
-        //const updatedMetaData = await updatedMetaResponse.json();
-    }*/
+    //console.log('metaData ', metaData);
+    //console.log('categoryData ', categoryData);
+   
 
     return ({ success: true });
 }
@@ -142,11 +109,11 @@ export async function getPlan() {
     
       }
     }`,{});
-    console.log('planDetails value ', planDetails?.data?.currentAppInstallation?.planMetaField?.value);
+    //console.log('planDetails value ', planDetails?.data?.currentAppInstallation?.planMetaField?.value);
   
     if(planDetails?.data?.currentAppInstallation?.planMetaField?.value == "true") {
       plan = true;
-      console.log('plan value in utils ', plan);
+      //console.log('plan value in utils ', plan);
       return plan;
     }
 }

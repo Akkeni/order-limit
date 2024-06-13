@@ -1,12 +1,12 @@
 export async function updateCollectionLimit(productId, limiters) {
 
-  console.log('productId in update ', productId);
-  console.log('limiters in updateLimiters ', limiters);
+  //console.log('productId in update ', productId);
+  //console.log('limiters in updateLimiters ', limiters);
 
 
   const collectionValue = limiters?.collectionName + ',' + limiters?.collectionMin + ',' + limiters?.collectionMax;
 
-  console.log('collectionValue in update ', collectionValue);
+  //console.log('collectionValue in update ', collectionValue);
 
 
 
@@ -87,7 +87,7 @@ export async function getLimiters(collectionId) {
 
   if(planDetails?.data?.currentAppInstallation?.planMetaField?.value == "false") {
     limiters['plan'] = false;
-    console.log('plan value in utils ', limiters?.plan);
+    //console.log('plan value in utils ', limiters?.plan);
     return limiters;
   } else {
     limiters['plan'] = true;
@@ -96,7 +96,7 @@ export async function getLimiters(collectionId) {
   const allProductsData = await getAllProductsData();
   
 
-  console.log('allProductsData in getLimiters ', allProductsData);
+  //console.log('allProductsData in getLimiters ', allProductsData);
 
   for (const edge of allProductsData) {
     const collectionData = await getCollection(collectionId, edge?.node?.id);

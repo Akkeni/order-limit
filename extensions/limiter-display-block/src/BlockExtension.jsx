@@ -37,7 +37,7 @@ function App() {
 
   const [loading, setLoading] = useState(true);
   const productId = data.selected[0].id;
-  console.log({ data });
+  //console.log({ data });
 
 
   useEffect(() => {
@@ -58,12 +58,12 @@ function App() {
           ...prevState,
           categoryName: productData?.data?.product?.category?.name
         }));
-        console.log('category limit value ', productData?.data?.product?.categoryLimitField?.value);
+        //console.log('category limit value ', productData?.data?.product?.categoryLimitField?.value);
 
         if (productData?.data?.product?.categoryLimitField?.value) {
 
           const [categoryName, categoryMin, categoryMax] = productData?.data?.product?.categoryLimitField?.value.split(',');
-          console.log('categoryMin ', categoryMin);
+          //console.log('categoryMin ', categoryMin);
           setLimiters(prevState => ({
             ...prevState,
             categoryMin: categoryMin ? Number(categoryMin) : 0,
@@ -114,7 +114,7 @@ function App() {
       ...prevState,
       [name]: value
     }));
-    console.log('updated limiters ', limiters);
+    //console.log('updated limiters ', limiters);
   }
 
   const handleSave = async () => {
@@ -125,7 +125,7 @@ function App() {
     }
   }
 
-  console.log('categoryMin ' + limiters?.categoryMin + 'categoryMax ' + limiters?.categoryMax + " plan" + limiters?.plan);
+  //console.log('categoryMin ' + limiters?.categoryMin + 'categoryMax ' + limiters?.categoryMax + " plan" + limiters?.plan);
 
 
   return (

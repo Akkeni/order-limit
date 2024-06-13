@@ -77,7 +77,7 @@ export default function HelpPage() {
                             <ul>
                                 <li>
                                     <strong>
-                                        Cart Extension: Validates the cart for the minimum limit and displays a message on the cart UI. Requires a quantity selector before the 'Add to cart' button.
+                                        Cart Extension: Validates the cart for the minimum limit and displays a message on the checkout UI.
                                     </strong>
                                 </li>
                                 <br/>

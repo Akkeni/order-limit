@@ -23,7 +23,7 @@ export default reactExtension(TARGET, () => <App />);
 function App() {
   // The useApi hook provides access to several useful APIs like i18n and data.
   const { i18n, data } = useApi(TARGET);
-  console.log({ data });
+  //console.log({ data });
 
   const [limiters, setLimiters] = useState({
     collectionName: '',
@@ -57,7 +57,7 @@ function App() {
       ...prevState,
       [name]: value
     }));
-    console.log('updated limiters ', limiters);
+    //console.log('updated limiters ', limiters);
   }
 
   const handleSave = async () => {
@@ -68,7 +68,7 @@ function App() {
     }
   }
 
-  console.log('collectionMin ' + limiters?.collectionMin + 'collectionMax ' + limiters?.collectionMax + " plan " + limiters?.plan);
+  //console.log('collectionMin ' + limiters?.collectionMin + 'collectionMax ' + limiters?.collectionMax + " plan " + limiters?.plan);
 
 
   return (

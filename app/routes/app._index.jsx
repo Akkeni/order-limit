@@ -45,9 +45,9 @@ export async function loader({ request }) {
   const { admin, billing, session } = await authenticate.admin(request);
 
   const subscription = await getSubscriptionStatus(admin.graphql);
-  console.log(subscription);
+  //console.log(subscription);
   const activeSubscriptions = subscription.data.app.installation.activeSubscriptions;
-  console.log(activeSubscriptions.length);
+  //console.log(activeSubscriptions.length);
   let plan = false;
 
   if (activeSubscriptions.length < 1) {
@@ -386,13 +386,13 @@ export async function action({ request, params }) {
       return redirect('/app');
     }
 
-    console.log('action value in action ', formData.get('action'));
-    console.log('limiters before if in action ', JSON.parse(formData.get('quantityLimit')));
+    //console.log('action value in action ', formData.get('action'));
+    //console.log('limiters before if in action ', JSON.parse(formData.get('quantityLimit')));
 
     if (formData.get('action') == 'saveProduct') {
 
       const limiters = JSON.parse(formData.get('quantityLimit'));
-      console.log('limiters in action', limiters);
+      //console.log('limiters in action', limiters);
       const errorMessages = formData.get('errorMessages');
       const generalLimiters = formData.get('generalLimiters');
 
@@ -1002,7 +1002,7 @@ export async function action({ request, params }) {
               const productData = await productResponse.json();
 
               let productLimitFieldValue = productData?.data?.product?.productLimitField?.value;
-              console.log('productLimitFieldValue in actions vendor wise ', productLimitFieldValue);
+              //console.log('productLimitFieldValue in actions vendor wise ', productLimitFieldValue);
               if (productLimitFieldValue) {
                 let [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
                 value = productMin + ',' + productMax + ',' + limiter.id + ',' + limiter.value + ',' + productData?.data?.product?.title;
@@ -1287,7 +1287,7 @@ export default function Index() {
 
   //abscent of categories in the store
   if (!(categoriesData)) {
-    console.log('categoriesData in if not', categoriesData);
+    //console.log('categoriesData in if not', categoriesData);
     //console.log('no categories');
     categoriesData.push({ categoryName: 'No Categories' });
   }
@@ -1458,7 +1458,7 @@ export default function Index() {
     [],
   );
 
-  console.log('vendors in index ', vendorsData);
+  //console.log('vendors in index ', vendorsData);
 
   const handleErrorMessages = (name, value) => {
     setErrorMessages(prevState => ({
@@ -1526,7 +1526,7 @@ export default function Index() {
   }
 
   const handleQuantityLimit = (value, id, range = '') => {
-    console.log('value and id in handlequantity', value, id);
+    //console.log('value and id in handlequantity', value, id);
     let limitValue = '';
     if (range === 'min') {
       if (tagValue === "Collection Wise") {
@@ -1573,7 +1573,7 @@ export default function Index() {
       value = limitValue;
     }
 
-    console.log('value in handleQuantityLimit ', value);
+    //console.log('value in handleQuantityLimit ', value);
 
     // Update quantityLimit state to contain objects with id as keys and quantity limits as values
     setQuantityLimit((prevQuantityLimit) => {
@@ -1847,7 +1847,7 @@ export default function Index() {
       </div>
     );
   }
-  console.log('showconfirmation', showConfirmation);
+  //console.log('showconfirmation', showConfirmation);
   return (
 
     <>
@@ -1912,7 +1912,7 @@ export default function Index() {
                 <div style={{ paddingLeft: '0.5rem' }}>
                   <FormLayout>
                     <Select
-                      label="Use extension for minimum"
+                      label="Use extension"
                       options={['Both', 'Cart Extension', 'Checkout Extension']}
                       value={errorMessages?.extensionMsg}
                       onChange={handleExtensionChange}
@@ -2380,7 +2380,7 @@ export default function Index() {
                       <IndexTable
                         headings={[
                           { title: 'Store Name' },
-                          { title: 'Quantity Available' },
+                          { title: 'Total Products' },
                           { title: 'Min Limit' },
                           { title: 'Max Limit' }
                         ]}
@@ -2518,8 +2518,8 @@ export default function Index() {
                         label="Error Message for Price Minimum limit"
                         value={errorMessages.priceMinErrMsg}
                         onChange={(value) => { handleErrorMessages("priceMinErrMsg", value) }}
-                        placeholder="Minmum amount {priceMin} is required for checkout"
-                        helpText="use {priceMin} to include minimum price"
+                        placeholder="Minmum amount {priceMin} {currencyCode} is required for checkout"
+                        helpText="use {priceMin} to include minimum price, {currencyCode} to include currency code."
                         autoComplete="off"
                       />
                       <br />
@@ -2527,8 +2527,8 @@ export default function Index() {
                         label="Error Message for Price Maximum limit"
                         value={errorMessages.priceMaxErrMsg}
                         onChange={(value) => { handleErrorMessages("priceMaxErrMsg", value) }}
-                        placeholder="Cart exceeds amount {priceMax} please remove some items"
-                        helpText="use {priceMax} to include maximum price"
+                        placeholder="Cart exceeds amount {priceMax} {currencyCode} please remove some items"
+                        helpText="use {priceMax} to include maximum price, {currencyCode} to include currency code."
                         autoComplete="off"
                       />
                       <br />
