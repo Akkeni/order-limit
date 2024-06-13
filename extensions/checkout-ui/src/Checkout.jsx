@@ -75,12 +75,16 @@ function Extension() {
 
   const priceMetaField = priceLimitField[0]?.metafield;
   const priceMin = priceMetaField?.value.split(',')[0];
+  const priceMax = priceMetaField?.value.split(',')[1];
 
   const storeMetaField = storeLimitField[0]?.metafield;
   const storeMin = storeMetaField?.value.split(',')[0];
+  const storeMax = storeMetaField?.value.split(',')[1];
 
   const weightMetaField = weightLimitField[0]?.metafield;
   const weightMin = weightMetaField?.value.split(',')[0];
+  const weightMax = weightMetaField?.value.split(',')[1];
+
 
   const errorMsgsMetaField = errorMsgsField[0]?.metafield;
   let errorMsgs = {};
@@ -107,15 +111,16 @@ function Extension() {
   const totalAmountValue = Number(totalAmount?.amount);
 
   //console.log('totalAmountValue in extension ', totalAmountValue);
-  console.log('cartlines in extension ', cartLines);
+  //console.log('cartlines in extension ', cartLines);
   const cartCurrencyCode = cartLines[0]?.cost?.totalAmount?.currencyCode;
   
 
   const totalQuantity = cartLines.reduce((acc, curr) => acc + curr.quantity, 0);
-  console.log('currencyCode in extension '+ cartCurrencyCode + " , " + generalLimiters?.currencyCode);
+  //console.log('currencyCode in extension '+ cartCurrencyCode + " , " + generalLimiters?.currencyCode);
 
   const categoriesWithProducts = {};
   const categoriesWithMinValues = {};
+  const categoriesWithMaxValues = {};
   let totalWeight = 0;
 
   const convertWeight = (value, fromUnit, toUnit) => {
@@ -165,11 +170,12 @@ function Extension() {
   }
 
   // Example usage:
-  console.log(convertWeight(1000, 'grams', 'kilograms'));  // Output: 1
+  //console.log(convertWeight(1000, 'grams', 'kilograms'));  // Output: 1
 
   for (const cartLine of cartLines) {
     const productId = cartLine?.merchandise?.product?.id;
     const productVariantId = cartLine?.merchandise?.id;
+    const quantity = cartLine?.quantity;
 
     query(`
       {
@@ -196,8 +202,8 @@ function Extension() {
         const toWeightUnit = generalLimiters?.weightUnit;
         let weight = convertWeight(cartWeight, fromWeightUnit, toWeightUnit);
         
-        totalWeight = totalWeight + weight;
-        console.log('totalWeight in useeffect ', totalWeight);
+        totalWeight = totalWeight + (quantity * weight);
+        //console.log('totalWeight ', totalWeight);
       }
     }).catch((error) => {
       console.error(error);
@@ -212,6 +218,7 @@ function Extension() {
     const valueParts = item.metafield.value.split(',');
     const category = valueParts[0]; // Extract category name
     const minValue = valueParts[1]; // Extract minimum value
+    const maxValue = valueParts[2];
     const productId = item.target.id; // Extract product id
 
     // Initialize the category key in categoriesWithProducts if it doesn't exist
@@ -225,6 +232,9 @@ function Extension() {
     // Set the minimum value for the category in categoriesWithMinValues
     if (!categoriesWithMinValues[category]) {
       categoriesWithMinValues[category] = minValue;
+    }
+    if (!categoriesWithMaxValues[category]) {
+      categoriesWithMaxValues[category] = maxValue;
     }
   });
 
@@ -253,6 +263,7 @@ function Extension() {
 
   Object.keys(categoriesWithMinValues).forEach(category => {
     const minQuantity = Number(categoriesWithMinValues[category]);
+    const maxQuantity = Number(categoriesWithMaxValues[category]);
     const totalQuantity = totalCategoriesQuantity[category] || 0;
     //console.log('minQuantity in object', minQuantity);
     if (totalQuantity < minQuantity) {
@@ -262,6 +273,11 @@ function Extension() {
         : `You have to select minimun ${minQuantity} products from the category "${category}".`;
 
       categoryErrors.push(msg);
+    } else if(totalQuantity > maxQuantity && maxQuantity != 0) {
+      let msg = errorMsgs.categoryMaxErrMsg
+      ? errorMsgs.categoryMaxErrMsg.replace("{categoryMax}", maxQuantity).replace("{categoryName}", category)
+      : `Can't select more than ${maxQuantity} products from the category "${category}".`
+      categoryErrors.push(msg);
     }
   });
   categoryErrors = categoryErrors.join(' and ');
@@ -269,11 +285,13 @@ function Extension() {
   //collection wise min limit
   const collectionsWithProducts = {};
   const collectionsWithMinValues = {};
+  const collectionsWithMaxValues = {};
 
   collectionLimitFields.forEach(item => {
     const valueParts = item.metafield.value.split(',');
     const collection = valueParts[0]; // Extract collection name
     const minValue = valueParts[1]; // Extract minimum value
+    const maxValue = valueParts[2]; // Extract minimum value
     const productId = item.target.id; // Extract product id
 
     // Initialize the category key in categoriesWithProducts if it doesn't exist
@@ -287,6 +305,9 @@ function Extension() {
     // Set the minimum value for the category in categoriesWithMinValues
     if (!collectionsWithMinValues[collection]) {
       collectionsWithMinValues[collection] = minValue;
+    }
+    if (!collectionsWithMaxValues[collection]) {
+      collectionsWithMaxValues[collection] = maxValue;
     }
   });
 
@@ -311,6 +332,7 @@ function Extension() {
 
   Object.keys(collectionsWithMinValues).forEach(collection => {
     const minQuantity = Number(collectionsWithMinValues[collection]);
+    const maxQuantity = Number(collectionsWithMaxValues[collection]);
     const totalQuantity = totalCollectionsQuantity[collection] || 0;
     //console.log('minQuantity of collection in object', minQuantity);
     if (totalQuantity < minQuantity) {
@@ -319,6 +341,11 @@ function Extension() {
         ? errorMsgs.collectionMinErrMsg.replace("{collectionMin}", minQuantity).replace("{collectionName}", collection)
         : `You have to select minimun ${minQuantity} products from the collection "${collection}".`;
 
+      collectionErrors.push(msg);
+    } else if(totalQuantity > maxQuantity && maxQuantity != 0) {
+      let msg = errorMsgs.collectionMaxErrMsg
+      ? errorMsgs.collectionMaxErrMsg.replace("{collectionMax}", maxQuantity).replace("{collectionName}", collection)
+      : `Can't select more than ${maxQuantity} products from the collection "${collection}".`
       collectionErrors.push(msg);
     }
   });
@@ -329,12 +356,15 @@ function Extension() {
   //vendor wise min limit
   const vendorsWithProducts = {};
   const vendorsWithMinValues = {};
+  const vendorsWithMaxValues = {};
+
 
   productLimitFields.forEach(item => {
     const [productMin, productMax, vendorName, vendorMin, vendorMax] = item.metafield.value.split(',');
     if (isNaN(vendorName)) {
       const vendor = vendorName; // Extract vendor name
       const minValue = vendorMin; // Extract minimum value
+      const maxValue = vendorMax; // Extract minimum value
       const productId = item.target.id; // Extract product id
 
       // Initialize the category key in categoriesWithProducts if it doesn't exist
@@ -348,6 +378,10 @@ function Extension() {
       // Set the minimum value for the category in categoriesWithMinValues
       if (!vendorsWithMinValues[vendor]) {
         vendorsWithMinValues[vendor] = minValue;
+      }
+      // Set the minimum value for the category in categoriesWithMinValues
+      if (!vendorsWithMaxValues[vendor]) {
+        vendorsWithMaxValues[vendor] = maxValue;
       }
     }
   });
@@ -377,6 +411,7 @@ function Extension() {
 
     Object.keys(vendorsWithMinValues).forEach(vendor => {
       const minQuantity = Number(vendorsWithMinValues[vendor]);
+      const maxQuantity = Number(vendorsWithMaxValues[vendor]);
       const totalQuantity = totalVendorsQuantity[vendor] || 0;
       //console.log('minQuantity of vendor in object', minQuantity);
       if (totalQuantity < minQuantity) {
@@ -385,6 +420,11 @@ function Extension() {
           ? errorMsgs.vendorMinErrMsg.replace("{vendorMin}", minQuantity).replace("{vendorName}", vendor)
           : `You have to select minimun ${minQuantity} products from the vendor "${vendor}".`;
 
+        vendorErrors.push(msg);
+      } else if(totalQuantity > maxQuantity && maxQuantity != 0) { 
+        let msg = errorMsgs.vendorMaxErrMsg
+        ? errorMsgs.vendorMaxErrMsg.replace("{vendorMax}", maxQuantity).replace("{vendorName}", vendor)
+        : `Can't select more than ${maxQuantity} products from the vendor "${vendor}".`;
         vendorErrors.push(msg);
       }
     });
@@ -413,7 +453,7 @@ function Extension() {
           ],
         };
       } else {
-        if (canBlockProgress && totalAmountValue < Number(generalLimiters?.priceMin)) {
+        if (canBlockProgress && totalAmountValue < Number(generalLimiters?.priceMin) && Number(generalLimiters?.priceMin) > 0) {
           return {
             behavior: "block",
             reason: "Minimum price required",
@@ -422,15 +462,29 @@ function Extension() {
                 // Show a validation error on the page
                 message:
                   errorMsgs?.priceMinErrMsg
-                    ? errorMsgs.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin)
-                    : `Minimum amount ${generalLimiters?.priceMin} is required for checkout`,
+                    ? errorMsgs.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin).replace("{currencyCode}", generalLimiters?.currencyCode)
+                    : `Minimum amount ${generalLimiters?.priceMin} ${generalLimiters?.currencyCode} is required for checkout.`,
+              },
+            ],
+          };
+        } else if (canBlockProgress && totalAmountValue > Number(generalLimiters?.priceMax) && Number(generalLimiters?.priceMax) > 0) {
+          return {
+            behavior: "block",
+            reason: "Maximum price reached",
+            errors: [
+              {
+                // Show a validation error on the page
+                message:
+                errorMsgs.priceMaxErrMsg
+                ? errorMsgs.priceMaxErrMsg.replace("{priceMax}", generalLimiters.priceMax).replace("{currencyCode}", generalLimiters?.currencyCode)
+                : `Cart exceeds amount ${generalLimiters.priceMax} ${generalLimiters?.currencyCode}. Please remove some items.`
               },
             ],
           };
         }
       }
 
-      if (canBlockProgress && totalQuantity < storeMin) {
+      if (canBlockProgress && totalQuantity < storeMin && storeMin > 0) {
         return {
           behavior: "block",
           reason: "Minimum products quantity required",
@@ -441,6 +495,20 @@ function Extension() {
                 errorMsgs?.shopMinErrMsg
                   ? errorMsgs.shopMinErrMsg.replace("{shopMin}", storeMin)
                   : `Minmum ${storeMin} products are required for checkout`,
+            },
+          ],
+        };
+      } else if (canBlockProgress && totalQuantity > storeMax && storeMax > 0) {
+        return {
+          behavior: "block",
+          reason: "Maximum products quantity reached",
+          errors: [
+            {
+              // Show a validation error on the page
+              message:
+              errorMsgs?.shopMaxErrMsg
+              ? errorMsgs.shopMaxErrMsg.replace("{shopMax}", storeMax)
+              : `Cart exceeds ${storeMax} products. Please remove some items`,
             },
           ],
         };

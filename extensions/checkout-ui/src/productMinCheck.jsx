@@ -84,9 +84,11 @@ function App() {
     if (productMetafield || productVariantMetafield) {
       const productMeta = productMetafield?.metafield;
       const productMin = Number(productMeta?.value.split(',')[0]);
+      const productMax = Number(productMeta?.value.split(',')[1]);
 
       const productVariantMeta = productVariantMetafield?.metafield;
       const productVariantMin = Number(productVariantMeta?.value.split(',')[0]);
+      const productVariantMax = Number(productVariantMeta?.value.split(',')[1]);
 
       //console.log('quantity ', quantity);
 
@@ -107,6 +109,19 @@ function App() {
 
         setErrorMessage(msg);
 
+      } else if(quantity > productMax && productMax > 0) {
+        let msg = errorMsgs.productMaxErrMsg
+        ? errorMsgs.productMaxErrMsg.replace("{productMax}", productMax).replace("{productName}", cartLineTarget?.merchandise?.title)
+        : `Quantity limit reached, you can't select more than ${productMax} for ${cartLineTarget?.merchandise?.title}.`;
+        setErrorMessage(msg);
+
+      } else if (quantity > productVariantMax && productVariantMax > 0) {
+
+        let msg = errorMessagesFieldValue.variantMaxErrMsg
+        ? errorMessagesFieldValue.variantMaxErrMsg.replace("{productVariantMax}", productVariantMax).replace("{productName}", cartLineTarget?.merchandise?.title)
+        : `Quantity limit reached, you can't select more than ${productVariantMax}.`;
+        
+        setErrorMessage(msg);
       }
     }
   }, [cartLineTarget, productLimitFields, productVariantLimitFields]);
