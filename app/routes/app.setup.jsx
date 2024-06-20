@@ -13,7 +13,6 @@ import { getBlobs } from "../models/imgConversion";
 import '../resources/style.css';
 
 export default function SetUp() {
-    const importedBlobs = getBlobs();
     const [isLoading, setIsLoading] = useState(false);
 
     if (isLoading) {
@@ -43,6 +42,8 @@ export default function SetUp() {
             </div>
         );
     }
+    
+    const importedBlobs = getBlobs();
     //console.log('blobs in helpPage ', importedBlobs);
     return (
         <Page>

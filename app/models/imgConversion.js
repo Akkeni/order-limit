@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
 // Convert a base64 string to a Blob
 const base64ToBlob = (base64, mimeType) => {
@@ -68,10 +67,12 @@ export const getBlobs = () => {
     return groupedBase64Images;
 };
 
-const __filename = fileURLToPath(import.meta.url);
+const __filename = path.resolve(import.meta.url.replace(/^file:\/\/\//, ''));
 const __dirname = path.dirname(__filename);
-
 const directoryPath = path.join(__dirname, "../resources/images");
+
+console.log('fileName ', __filename);
+console.log('directory name ', __dirname);
 console.log('directoryPath ', directoryPath);
 
 
