@@ -141,6 +141,7 @@ export default function PricingPage() {
             <InlineStack gap="400">
                 <Link url='/app' onClick={() => setIsLoading(true)}>Home</Link>
                 <Link url='/app/help' onClick={() => setIsLoading(true)}>Help</Link>
+                <Link url='/app/setup' onClick={() => setIsLoading(true)}>Setup</Link>
             </InlineStack>
 
             <br />
@@ -161,7 +162,7 @@ export default function PricingPage() {
                     primaryAction={{
                         content: plan.name != "Free Subscription" ? 'Cancel Plan' : 'Select a Plan',
                         url: plan.name === "Monthly Subscription" ? '/app/cancel/monthly' : '/app/cancel/annualy',
-                        onAction: () => setIsLoading(true)
+                        onAction: () => {setIsLoading(true);}
                     }}
                 >
                     {plan.name == "Monthly Subscription" && (

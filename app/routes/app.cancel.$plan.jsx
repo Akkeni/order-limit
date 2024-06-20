@@ -35,7 +35,7 @@ export const loader = async ({ request, params }) => {
         });
     }
 
-    return redirect('/app/pricing');
+    return redirect('/app');
     /*console.log('plan in app ', params.plan);
     return json({
         success: true,

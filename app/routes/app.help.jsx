@@ -42,12 +42,14 @@ export default function HelpPage() {
             </div>
         );
     }
+
     return (
         <Page>
             <ui-title-bar title="Help" />
             <InlineStack gap="400">
                 <Link url='/app' onClick={() => setIsLoading(true)}>Home</Link>
                 <Link url='/app/pricing' onClick={() => setIsLoading(true)}>Plan</Link>
+                <Link url='/app/setup' onClick={() => setIsLoading(true)}>Setup</Link>
             </InlineStack>
 
             <br />
@@ -72,7 +74,7 @@ export default function HelpPage() {
                     <div>
                         <strong>
                             <p>
-                                Two extensions are available to select to validate the minimum limit:
+                                Two extensions are available. To activate them please refer <Link url='/app/setup' onClick={() => setIsLoading(true)}>here</Link> :
                             </p>
                             <ul>
                                 <li>
