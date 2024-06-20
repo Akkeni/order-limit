@@ -1,6 +1,7 @@
 import { vitePlugin as remix } from "@remix-run/dev";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
+import nodeResolve from '@rollup/plugin-node-resolve';
 
 // Related: https://github.com/remix-run/remix/issues/2835#issuecomment-1144102176
 // Replace the HOST env var with SHOPIFY_APP_URL so that it doesn't break the remix server. The CLI will eventually
@@ -48,7 +49,17 @@ export default defineConfig({
       ignoredRouteFiles: ["**/.*"],
     }),
     tsconfigPaths(),
+    nodeResolve({
+      browser: false,
+      preferBuiltins: true
+    })
   ],
+  resolve: {
+    alias: {
+      'url': require.resolve('url'),
+      'path': require.resolve('path')
+    }
+  },
   build: {
     assetsInlineLimit: 0,
   },
