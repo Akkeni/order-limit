@@ -9,7 +9,6 @@ import {
     Text
 } from '@shopify/polaris';
 import { useState, useCallback } from 'react';
-import { getBlobs } from "../models/imgConversion";
 import '../resources/style.css';
 
 export default function SetUp() {
@@ -43,7 +42,7 @@ export default function SetUp() {
         );
     }
     
-    const importedBlobs = getBlobs();
+    //const importedBlobs = getBlobs();
     //console.log('blobs in helpPage ', importedBlobs);
     return (
         <Page>
@@ -72,13 +71,13 @@ export default function SetUp() {
                                         <b>Step 1: </b> Go to settings and click on Checkout, scroll down to the bottom and click on 'Add rule'.
                                     </dt>
                                     <dd>
-                                        <img src={importedBlobs.images[0]} alt="Cart Extension 1" style={{ height: '450px', margin: '10px' }} />
+                                        <img src="https://i.postimg.cc/7Y2cQPHY/cart-Extension1.png" alt="Cart Extension 1" style={{ height: '450px', margin: '10px' }} />
                                     </dd>
                                     <dt>
                                         <b>Step 2: </b> Click on order-limit-validation. Then click on 'save', and click on 'Turn on' to activate the validation.
                                     </dt>
                                     <dd>
-                                        <img src={importedBlobs.images[1]} alt="Cart Extension 2" style={{ height: '450px', margin: '10px' }} />
+                                        <img src="https://i.postimg.cc/fRQF44y7/cart-Extension2.png" alt="Cart Extension 2" style={{ height: '450px', margin: '10px' }} />
                                     </dd>
                                 </dl>
                             </li>
@@ -92,25 +91,25 @@ export default function SetUp() {
                                         <b>Step 1: </b> Go to settings and click on Checkout, then click on 'Customize'.
                                     </dt>
                                     <dd>
-                                        <img src={importedBlobs.images[2]} alt="Checkout Extension 0" style={{ height: '450px', margin: '10px' }} />
+                                        <img src="https://i.postimg.cc/jjZkJLXv/checkout-Extension0.png" alt="Checkout Extension 0" style={{ height: '450px', margin: '10px' }} />
                                     </dd>
                                     <dt>
                                         <b>Step 2: </b> Click on 'Add app block'.
                                     </dt>
                                     <dd>
-                                        <img src={importedBlobs.images[3]} alt="Checkout Extension 1" style={{ height: '450px', margin: '10px' }} />
+                                        <img src="https://i.postimg.cc/jS61t8np/checkout-Extension1.png" alt="Checkout Extension 1" style={{ height: '450px', margin: '10px' }} />
                                     </dd>
                                     <dt>
                                         <b>Step 3: </b> Click on 'checkout-ui' which is under: App blocks available for this page.
                                     </dt>
                                     <dd>
-                                        <img src={importedBlobs.images[4]} alt="Checkout Extension 2" style={{ height: '450px', margin: '10px' }} />
+                                        <img src="https://i.postimg.cc/Jh12nbbG/checkout-Extension2.png" alt="Checkout Extension 2" style={{ height: '450px', margin: '10px' }} />
                                     </dd>
                                     <dt>
                                         <b>Step 4: </b> Click on checkbox to uncheck if you don't want to block the checkout otherwise leave it as it is.
                                     </dt>
                                     <dd>
-                                        <img src={importedBlobs.images[5]} alt="Checkout Extension 3" style={{ height: '450px', margin: '10px' }} />
+                                        <img src="https://i.postimg.cc/63qbVtbK/checkout-Extension3.png" alt="Checkout Extension 3" style={{ height: '450px', margin: '10px' }} />
                                     </dd>
                                     <dt>
                                         <b>Step 5: </b> Repeat steps from 2 to 5, to add another app block.
@@ -119,13 +118,13 @@ export default function SetUp() {
                                         <b>Step 6: </b> Click and hold one app block 'checkout-ui' to drag it under the 'Items in cart' field of 'Order summary'
                                     </dt>
                                     <dd>
-                                        <img src={importedBlobs.images[6]} alt="Checkout Extension 4" style={{ height: '450px', margin: '10px' }} />
+                                        <img src="https://i.postimg.cc/x8bs7gSF/checkout-Extension4.png" alt="Checkout Extension 4" style={{ height: '450px', margin: '10px' }} />
                                     </dd>
                                     <dt>
                                         <b>Step 7: </b> Final page should look like this. Now, click on 'save' to save the settings.
                                     </dt>
                                     <dd>
-                                        <img src={importedBlobs.images[7]} alt="Checkout Extension 5" style={{ height: '450px', margin: '10px' }} />
+                                        <img src="https://i.postimg.cc/G2f7qV6y/checkout-Extension5.png" alt="Checkout Extension 5" style={{ height: '450px', margin: '10px' }} />
                                     </dd>
                                 </dl>
                             </li>
