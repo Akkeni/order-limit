@@ -34,3 +34,9 @@ model Order_Limit {
   //quantityLimit Int
   //status        String
 }
+
+model Limiters {
+  id            Int      @id @default(autoincrement())
+  typeName      String   @unique
+  value         Int      @default(0)
+}
