@@ -249,902 +249,397 @@ export async function loader({ request }) {
   }
 }
 
-//for storing records into database according to the type
-export async function action({ request, params }) {
 
+export async function action({ request, params }) {
   const { admin, session } = await authenticate.admin(request);
+
   try {
     const formData = await request.formData();
-
-    const allProductsData = JSON.parse(formData.get('allProductsData')) //await res.json();
+    const allProductsData = JSON.parse(formData.get('allProductsData'));
 
     if (formData.get('deletePreviousData') === "true") {
-      //console.log('deletePreviousDataValue in if', formData.get('deletePreviousData'));
-      const deleteMetafield = async (metafieldId) => {
-        if (metafieldId) {
-          await admin.graphql(
-            `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-              metafieldDelete(input: $input) {
-                userErrors {
-                  field
-                  message
-                }
-              }
-            }`,
-            {
-              variables: {
-                input: {
-                  id: metafieldId
-                }
-              }
-            }
-          );
-        }
-      };
-
-      const fields = [
-        'productLimitField',
-        'categoryLimitField',
-        'productVariantLimitField',
-        'productStatusField',
-        'categoryStatusField',
-        'categoryNameField',
-        'collectionLimitField'
-      ];
-
-      for (let product of allProductsData) {
-        for (let field of fields) {
-          // Check and delete metafields at the product level
-          let productMetafieldId = product.node[field]?.id;
-          await deleteMetafield(productMetafieldId);
-
-          // Check and delete metafields at the variant level if the field is productVariantLimitField
-          if (field === 'productVariantLimitField') {
-            for (let variant of product.node.variants.edges) {
-              let variantMetafieldId = variant.node[field]?.id;
-              await deleteMetafield(variantMetafieldId);
-            }
-          }
-        }
-      }
-
-      const response = await admin.graphql(
-        `{
-          shop {
-            id
-            name
-            currencyCode
-            weightUnit
-            storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
-              id
-              value
-            }
-            storeStatusField: metafield(namespace: "$app:storeStatus", key: "storeStatus") {
-              id
-              value
-            }
-            priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") {
-              id
-              value
-            }
-            weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") {
-              id
-              value
-            }
-            errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs"){
-              id
-              value
-            }
-            generalLimitersField: metafield(namespace: "generalLimiters", key: "generalLimiters"){
-              id
-              value
-            }
-          }
-        }
-      `);
-
-
-      const data = await response.json();
-
-      const storeFieldIds = [
-        data?.data?.shop?.storeLimitField?.id,
-        data?.data?.shop?.priceLimitField?.id,
-        data?.data?.shop?.weightLimitField?.id,
-        data?.data?.shop?.errorMsgsField?.id,
-        data?.data?.shop?.generalLimitersField?.id
-      ]
-
-      for (const id of storeFieldIds) {
-        if (id) {
-          await deleteMetafield(id);
-        }
-      }
-
+      await handleDeletePreviousData(admin, allProductsData);
       await db.order_Limit.update({
-        where: {
-          shopName: session.shop
-        },
-        data: {
-          hasToDelete: false
-        }
-      })
-
-      //return redirect('/app');
-      return json({
-        deleted: true,
+        where: { shopName: session.shop },
+        data: { hasToDelete: false }
       });
 
-    } else if (formData.get('deletePreviousData') === "false") {
+      return json({ deleted: true });
+    }
+
+    if (formData.get('deletePreviousData') === "false") {
       await db.order_Limit.update({
-        where: {
-          shopName: session.shop
-        },
-        data: {
-          hasToDelete: false
-        }
-      })
+        where: { shopName: session.shop },
+        data: { hasToDelete: false }
+      });
+
       return redirect('/app');
     }
 
-    //console.log('action value in action ', formData.get('action'));
-    //console.log('limiters before if in action ', JSON.parse(formData.get('quantityLimit')));
-
-    if (formData.get('action') == 'saveProduct') {
-
+    if (formData.get('action') === 'saveProduct') {
       const limiters = JSON.parse(formData.get('quantityLimit'));
-      //console.log('limiters in action', limiters);
       const errorMessages = formData.get('errorMessages');
       const generalLimiters = formData.get('generalLimiters');
-
-
-      //console.log('messages value in action saveProduct',errorMessages);
+      const shopId = formData.get('shopId');
 
       if (errorMessages || generalLimiters) {
-        const shopId = formData.get('shopId');
-        const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
-          metafieldsSet(metafields: $metafields) {
-            metafields {
-              id
-              namespace
-              key
-              value
-            }
+        await saveErrorMessagesAndGeneralLimiters(admin, shopId, errorMessages, generalLimiters);
+      }
+
+      for (const limiter of limiters) {
+        await handleLimiters(admin, formData, limiter, allProductsData);
+      }
+
+      return json({ created: true });
+    }
+
+    return redirect('/app/');
+  } catch (error) {
+    console.log('error in action ', error);
+    return json({ ok: false, error });
+  }
+}
+
+async function handleDeletePreviousData(admin, allProductsData) {
+  const deleteMetafield = async (metafieldId) => {
+    if (metafieldId) {
+      await admin.graphql(
+        `mutation metafieldDelete($input: MetafieldDeleteInput!) {
+          metafieldDelete(input: $input) {
             userErrors {
               field
               message
             }
           }
-        }`;
-
-        const metafields = {
+        }`,
+        {
           variables: {
-            metafields: [
-              {
-                "ownerId": `${shopId}`,
-                "namespace": "errorMsgs",
-                "key": "errorMsgs",
-                "type": "string",
-                "value": `${errorMessages}`
-
-              },
-              {
-                "ownerId": `${shopId}`,
-                "namespace": "generalLimiters",
-                "key": "generalLimiters",
-                "type": "string",
-                "value": `${generalLimiters}`
-
-              }
-            ]
-          }
-        };
-
-        const metaResponse = await admin.graphql(mutationQuery, metafields);
-        const metaData = await metaResponse.json();
-      }
-
-      for (const limiter of limiters) {
-
-        try {
-          if (Number(limiter.value) >= 0 && limiter.type === 'General') {
-            const shopId = formData.get('shopId');
-            const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
-              metafieldsSet(metafields: $metafields) {
-                metafields {
-                  id
-                  namespace
-                  key
-                  value
-                }
-                userErrors {
-                  field
-                  message
-                }
-              }
-            }`;
-
-            if (limiter.id === 'priceMin' || limiter.id === 'priceMax') {
-
-              //console.log('priceLimit in action ', formData.get('priceLimit'));
-              const metafields = {
-                variables: {
-                  metafields: [
-                    {
-                      "ownerId": `${shopId}`,
-                      "namespace": "priceLimit",
-                      "key": "priceLimit",
-                      "type": "string",
-                      "value": `${formData.get('priceLimit')}`
-                    }
-                  ]
-                }
-              };
-
-              const metaResponse = await admin.graphql(mutationQuery, metafields);
-              const metaData = await metaResponse.json();
-            }
-            if (limiter.id === 'weightMin' || limiter.id === 'weightMax') {
-              let weightLimit = '';
-
-              const weightMin = Number(limiters.find(item => item.id === 'weightMin')?.value) || 0;
-              const weightMax = Number(limiters.find(item => item.id === 'weightMax')?.value) || 0;
-
-              weightLimit += weightMin;
-              weightLimit += ',' + weightMax;
-              //console.log('weightLimit in action ', weightLimit);
-              const metafields = {
-                variables: {
-                  metafields: [
-                    {
-                      "ownerId": `${shopId}`,
-                      "namespace": "weightLimit",
-                      "key": "weightLimit",
-                      "type": "string",
-                      "value": `${formData.get('weightLimit')}`
-
-                    }
-                  ]
-                }
-              };
-
-              const metaResponse = await admin.graphql(mutationQuery, metafields);
-              const metaData = await metaResponse.json();
+            input: {
+              id: metafieldId
             }
           }
-
-          if (limiter.type === 'Store Wise') {
-
-            const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
-                metafieldsSet(metafields: $metafields) {
-                  metafields {
-                    id
-                    namespace
-                    key
-                    value
-                  }
-                  userErrors {
-                    field
-                    message
-                  }
-                }
-              }`;
-
-            const metafields = {
-              variables: {
-                metafields: [
-                  {
-                    "ownerId": `${limiter.id}`,
-                    "namespace": "storeLimit",
-                    "key": "storeLimit",
-                    "type": "string",
-                    "value": `${limiter.value}`
-
-                  },
-                  {
-                    "ownerId": `${limiter.id}`,
-                    "namespace": "$app:storeStatus",
-                    "key": "storeStatus",
-                    "type": "string",
-                    "value": "active"
-
-                  }
-                ]
-              }
-            };
-
-            const metaResponse = await admin.graphql(mutationQuery, metafields);
-            const metaData = await metaResponse.json();
-          }
-
-          /*if(limiter.type === 'Product Wise' || limiter.type === 'Category Wise') {
-             const result = await addLimiter(limiter);
-          }*/
-
-          if (limiter.type === 'Category Wise') {
-            //console.log('limiter in category wise in action', limiter);
-
-            // Initialize an empty array to store product IDs
-            const productIds = [];
-
-            // Iterate through the edges of the products
-            allProductsData.forEach(edge => {
-              const category = edge.node.category;
-              // Check if the category exists and its name is "Snowboards"
-              if (category && category?.name === limiter.id) {
-                // If it matches, add the product ID to the array
-                productIds.push(edge.node.id);
-              }
-            });
-
-            // Now, snowboardProductIds array contains the IDs of products belonging to the "Snowboards" category
-            //console.log('productIds in action', productIds);
-            for (const id of productIds) {
-              //console.log('productid in forloop', id);
-              const mutationQuery = `mutation productUpdate($input: ProductInput!) {
-                productUpdate(input: $input) {
-                  product {
-                    id
-                    title
-                    categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
-                      id
-                    }
-                    categoryStatusField: metafield(namespace: "categoryStatus", key: "categoryStatus") {
-                      id
-                    }
-                    categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
-                      id
-                    }
-                  }
-                  userErrors {
-                    field
-                    message
-                  }
-                }
-              }`;
-              let categoryLimitValue = limiter.id + ',' + limiter.value;
-              const variables = {
-                variables: {
-                  input: {
-                    id: `${id}`,
-                    metafields: [
-                      {
-                        "namespace": "categoryName",
-                        "key": "categoryName",
-                        "type": "string",
-                        "value": `${limiter.id}`
-                      },
-                      {
-                        "namespace": "categoryLimit",
-                        "key": "categoryLimit",
-                        "value": `${categoryLimitValue}`,
-                        "type": "string"
-                      },
-                      {
-                        "namespace": "categoryStatus",
-                        "key": "categoryStatus",
-                        "value": "active",
-                        "type": "string"
-                      }
-                    ]
-                  }
-                }
-              };
-
-              const metaResponse = await admin.graphql(mutationQuery, variables);
-              const metaData = await metaResponse.json();
-              //const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
-
-              const errorMessages = metaData.data.productUpdate.userErrors;
-
-              //console.log('existingerrorMessages in action', errorMessages);
-              //console.log('existingMetafields in action', existingMetafields);
-              //console.log('existingrecords', existingMetafields);
-
-              if (errorMessages && errorMessages.length > 0) {
-
-                const ids = [metaData?.data?.productUpdate?.product?.categoryLimitField?.id, metaData?.data?.productUpdate?.product?.categoryNameField?.id, metaData?.data?.productUpdate?.product?.categoryStatusField?.id];
-                // Delete metafields one by one based on the given keys
-                for (const id of ids) {
-                  if (id) {
-                    // Delete the conflicting metafield
-                    await admin.graphql(
-                      `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                      metafieldDelete(input: $input) {
-                        userErrors {
-                          field
-                          message
-                        }
-                      }
-                    }`,
-                      {
-                        variables: {
-                          input: {
-                            id: `${id}`
-                          }
-                        }
-                      }
-                    );
-                  }
-                }
-                // Now, execute the updateProduct query with the updated metafields
-                const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
-                const updatedMetaData = await updatedMetaResponse.json();
-                const updatedMetafields = updatedMetaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
-
-                const updatedErrorMessages = updatedMetaData.data.productUpdate.userErrors;
-
-                //console.log('updatedrecords in action', updatedErrorMessages);
-                //console.log('updatedMetafields in action', updatedMetafields);
-              }
-
-            }
-
-          }
-
-          if (limiter.type === 'Product Wise') {
-
-            if (limiter.id.includes("ProductVariant")) {
-              //console.log('product variant id in action', limiter.id);
-              const mutationQuery = `mutation productVariantUpdate($input: ProductVariantInput!) {
-                productVariantUpdate(input: $input) {
-                  productVariant{
-                    productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
-                      id
-                    }
-                    productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
-                      id
-                    }
-                  }
-                  userErrors {
-                    field
-                    message
-                  }
-                }
-              }`;
-
-              const variables = {
-                variables: {
-                  input: {
-                    id: `${limiter.id}`,
-                    metafields: [
-                      {
-                        "namespace": "productLimit",
-                        "key": `productLimit`,
-                        "type": "string",
-                        "value": `${limiter.value}`
-                      },
-                      {
-                        "namespace": "productStatus",
-                        "key": "productStatus",
-                        "type": "string",
-                        "value": "active",
-                      }
-                    ]
-                  }
-                }
-              };
-              const metaResponse = await admin.graphql(mutationQuery, variables);
-              const metaData = await metaResponse.json();
-              //const existingMetafields = metaData?.data?.productVariantUpdate?.productVariant?.metafields?.edges.map(edge => edge.node)
-
-              const errorMessages = metaData.data?.productVariantUpdate?.userErrors;
-
-              //console.log('existingrecords', existingMetafields);
-
-              if (errorMessages && errorMessages.length > 0) {
-
-                const ids = [metaData?.data?.productVariantUpdate?.productVariant?.productLimitField?.id, metaData?.data?.productVariantUpdate?.productVariant?.productStatusField?.id];
-                for (const id of ids) {
-                  if (id) {
-                    // Delete the conflicting metafield
-                    await admin.graphql(
-                      `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                      metafieldDelete(input: $input) {
-                        userErrors {
-                          field
-                          message
-                        }
-                      }
-                    }`,
-                      {
-                        variables: {
-                          input: {
-                            id: `${id}`
-                          }
-                        }
-                      }
-                    );
-                  }
-
-                }
-
-                // Now, execute the updateProduct query with the updated metafields
-                const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
-                const updatedMetaData = await updatedMetaResponse.json();
-              }
-            } else {
-
-              let value = limiter?.value;
-
-              const productResponse = await admin.graphql(
-                `{
-                  product(id: "${limiter.id}") {
-                    title
-                    productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
-                      value
-                    }
-                  }
-                }`
-              );
-
-              const productData = await productResponse.json();
-
-              let productLimitFieldValue = productData?.data?.product?.productLimitField?.value;
-              if (productLimitFieldValue) {
-                let [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
-                value = limiter.value + ',' + vendorName + ',' + vendorMin + ',' + vendorMax + ',' + productData?.data?.product?.title;
-              } else {
-                let vendor = '0,0,0';
-                value = limiter.value + ',' + vendor + ',' + productData?.data?.product?.title;
-              }
-
-
-
-              const mutationQuery = `mutation productUpdate($input: ProductInput!) {
-                productUpdate(input: $input) {
-                  product {
-                    id
-                    title
-                    productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
-                      id
-                    }
-                    productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
-                      id
-                    }
-                  }
-                  userErrors {
-                    field
-                    message
-                  }
-                }
-              }`;
-
-              const variables = {
-                variables: {
-                  input: {
-                    id: `${limiter.id}`,
-                    metafields: [
-                      {
-                        "namespace": "productLimit",
-                        "key": `productLimit`,
-                        "type": "string",
-                        "value": `${value}`
-                      },
-                      {
-                        "namespace": "productStatus",
-                        "key": "productStatus",
-                        "type": "string",
-                        "value": "active",
-                      }
-                    ]
-                  }
-                }
-              };
-              const metaResponse = await admin.graphql(mutationQuery, variables);
-              const metaData = await metaResponse.json();
-              //const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
-
-              const errorMessages = metaData.data.productUpdate.userErrors;
-
-              //console.log('existingrecords', existingMetafields);
-
-              if (errorMessages && errorMessages.length > 0) {
-
-                const ids = [metaData?.data?.productUpdate?.product?.productLimitField?.id, metaData?.data?.productUpdate?.product?.productStatusField?.id];
-                for (const id of ids) {
-                  if (id) {
-                    // Delete the conflicting metafield
-                    await admin.graphql(
-                      `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                      metafieldDelete(input: $input) {
-                        userErrors {
-                          field
-                          message
-                        }
-                      }
-                    }`,
-                      {
-                        variables: {
-                          input: {
-                            id: `${id}`
-                          }
-                        }
-                      }
-                    );
-                  }
-                }
-
-                // Now, execute the updateProduct query with the updated metafields
-                const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
-                const updatedMetaData = await updatedMetaResponse.json();
-              }
-            }
-          }
-
-          if (limiter.type === 'Collection Wise') {
-
-            const allCollectionsData = JSON.parse(formData.get('allCollectionsData'));
-
-            const collectionId = allCollectionsData.find((item) => item.node.title === limiter.id)?.node?.id;
-
-            for (const product of allProductsData) {
-              const productId = product?.node?.id;
-              let response = await admin.graphql(
-                ` {
-                  collection(id: "${collectionId}"){
-                    hasProduct(id: "${productId}")
-                  }
-              }`);
-              const responseData = await response.json();
-              if (responseData?.data?.collection?.hasProduct) {
-                const mutationQuery = `mutation productUpdate($input: ProductInput!) {
-                  productUpdate(input: $input) {
-                    product {
-                      id
-                      title
-                      collectionLimitField: metafield(namespace: "collectionLimit", key: "collectionLimit") {
-                        id
-                      }
-                    }
-                    userErrors {
-                      field
-                      message
-                    }
-                  }
-                }`;
-                let collectionLimitValue = limiter.id + ',' + limiter.value;
-                const variables = {
-                  variables: {
-                    input: {
-                      id: `${productId}`,
-                      metafields: [
-
-                        {
-                          "namespace": "collectionLimit",
-                          "key": "collectionLimit",
-                          "value": `${collectionLimitValue}`,
-                          "type": "string"
-                        }
-                      ]
-                    }
-                  }
-                };
-
-                const metaResponse = await admin.graphql(mutationQuery, variables);
-                const metaData = await metaResponse.json();
-                //const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
-
-                const errorMessages = metaData.data.productUpdate.userErrors;
-
-                //console.log('existingerrorMessages in action', errorMessages);
-                //console.log('existingMetafields in action', existingMetafields);
-                //console.log('existingrecords', existingMetafields);
-
-                if (errorMessages && errorMessages.length > 0) {
-
-                  const ids = [metaData?.data?.productUpdate?.product?.collectionLimitField?.id];
-                  // Delete metafields one by one based on the given keys
-                  for (const id of ids) {
-                    if (id) {
-                      // Delete the conflicting metafield
-                      await admin.graphql(
-                        `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                        metafieldDelete(input: $input) {
-                          userErrors {
-                            field
-                            message
-                          }
-                        }
-                      }`,
-                        {
-                          variables: {
-                            input: {
-                              id: `${id}`
-                            }
-                          }
-                        }
-                      );
-                    }
-                  }
-                  // Now, execute the updateProduct query with the updated metafields
-                  const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
-                  const updatedMetaData = await updatedMetaResponse.json();
-                  const updatedMetafields = updatedMetaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node);
-
-                  //console.log('updatedrecords in action', updatedErrorMessages);
-                  //console.log('updatedMetafields in action', updatedMetafields);
-                }
-              }
-            }
-
-          }
-
-          if (limiter.type === 'Vendor Wise') {
-            // Initialize an empty array to store product IDs
-            const productIds = [];
-
-            // Iterate through the edges of the products
-            allProductsData.forEach(edge => {
-              const vendor = edge.node.vendor;
-              // Check if the category exists and its name is "Snowboards"
-              if (vendor && vendor === limiter.id) {
-                // If it matches, add the product ID to the array
-                productIds.push(edge.node.id);
-              }
-            });
-
-            // Now, snowboardProductIds array contains the IDs of products belonging to the "Snowboards" category
-            //console.log('productIds in action', productIds);
-            for (const id of productIds) {
-              let value = limiter.value;
-
-              const productResponse = await admin.graphql(
-                `{
-                  product(id: "${id}") {
-                    title
-                    productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
-                      value
-                    }
-                  }
-                }`
-              );
-
-              const productData = await productResponse.json();
-
-              let productLimitFieldValue = productData?.data?.product?.productLimitField?.value;
-              //console.log('productLimitFieldValue in actions vendor wise ', productLimitFieldValue);
-              if (productLimitFieldValue) {
-                let [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
-                value = productMin + ',' + productMax + ',' + limiter.id + ',' + limiter.value + ',' + productData?.data?.product?.title;
-              } else {
-                let product = '0,0';
-                value = product + ',' + limiter.id + ',' + limiter.value + ',' + '0';
-              }
-
-
-              const mutationQuery = `mutation productUpdate($input: ProductInput!) {
-                productUpdate(input: $input) {
-                  product {
-                    id
-                    title
-                    productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
-                      id
-                    }
-                    productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
-                      id
-                    }
-                  }
-                  userErrors {
-                    field
-                    message
-                  }
-                }
-              }`;
-
-              const variables = {
-                variables: {
-                  input: {
-                    id: `${id}`,
-                    metafields: [
-                      {
-                        "namespace": "productLimit",
-                        "key": `productLimit`,
-                        "type": "string",
-                        "value": `${value}`
-                      },
-                      {
-                        "namespace": "productStatus",
-                        "key": "productStatus",
-                        "type": "string",
-                        "value": "active",
-                      }
-                    ]
-                  }
-                }
-              };
-              const metaResponse = await admin.graphql(mutationQuery, variables);
-              const metaData = await metaResponse.json();
-              //const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
-
-              const errorMessages = metaData.data.productUpdate.userErrors;
-
-              //console.log('existingrecords', existingMetafields);
-
-              if (errorMessages && errorMessages.length > 0) {
-
-                const ids = [metaData?.data?.productUpdate?.product?.productLimitField?.id, metaData?.data?.productUpdate?.product?.productStatusField?.id];
-                for (const id of ids) {
-                  if (id) {
-                    // Delete the conflicting metafield
-                    await admin.graphql(
-                      `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-                      metafieldDelete(input: $input) {
-                        userErrors {
-                          field
-                          message
-                        }
-                      }
-                    }`,
-                      {
-                        variables: {
-                          input: {
-                            id: `${id}`
-                          }
-                        }
-                      }
-                    );
-                  }
-                }
-
-                // Now, execute the updateProduct query with the updated metafields
-                const updatedMetaResponse = await admin.graphql(mutationQuery, variables);
-                const updatedMetaData = await updatedMetaResponse.json();
-              }
-            }
-
-          }
-
-
-        } catch (error) {
-
-          console.log('error while creating metafields for products in action ', error);
-          return json({
-            ok: false,
-            error: error
-          });
+        }
+      );
+    }
+  };
+
+  const fields = [
+    'productLimitField',
+    'categoryLimitField',
+    'productVariantLimitField',
+    'productStatusField',
+    'categoryStatusField',
+    'categoryNameField',
+    'collectionLimitField'
+  ];
+
+  for (let product of allProductsData) {
+    for (let field of fields) {
+      await deleteMetafield(product.node[field]?.id);
+
+      if (field === 'productVariantLimitField') {
+        for (let variant of product.node.variants.edges) {
+          await deleteMetafield(variant.node[field]?.id);
         }
       }
-
-      return json({
-        created: true,
-      });
-
-    } else {
-      return redirect('/app/');
     }
+  }
 
-  } catch (error) {
-    console.error('Error storing records:', error);
-    return json({
-      ok: false,
-      error: error,
-    });
+  const response = await admin.graphql(`{
+    shop {
+      id 
+      name 
+      currencyCode 
+      weightUnit
+      storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
+        id
+        value
+      }
+      storeStatusField: metafield(namespace: "$app:storeStatus", key: "storeStatus") {
+        id 
+        value 
+      }
+      priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") {
+        id 
+        value 
+      }
+      weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") { 
+        id 
+        value 
+      }
+      errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs") {
+        id 
+        value 
+      }
+      generalLimitersField: metafield(namespace: "generalLimiters", key: "generalLimiters") { 
+        id 
+        value 
+      }
+    }
+  }`);
+
+  const data = await response.json();
+  const storeFieldIds = [
+    data?.data?.shop?.storeLimitField?.id,
+    data?.data?.shop?.priceLimitField?.id,
+    data?.data?.shop?.weightLimitField?.id,
+    data?.data?.shop?.errorMsgsField?.id,
+    data?.data?.shop?.generalLimitersField?.id
+  ];
+
+  for (const id of storeFieldIds) {
+    if (id) {
+      await deleteMetafield(id);
+    }
   }
 }
 
+async function handleGraphqlMutation(admin, mutationName, variables) {
+  const query = `
+    mutation SetMetafield($namespace: String!, $ownerId: ID!, $key: String!, $type: String!, $value: String!) {
+      metafieldDefinitionCreate(
+        definition: {namespace: $namespace, key: $key, name: "Limiters", ownerType: PRODUCT, type: $type, access: {admin: MERCHANT_READ_WRITE}}
+      ) {
+        createdDefinition {
+          id
+        }
+      }
+      metafieldsSet(metafields: [{ownerId:$ownerId, namespace:$namespace, key:$key, type:$type, value:$value}]) {
+        userErrors {
+          field
+          message
+          code
+        }
+      }
+    }
+  `;
 
-// Component to handle deletion confirmation
-const DeleteConfirmation = ({ onConfirm, onCancel }) => {
-  return (
-    <Modal
-      open
-      onClose={onCancel}
-      title="Confirm Deletion"
-      primaryAction={{
-        content: 'Confirm',
-        onAction: onConfirm,
-      }}
-      secondaryAction={{
-        content: 'Cancel',
-        onAction: onCancel,
-      }}
-    >
-      <Modal.Section>
-        <p>Do you want to delete previous data?</p>
-      </Modal.Section>
-    </Modal>
-  );
-};
+  await admin.graphql(query, {
+    variables: {
+      ownerId: variables.input.id,
+      namespace: variables.input.metafields[0].namespace,
+      key: variables.input.metafields[0].key,
+      type: variables.input.metafields[0].type,
+      value: variables.input.metafields[0].value,
+    },
+  });
+}
+
+async function saveErrorMessagesAndGeneralLimiters(admin, shopId, errorMessages, generalLimiters) {
+  const metafields = {
+    variables: {
+      metafields: [
+        { ownerId: shopId, namespace: "errorMsgs", key: "errorMsgs", type: "string", value: errorMessages },
+        { ownerId: shopId, namespace: "generalLimiters", key: "generalLimiters", type: "string", value: generalLimiters }
+      ]
+    }
+  };
+
+  await admin.graphql(
+    `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+      metafieldsSet(metafields: $metafields) {
+        metafields {
+          id
+          namespace
+          key
+          value
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }`, metafields);
+}
+
+async function handleLimiters(admin, formData, limiter, allProductsData) {
+  switch (limiter.type) {
+    case 'Store Wise':
+      await handleStoreWiseLimiter(admin, limiter);
+      break;
+    case 'Category Wise':
+      await handleCategoryWiseLimiter(admin, allProductsData, limiter);
+      break;
+    case 'Product Wise':
+      await handleProductWiseLimiter(admin, formData, limiter);
+      break;
+    case 'Collection Wise':
+      await handleCollectionWiseLimiter(admin, formData, allProductsData, limiter);
+      break;
+    case 'Vendor Wise':
+      await handleVendorWiseLimiter(admin, allProductsData, limiter);
+      break;
+    default:
+      console.log('Unknown limiter type:', limiter.type);
+  }
+}
+
+async function handleStoreWiseLimiter(admin, limiter) {
+  const metafields = {
+    variables: {
+      metafields: [
+        { ownerId: limiter.id, namespace: "storeLimit", key: "storeLimit", type: "string", value: limiter.value }
+      ]
+    }
+  };
+
+  await admin.graphql(`mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+    metafieldsSet(metafields: $metafields) {
+      metafields { id namespace key value }
+      userErrors { field message }
+    }
+  }`, metafields);
+}
+
+async function handleProductWiseLimiter(admin, formData, limiter) {
+  if (limiter.id.includes("ProductVariant")) {
+    const variables = {
+
+      input: {
+        id: limiter.id,
+        metafields: [
+          { namespace: "productLimit", key: "productLimit", type: "string", value: limiter.value }
+        ]
+      }
+
+    };
+
+    await handleGraphqlMutation(admin, 'productVariantUpdate', variables);
+  } else {
+    const productResponse = await admin.graphql(`{
+      product(id: "${limiter.id}") {
+        title
+        productLimitField: metafield(namespace: "productLimit", key: "productLimit") { value }
+      }
+    }`);
+
+    const productData = await productResponse.json();
+    let value = limiter.value;
+    const productLimitFieldValue = productData?.data?.product?.productLimitField?.value;
+
+    if (productLimitFieldValue) {
+      const [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
+      value = `${limiter.value},${vendorName},${vendorMin},${vendorMax},${productData?.data?.product?.title}`;
+    } else {
+      value = `${limiter.value},0,0,0,${productData?.data?.product?.title}`;
+    }
+
+    const variables = {
+      input: {
+        id: limiter.id,
+        metafields: [
+          { namespace: "productLimit", key: "productLimit", type: "string", value }
+        ]
+      }
+    };
+
+    await handleGraphqlMutation(admin, 'productUpdate', variables);
+  }
+}
+
+async function handleCategoryWiseLimiter(admin, allProductsData, limiter) {
+  const productIds = allProductsData
+    .filter(product => product.node.category?.name === limiter.id)
+    .map(product => product.node.id);
+
+  for (const id of productIds) {
+    const variables = {
+
+      input: {
+        id,
+        metafields: [
+          { namespace: "categoryLimit", key: "categoryLimit", type: "string", value: `${limiter.id},${limiter.value}` }
+        ]
+      }
+
+    };
+
+    await handleGraphqlMutation(admin, 'productUpdate', variables);
+  }
+}
+
+async function handleCollectionWiseLimiter(admin, formData, allProductsData, limiter) {
+
+  const allCollectionsData = JSON.parse(formData.get('allCollectionsData'));
+
+  const collectionId = allCollectionsData.find((item) => item.node.title === limiter.id)?.node?.id;
+
+  if (collectionId) {
+    for (const product of allProductsData) {
+      const productId = product?.node?.id;
+      let response = await admin.graphql(
+        `{
+          collection(id: "${collectionId}"){
+            hasProduct(id: "${productId}")
+          }
+        }`
+      );
+      const responseData = await response.json();
+      if (responseData?.data?.collection?.hasProduct) {
+        let value = `${limiter.id},${limiter.value}`;
+        const variables = {
+
+          input: {
+            id: productId,
+            metafields: [
+              { namespace: "collectionLimit", key: "collectionLimit", type: "string", value }
+            ]
+          }
+
+        };
+
+        await handleGraphqlMutation(admin, 'productUpdate', variables);
+      }
+    }
+  }
+}
+
+async function handleVendorWiseLimiter(admin, allProductsData, limiter) {
+
+  const productIds = allProductsData
+    .filter(product => product.node.vendor === limiter.id)
+    .map(product => product.node.id);
+
+  for (const id of productIds) {
+    let value = limiter.value;
+
+    const productResponse = await admin.graphql(
+      `{
+        product(id: "${id}") {
+          title
+          productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+            value
+          }
+        }
+      }`
+    );
+
+    const productData = await productResponse.json();
+
+    const product = productData.data.product;
+
+    const productLimitFieldValue = product?.productLimitField?.value;
+
+    if (productLimitFieldValue) {
+      const [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
+
+      value = `${productMin},${productMax},${vendorName},${limiter.value},${product.title}`;
+    } else {
+      // If there is no previous metafield value, construct a new value
+      value = `0,0,${limiter.value},${product.title}`;
+    }
+
+    const variables = {
+      input: {
+        id: id,
+        metafields: [
+          { namespace: "productLimit", key: "productLimit", type: "string", value },
+        ]
+      }
+    };
+    await handleGraphqlMutation(admin, 'productUpdate', variables);
+  }
+}
 
 
 export default function Index() {
@@ -1949,7 +1444,8 @@ export default function Index() {
                             actionRole="menuitem"
                             items={[
                               { content: 'Help', url: '/app/help' },
-                              { content: 'Plan', url: '/app/pricing' }
+                              { content: 'Plan', url: '/app/pricing' },
+                              { content: 'Setup', url: '/app/setup' }
                             ]}
                           />
                         </Popover.Pane>
