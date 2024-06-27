@@ -14,6 +14,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useSubmit, useLoaderData, useActionData } from '@remix-run/react';
 import { json } from '@remix-run/node';
 import db from '../db.server';
+import '../resources/style.css';
 
 //fetches the necessary data
 export async function loader({ request }) {
@@ -50,12 +51,33 @@ export async function action({ request, params }) {
             const limiters = JSON.parse(formData.get('limiters'));
             if (limiters) {
                 for (const typeName in limiters) {
-                    await db.limiters.create({
-                        data: {
-                            typeName: typeName,
-                            value: Number(limiters[typeName]),
-                        },
-                    });
+                    try {
+                        const limit = await db.limiters.findUnique({
+                            where: {
+                                typeName: typeName,
+                            },
+                        });
+                        if (limit) {
+                            await db.limiters.update({
+                                where: {
+                                    typeName: typeName,
+                                },
+                                data: {
+                                    value: Number(limiters[typeName]),
+                                },
+                            });
+                        } else {
+                            await db.limiters.create({
+                                data: {
+                                    typeName: typeName,
+                                    value: Number(limiters[typeName]),
+                                },
+                            });
+                        }
+                    } catch (error) {
+                        console.log('error while creating ', error);
+
+                    }
                 }
             }
             return json({
@@ -83,6 +105,7 @@ export default function Admin() {
     const [name, setName] = useState('');
     const [password, setPassword] = useState('');
     const [admin, setAdmin] = useState(false);
+    const [error, setError] = useState(false);
     const submit = useSubmit();
     const actionData = useActionData();
     const existingLimiters = loaderData?.limiters ? loaderData.limiters : [];
@@ -100,8 +123,12 @@ export default function Admin() {
         if (actionData?.admin) {
             setAdmin(true);
             setIsLoading(false);
-        } else if(actionData?.created) {
+            setError(false);
+        } else if (actionData?.created) {
             setIsLoading(false);
+        } else if (actionData?.admin === false) {
+            setIsLoading(false);
+            setError(true);
         }
     }, [actionData]);
 
@@ -136,16 +163,6 @@ export default function Admin() {
         }
     }
 
-    /*const handleLogin = useCallback(() => {
-
-        console.log('name and password ', name);
-        if (name && password) {
-            console.log('submit');
-            submit({ name: name, password: password }, { method: "post" });
-        }
-    },
-    [],
-    );*/
     if (isLoading) {
         //console.log('isSaving ', isSaving);
         return (
@@ -178,6 +195,10 @@ export default function Admin() {
             <ui-title-bar title="Admin Login" />
             <div>
 
+                {error && (
+                    <Text as="p" tone="critical">Invalid username or password</Text>
+                )}
+
                 {!admin && (
                     <Card>
                         <BlockStack>
@@ -192,7 +213,7 @@ export default function Admin() {
                                 <TextField
                                     value={password}
                                     label="Password"
-                                    type="text"
+                                    type="password"
                                     onChange={(value) => { handlePassword(value) }}
                                     requiredIndicator
                                 />

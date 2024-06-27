@@ -1,7 +1,7 @@
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { createSubscriptionMetafield } from "../models/Subscription.server";
-import { deleteNonPlanData } from '../models/orderLimit.server';
+
 
 export const action = async ({ request }) => {
   const { topic, shop, session, admin, payload } = await authenticate.webhook(request);
@@ -49,8 +49,12 @@ export const action = async ({ request }) => {
         await createSubscriptionMetafield(admin.graphql, "true");
       } else {
         await createSubscriptionMetafield(admin.graphql, "false");
-        await deleteNonPlanData(admin.graphql);
+        //await deleteNonPlanData(admin.graphql);
       }
+      break;
+
+    case "CARTS_UPDATE":
+      //console.log('webhook payload for carts update ', payload);
       break;
 
     case "CUSTOMERS_DATA_REQUEST":

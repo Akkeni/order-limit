@@ -13,7 +13,8 @@ import {
   Button,
 } from '@shopify/ui-extensions-react/admin';
 import { useEffect, useMemo, useState } from "react";
-import { getLimiters, getPlan, updateLimiters } from "./utils";
+import { getLimiters, getPlan, updateLimiters, getExistingLimits } from "./utils";
+
 
 // The target used here must match the target used in the extension's toml file (./shopify.extension.toml)
 const TARGET = 'admin.product-details.block.render';
@@ -35,21 +36,88 @@ function App() {
     plan: '',
   });
 
+  const [isAllow, setIsAllow] = useState({
+    product: false,
+    category: false,
+    vendor: false
+  });
+
+  const freePlanLimiters = {
+    products: 0,
+    categories: 0,
+    collections: 0,
+    vendors: 0,
+  };
+
   const [loading, setLoading] = useState(true);
   const productId = data.selected[0].id;
   //console.log({ data });
 
-
+  
   useEffect(() => {
     (async function getProductInfo() {
 
       //fetch the product metafields
       const productData = await getLimiters(productId);
-      const plan = await getPlan();
+      const allPlanDetails = await getPlan();
+      const existingLimiters = allPlanDetails.freePlanLimiters;
+      //console.log('existing limiters ', allPlanDetails.freePlanLimiters);
+      console.log('plan ', allPlanDetails.plan);
+      if (allPlanDetails.plan === false) {
+        freePlanLimiters.products = existingLimiters.find((item) => item.typeName == 'products')?.value || 0;
+        freePlanLimiters.categories = existingLimiters.find((item) => item.typeName == 'categories')?.value || 0;
+        freePlanLimiters.collections = existingLimiters.find((item) => item.typeName == 'collections')?.value || 0;
+        freePlanLimiters.vendors = existingLimiters.find((item) => item.typeName == 'vendors')?.value || 0;
+      }
       setLimiters(prevState => ({
         ...prevState,
-        plan: plan
+        plan: allPlanDetails.plan
       }));
+
+      if (!allPlanDetails.plan) {
+
+        const {
+          productLimitCounts,
+          vendorCounts,
+          categoryCounts
+        } = await getExistingLimits();
+
+        console.log('existing limiters ', existingLimiters);
+        console.log('freeplanlimiter ', freePlanLimiters);
+
+        if (Number(freePlanLimiters.products) > Object.keys(productLimitCounts).length && Number(freePlanLimiters.products) > 0) {
+          setIsAllow(prevState => ({
+            ...prevState,
+            product: true
+          }));
+        }
+
+        if (Number(freePlanLimiters.categories) > Object.keys(categoryCounts).length && Number(freePlanLimiters.categories) > 0) {
+          setIsAllow(prevState => ({
+            ...prevState,
+            category: true
+          }));
+        }
+
+        if (Number(freePlanLimiters.vendors) > Object.keys(vendorCounts).length && Number(freePlanLimiters.vendors) > 0) {
+          setIsAllow(prevState => ({
+            ...prevState,
+            vendor: true
+          }));
+        }
+      } else {
+
+        setIsAllow(prevState => ({
+          ...prevState,
+          product: true,
+          category: true,
+          vendor: true
+        }));
+
+      }
+
+
+
       //category limits
       if (productData?.data?.product?.category?.name) {
 
@@ -141,51 +209,63 @@ function App() {
       {!loading && (
         <BlockStack gap>
 
-          <Box>
-            <InlineStack gap>
-              <NumberField
-                value={limiters?.productMin}
-                label="Product Min Limit"
-                type="number"
-                onChange={(value) => { handleLimiters(value, 'productMin') }}
-              />
-              <NumberField
-                value={limiters?.productMax}
-                label="Product Max Limit"
-                type="number"
-                onChange={(value) => { handleLimiters(value, 'productMax') }}
-              />
-            </InlineStack>
-          </Box>
+          {isAllow.product ? (
+            <Box>
+              <InlineStack gap>
+                <NumberField
+                  value={limiters?.productMin}
+                  label="Product Min Limit"
+                  type="number"
+                  onChange={(value) => { handleLimiters(value, 'productMin') }}
+                />
+                <NumberField
+                  value={limiters?.productMax}
+                  label="Product Max Limit"
+                  type="number"
+                  onChange={(value) => { handleLimiters(value, 'productMax') }}
+                />
+              </InlineStack>
+            </Box>
+          ) : (
+            <Text>
+              You used allowed product wise limits. To continue please select a plan or set existing limits to 0.
+            </Text>
+          )}
 
           <Divider />
 
-          <Box>
-            <BlockStack blockGap='small'>
-              <Heading size="6">
-                Vendor Name: {limiters?.vendorName}
-              </Heading>
+          {isAllow.vendor ? (
+            <Box>
+              <BlockStack blockGap='small'>
+                <Heading size="6">
+                  Vendor Name: {limiters?.vendorName}
+                </Heading>
 
-              <InlineStack gap>
+                <InlineStack gap>
+                  <NumberField
+                    value={limiters?.vendorMin}
+                    label="vendor Min Limit"
+                    type="number"
+                    onChange={(value) => { handleLimiters(value, 'vendorMin') }}
 
-                <NumberField
-                  value={limiters?.vendorMin}
-                  label="vendor Min Limit"
-                  type="number"
-                  onChange={(value) => { handleLimiters(value, 'vendorMin') }}
+                  />
 
-                />
-                <NumberField
-                  value={limiters?.vendorMax}
-                  label="vendor Max Limit"
-                  type="number"
-                  onChange={(value) => { handleLimiters(value, 'vendorMax') }}
-                />
-              </InlineStack>
-            </BlockStack>
-          </Box>
+                  <NumberField
+                    value={limiters?.vendorMax}
+                    label="vendor Max Limit"
+                    type="number"
+                    onChange={(value) => { handleLimiters(value, 'vendorMax') }}
+                  />
+                </InlineStack>
+              </BlockStack>
+            </Box>
+          ) : (
+            <Text>
+              You used allowed vendor wise limits. To continue please select a plan or set existing limits to 0.
+            </Text>
+          )}
 
-          {limiters?.plan ? (
+          {isAllow.category ? (
             <>
               {limiters?.categoryName && (
                 <>
@@ -218,16 +298,19 @@ function App() {
               )}
             </>
           ) : (
-            <Text>
-              Please select a plan to use Category wise limits.
-            </Text>
+            <>
+              <Divider />
+              <Text>
+                You used allowed category wise limits. To continue please select a plan or set existing limits to 0.
+              </Text>
+            </>
           )}
-
 
 
           <InlineStack inlineAlignment="end" gap="none">
             <Button onClick={handleSave} variant='primary'>Save</Button>
           </InlineStack>
+
         </BlockStack>
       )}
 

@@ -26,7 +26,12 @@ import { useState } from "react";
 export async function loader({ request }) {
     const { admin, billing } = await authenticate.admin(request);
 
+    let expire = 'true';
+    let currentDateStr = new Date();
+    let endDateStr = '';
+
     try {
+
         // Attempt to check if the shop has an active payment for any plan
         const billingCheck = await billing.require({
             plans: [MONTHLY_PLAN, ANNUAL_PLAN],
@@ -40,13 +45,54 @@ export async function loader({ request }) {
         // If the shop has an active subscription, log and return the details
         const subscription = billingCheck.appSubscriptions[0];
         //console.log(`Shop is on ${subscription.name} (id ${subscription.id})`);
-        return json({ billing, plan: subscription });
+        return json({ billing, plan: subscription, expire, endDateStr });
 
     } catch (error) {
         // If the shop does not have an active plan, return an empty plan object
         if (error.message === 'No active plan') {
             //console.log('Shop does not have any active plans.');
-            return json({ billing, plan: { name: "Free Subscription" } });
+            currentDateStr = currentDateStr.toISOString();
+            console.log('today date is ', currentDateStr);
+
+            const appQueryResponse = await admin.graphql(`query appInstallation {
+            currentAppInstallation {
+              id
+              planMetaField: metafield(namespace:"hasPlan", key: "hasPlan") {
+                id
+                value
+              }
+              endDateMetaField: metafield(namespace:"endDate", key: "endDate") {
+                value
+                id
+              }
+            }
+          }`);
+
+            const appQeryData = await appQueryResponse.json();
+            endDateStr = appQeryData?.data?.currentAppInstallation?.endDateMetaField ? appQeryData?.data?.currentAppInstallation?.endDateMetaField?.value : '';
+            expire = appQeryData?.data?.currentAppInstallation?.planMetaField ? appQeryData?.data?.currentAppInstallation?.planMetaField?.value : 'true';
+            console.log('endDateStr in loader ', endDateStr);
+            if (endDateStr) {
+
+                const regex = /\d{4}-\d{2}-\d{2}/;
+                currentDateStr = currentDateStr.match(regex);
+                endDateStr = endDateStr.match(regex);
+                if (currentDateStr && endDateStr) {
+                    currentDateStr = currentDateStr[0];
+                    endDateStr = endDateStr[0];
+                    const currentDate = new Date(currentDateStr);
+                    const endDate = new Date(endDateStr);
+                    if (currentDate >= endDate) {
+                        expire = "true";
+                    } else {
+                        expire = "false";
+                    }
+                }
+
+            } else {
+                expire = "true";
+            }
+            return json({ billing, plan: { name: "Free Subscription" }, expire, endDateStr });
         }
         // If there is another error, rethrow it
         throw error;
@@ -104,6 +150,9 @@ let planData = [
 
 export default function PricingPage() {
     const { plan } = useLoaderData();
+    const loaderData = useLoaderData();
+    const expire = loaderData?.expire;
+    const endDate = loaderData?.endDateStr;
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
 
@@ -147,10 +196,18 @@ export default function PricingPage() {
             <br />
             <br />
 
-            {plan.name == "Free Subscription" && (
+            {plan.name == "Free Subscription" && expire == 'true' && (
                 <Banner title="Select a plan" status="info">
                     <p>
                         You're currently on free plan. Select a plan.
+                    </p>
+                </Banner>
+            )}
+
+            {plan.name == "Free Subscription" && expire == 'false' && (
+                <Banner title="Subscripiton end date" status="info">
+                    <p>
+                        You cancelled the recurring charges. You're current plan will end on {endDate}, from which 'free plan' will be activated.
                     </p>
                 </Banner>
             )}
@@ -162,7 +219,7 @@ export default function PricingPage() {
                     primaryAction={{
                         content: plan.name != "Free Subscription" ? 'Cancel Plan' : 'Select a Plan',
                         url: plan.name === "Monthly Subscription" ? '/app/cancel/monthly' : '/app/cancel/annualy',
-                        onAction: () => {setIsLoading(true);}
+                        onAction: () => { setIsLoading(true); }
                     }}
                 >
                     {plan.name == "Monthly Subscription" && (
@@ -190,7 +247,7 @@ export default function PricingPage() {
 
                 {planData.map((plan_item, index) => (
                     <Grid.Cell key={index} columnSpan={{ xs: 6, sm: 6, md: 4, lg: 4, xl: 4 }}>
-                        <Card background={(plan_item.name == plan.name) ? "bg-surface-success" : "bg-surface"} sectioned>
+                        <Card background={(plan_item.name == plan.name && expire == 'true') ? "bg-surface-success" : "bg-surface"} sectioned>
                             <Box padding="400">
                                 <Text as="h3" variant="headingMd">
                                     {plan_item.title}

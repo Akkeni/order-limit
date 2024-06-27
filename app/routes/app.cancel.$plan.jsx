@@ -1,5 +1,7 @@
 import { json, redirect } from "@remix-run/node";
 import { authenticate, MONTHLY_PLAN, ANNUAL_PLAN } from "../shopify.server";
+import { getSubscriptionStatus, createEndPeriodMetafield } from '../models/Subscription.server';
+
 
 
 export const loader = async ({ request, params }) => {
@@ -8,6 +10,17 @@ export const loader = async ({ request, params }) => {
     let { shop } = session;
     //let myShop = shop.replace(".myshopify.com", "");
     const plan = params.plan;
+
+    const subscription = await getSubscriptionStatus(admin.graphql);
+
+    const activeSubscriptions = subscription.data.app.installation.activeSubscriptions;
+    console.log('activeSubscriptions ', activeSubscriptions);
+    if(!(activeSubscriptions.length < 1)) {
+        const endPeriodDate = activeSubscriptions[0].currentPeriodEnd;
+        console.log('endDate in cancel ', endPeriodDate);
+        await createEndPeriodMetafield(admin.graphql, endPeriodDate);
+    }
+
 
     if (plan === "monthly") {
         const billingCheck = await billing.require({
@@ -19,8 +32,10 @@ export const loader = async ({ request, params }) => {
         const cancelledSubscription = await billing.cancel({
             subscriptionId: subscription.id,
             isTest: true,
-            prorate: true,
+            prorate: false,
         });
+
+        console.log('cancelledSubscription response ', cancelledSubscription);
     } else {
         const billingCheck = await billing.require({
             plans: [ANNUAL_PLAN],
@@ -31,7 +46,7 @@ export const loader = async ({ request, params }) => {
         const cancelledSubscription = await billing.cancel({
             subscriptionId: subscription.id,
             isTest: true,
-            prorate: true,
+            prorate: false,
         });
     }
 

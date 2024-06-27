@@ -81,14 +81,20 @@ export async function getLimiters(collectionId) {
       planMetaField: metafield(namespace:"hasPlan", key: "hasPlan") {
         value
       }
+      freePlanLimitersMetaField: metafield(namespace:"freePlanLimiters", key: "freePlanLimiters") {
+        value
+      }
   
     }
   }`, {});
 
   if (planDetails?.data?.currentAppInstallation?.planMetaField?.value == "false") {
     limiters['plan'] = false;
+    if (planDetails?.data?.currentAppInstallation?.freePlanLimitersMetaField?.value) {
+      limiters['freePlanLimiters'] = JSON.parse(planDetails?.data?.currentAppInstallation?.freePlanLimitersMetaField?.value);
+    }
     //console.log('plan value in utils ', limiters?.plan);
-    return limiters;
+    //return limiters;
   } else {
     limiters['plan'] = true;
   }
@@ -134,6 +140,34 @@ async function makeGraphQLQuery(query, variables) {
   }
 
   return await res.json();
+}
+
+export async function getExistingCollectionLimits() {
+  const allProductsData = await getAllProductsData();
+
+  let collectionCounts = {};
+
+  allProductsData.forEach(item => {
+    const node = item.node;
+    //console.log('node in for loop ', node);
+
+    if (node.collectionLimitField && node.collectionLimitField.value) {
+      const collectionValues = node.collectionLimitField.value.split(',');
+      const collectionName = collectionValues[0].trim();
+      const collectionLimits = collectionValues.slice(1).map(Number);
+
+      if (collectionLimits.some(value => value !== 0)) {
+        if (!collectionCounts[collectionName]) {
+          collectionCounts[collectionName] = 0;
+        }
+        collectionCounts[collectionName]++;
+      }
+    }
+  });
+
+  console.log('collection counts in get functioni ', collectionCounts);
+
+  return collectionCounts;
 }
 
 async function getAllProductsData() {

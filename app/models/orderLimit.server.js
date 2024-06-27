@@ -305,3 +305,51 @@ export async function deleteNonPlanData(graphql) {
   return null;
 
 }
+
+export async function createFreePlanMetafields(graphql, existingLimiters) {
+
+  const appIdQuery = await graphql(`
+    #graphql
+    query {
+      currentAppInstallation {
+        id
+      }
+    }
+  `);
+
+  const appIdQueryData = await appIdQuery.json();
+  const appInstallationID = appIdQueryData.data.currentAppInstallation.id;
+
+  const value = JSON.stringify(existingLimiters);
+
+  const appMetafield = await graphql(
+    `
+      #graphql
+      mutation CreateAppDataMetafield($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) {
+          metafields {
+            id
+            namespace
+            key
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `,
+    {
+      variables: {
+        metafields: {
+          namespace: "freePlanLimiters",
+          key: "freePlanLimiters",
+          type: "string",
+          value: value,
+          ownerId: appInstallationID,
+        },
+      },
+    },
+  );
+
+}

@@ -13,7 +13,7 @@ import {
   Button,
 } from '@shopify/ui-extensions-react/admin';
 import { useEffect, useMemo, useState } from "react";
-import { getLimiters, updateLimiters } from "./utils";
+import { getLimiters, updateLimiters, getExistingCollectionLimits } from "./utils";
 
 // The target used here must match the target used in the extension's toml file (./shopify.extension.toml)
 const TARGET = 'admin.collection-details.block.render';
@@ -32,14 +32,63 @@ function App() {
     plan: '',
   });
   const [loading, setLoading] = useState(true);
-
+  const [isAllow, setIsAllow] = useState(false);
   const collectionId = data.selected[0].id;
+
+  const freePlanLimiters={
+    products: 0,
+    categories: 0,
+    collections: 0,
+    vendors: 0,
+  };
+
+  // useEffect(() => {
+  //   (async function getFreePlanLimiters() {
+  //     const collectionData = await getLimiters(collectionId);
+   
+
+  //     const existingLimiters = collectionData?.freePlanLimiters;
+
+  //     setFreePlanLimiters(prevState => ({
+  //       ...prevState,
+  //       products: existingLimiters.find((item) => item.typeName == 'products')?.value || 0,
+  //       categories: existingLimiters.find((item) => item.typeName == 'categories')?.value || 0,
+  //       collections: existingLimiters.find((item) => item.typeName == 'collections')?.value || 0,
+  //       vendors: existingLimiters.find((item) => item.typeName == 'vendors')?.value || 0,
+  //     }));
+  //   })();
+  // }, [collectionId]);
 
   useEffect(() => {
     (async function getCollectionInfo() {
       // Load the product's metafield of type issues
+
       const collectionData = await getLimiters(collectionId);
       if (collectionData) {
+
+        const existingLimiters = collectionData?.freePlanLimiters;
+
+        if (collectionData.plan === false) {
+          freePlanLimiters.products = existingLimiters.find((item) => item.typeName == 'products')?.value || 0;
+          freePlanLimiters.categories = existingLimiters.find((item) => item.typeName == 'categories')?.value || 0;
+          freePlanLimiters.collections = existingLimiters.find((item) => item.typeName == 'collections')?.value || 0;
+          freePlanLimiters.vendors = existingLimiters.find((item) => item.typeName == 'vendors')?.value || 0;
+        }
+
+        if (freePlanLimiters) {
+          console.log('value of free plan collection ', freePlanLimiters);
+          const existingCollectionLimit = await getExistingCollectionLimits();
+          console.log('value of existing ', Object.keys(existingCollectionLimit).length);
+          if (Number(freePlanLimiters.collections) > Object.keys(existingCollectionLimit).length && Number(freePlanLimiters.collections) > 0) {
+            console.log('allow to add');
+            setIsAllow(true);
+          }
+        }
+
+        if (collectionData.plan) {
+          setIsAllow(true);
+        }
+
         setLimiters(prevState => ({
           ...prevState,
           collectionName: collectionData?.collectionName ? collectionData?.collectionName : '',
@@ -47,6 +96,7 @@ function App() {
           collectionMax: collectionData?.collectionMax ? Number(collectionData?.collectionMax) : 0,
           plan: collectionData?.plan ? collectionData?.plan : false
         }));
+
         setLoading(false);
       }
     })();
@@ -81,13 +131,13 @@ function App() {
         </Text>
       )}
 
-      {!loading && !limiters?.plan && (
-        <Text>
-          Please select a plan to use Collection wise limit.
+      {!loading && !limiters?.plan && !isAllow && (
+        <Text as="p" tone="critical">
+          You used allowed collection wise limits. To continue please select a plan or set existing limits to 0.
         </Text>
       )}
 
-      {!loading && limiters?.plan && (
+      {!loading && isAllow && (
         <Box>
           <BlockStack gap>
             <Heading size="6">
