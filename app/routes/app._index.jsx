@@ -783,7 +783,7 @@ export default function Index() {
   const shopify = useAppBridge();
   const [searchValue, setSearchValue] = useState('');
   const [success, setSuccess] = useState(false);
-  const [tagValue, setTagValue] = useState('Product Wise');
+  const [tagValue, setTagValue] = useState((plan != "paidPlan") ? 'Vendor Wise' : 'Store Wise');
   const [quantityLimit, setQuantityLimit] = useState([]);
   const [variantQuantityLimits, setVariantQuantityLimits] = useState({});
   //const submit = useSubmit();
@@ -834,7 +834,7 @@ export default function Index() {
 
   const collectionIds = [];
 
-  const tagOptions = (plan != "paidPlan") ? ['Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise'] : ['Store Wise', 'General', 'Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise']
+  const tagOptions = (plan != "paidPlan") ? ['Vendor Wise', 'Collection Wise', 'Category Wise', 'Product Wise'] : ['Store Wise', 'General', 'Vendor Wise', 'Collection Wise', 'Category Wise', 'Product Wise']
 
   const existingLimiters = loaderData?.existingLimiters ? loaderData.existingLimiters : [];
   const [freePlanlimiters, setFreePlanLimiters] = useState({

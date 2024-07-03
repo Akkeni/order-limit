@@ -125,6 +125,7 @@ function Extension() {
 
   const convertWeight = (value, fromUnit, toUnit) => {
     let grams;
+    console.log('toUnit in covert ', toUnit);
     try {
       // Convert the input weight to grams first
       switch (fromUnit.toLowerCase()) {
@@ -199,10 +200,14 @@ function Extension() {
         //console.log('weight of variant ', Number(variant.node.weight));
         let cartWeight = Number(variant.node.weight);
         const fromWeightUnit = variant.node?.weightUnit;
-        const toWeightUnit = generalLimiters?.weightUnit;
+        const toWeightUnit = generalLimiters.weightUnit;
+        if(fromWeightUnit && toWeightUnit) {
+        //console.log('from weight unit ', fromWeightUnit);
+        //console.log('toweightUnit ', toWeightUnit);
         let weight = convertWeight(cartWeight, fromWeightUnit, toWeightUnit);
-
         totalWeight = totalWeight + (quantity * weight);
+        }
+        
         //console.log('totalWeight ', totalWeight);
       }
     }).catch((error) => {
@@ -281,6 +286,8 @@ function Extension() {
     }
   });
   categoryErrors = categoryErrors.join(' and ');
+
+  console.log('category errors ', categoryErrors);
 
   //collection wise min limit
   const collectionsWithProducts = {};
@@ -437,151 +444,159 @@ function Extension() {
   //console.log('priceMin ', priceMin);
 
   useBuyerJourneyIntercept(({ canBlockProgress }) => {
+  if (errorMsgs?.extensionMsg === "Checkout Extension" || errorMsgs?.extensionMsg === "Both") {
+    console.log('category errors in useBuyer ', categoryErrors);
+    console.log('canBlockProgress in useBuyer ', canBlockProgress);
 
-    if (errorMsgs?.extensionMsg === "Checkout Extension" || errorMsgs?.extensionMsg === "Both") {
+    // Check minimum product quantity
+    if (canBlockProgress && totalQuantity < storeMin && storeMin > 0) {
+      return {
+        behavior: "block",
+        reason: "Minimum products quantity required",
+        errors: [
+          {
+            message:
+              errorMsgs?.shopMinErrMsg
+                ? errorMsgs.shopMinErrMsg.replace("{shopMin}", storeMin)
+                : `Minimum ${storeMin} products are required for checkout`,
+          },
+        ],
+      };
+    } else if (canBlockProgress && totalQuantity > storeMax && storeMax > 0) {
+      return {
+        behavior: "block",
+        reason: "Maximum products quantity reached",
+        errors: [
+          {
+            message:
+              errorMsgs?.shopMaxErrMsg
+                ? errorMsgs.shopMaxErrMsg.replace("{shopMax}", storeMax)
+                : `Cart exceeds ${storeMax} products. Please remove some items`,
+          },
+        ],
+      };
+    }
 
-      //checks for currency code and then proceeds with amount check
-      if (cartCurrencyCode != generalLimiters?.currencyCode && errorMsgs?.plan === true) {
+    // Check currency code mismatch
+    if (cartCurrencyCode !== generalLimiters?.currencyCode && errorMsgs?.plan) {
+      return {
+        behavior: "block",
+        reason: "Correct currency code is required",
+        errors: [
+          {
+            message: `Please change your shopping currency to ${generalLimiters?.currencyCode} to proceed with checkout`,
+          },
+        ],
+      };
+    } else {
+      if (canBlockProgress && totalAmountValue < Number(generalLimiters?.priceMin) && Number(generalLimiters?.priceMin) > 0) {
         return {
           behavior: "block",
-          reason: "correct currency code is required",
+          reason: "Minimum price required",
           errors: [
             {
-              // Show a validation error on the page
-              message: `Please change your shopping currency to ${generalLimiters?.currencyCode} to proceed with checkout`,
-            },
-          ],
-        };
-      } else {
-        if (canBlockProgress && totalAmountValue < Number(generalLimiters?.priceMin) && Number(generalLimiters?.priceMin) > 0) {
-          return {
-            behavior: "block",
-            reason: "Minimum price required",
-            errors: [
-              {
-                // Show a validation error on the page
-                message:
-                  errorMsgs?.priceMinErrMsg
-                    ? errorMsgs.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin).replace("{currencyCode}", generalLimiters?.currencyCode)
-                    : `Minimum amount ${generalLimiters?.priceMin} ${generalLimiters?.currencyCode} is required for checkout.`,
-              },
-            ],
-          };
-        } else if (canBlockProgress && totalAmountValue > Number(generalLimiters?.priceMax) && Number(generalLimiters?.priceMax) > 0) {
-          return {
-            behavior: "block",
-            reason: "Maximum price reached",
-            errors: [
-              {
-                // Show a validation error on the page
-                message:
-                  errorMsgs.priceMaxErrMsg
-                    ? errorMsgs.priceMaxErrMsg.replace("{priceMax}", generalLimiters.priceMax).replace("{currencyCode}", generalLimiters?.currencyCode)
-                    : `Cart exceeds amount ${generalLimiters.priceMax} ${generalLimiters?.currencyCode}. Please remove some items.`
-              },
-            ],
-          };
-        }
-      }
-
-      if (canBlockProgress && totalQuantity < storeMin && storeMin > 0) {
-        return {
-          behavior: "block",
-          reason: "Minimum products quantity required",
-          errors: [
-            {
-              // Show a validation error on the page
               message:
-                errorMsgs?.shopMinErrMsg
-                  ? errorMsgs.shopMinErrMsg.replace("{shopMin}", storeMin)
-                  : `Minmum ${storeMin} products are required for checkout`,
+                errorMsgs?.priceMinErrMsg
+                  ? errorMsgs.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin).replace("{currencyCode}", generalLimiters?.currencyCode)
+                  : `Minimum amount ${generalLimiters?.priceMin} ${generalLimiters?.currencyCode} is required for checkout.`,
             },
           ],
         };
-      } else if (canBlockProgress && totalQuantity > storeMax && storeMax > 0) {
+      } else if (canBlockProgress && totalAmountValue > Number(generalLimiters?.priceMax) && Number(generalLimiters?.priceMax) > 0) {
         return {
           behavior: "block",
-          reason: "Maximum products quantity reached",
+          reason: "Maximum price reached",
           errors: [
             {
-              // Show a validation error on the page
               message:
-                errorMsgs?.shopMaxErrMsg
-                  ? errorMsgs.shopMaxErrMsg.replace("{shopMax}", storeMax)
-                  : `Cart exceeds ${storeMax} products. Please remove some items`,
+                errorMsgs?.priceMaxErrMsg
+                  ? errorMsgs.priceMaxErrMsg.replace("{priceMax}", generalLimiters.priceMax).replace("{currencyCode}", generalLimiters?.currencyCode)
+                  : `Cart exceeds amount ${generalLimiters.priceMax} ${generalLimiters?.currencyCode}. Please remove some items.`,
             },
           ],
         };
-      }
-
-      //console.log('total weight in useBuyer ', totalWeight);
-
-      if (canBlockProgress && totalWeight < Number(generalLimiters?.weightMin)) {
-        return {
-          behavior: "block",
-          reason: "Minimum weight required",
-          errors: [
-            {
-              // Show a validation error on the page
-              message:
-                errorMsgs?.weightMinErrMsg
-                  ? errorMsgs.weightMinErrMsg.replace("{weightMin}", generalLimiters?.weightMin).replace("{weightUnit}", generalLimiters?.weightUnit.toLowerCase())
-                  : `Minmum weight ${generalLimiters?.weightMin} ${generalLimiters?.weightUnit.toLowerCase()} is required for checkout`,
-            },
-          ],
-        };
-      }
-
-      if (canBlockProgress && categoryErrors) {
-        return {
-          behavior: "block",
-          reason: "Minimum products quantity required",
-          errors: [
-            {
-              // Show a validation error on the page
-              message: categoryErrors,
-            },
-          ],
-        };
-
-      }
-
-      if (canBlockProgress && collectionErrors) {
-        return {
-          behavior: "block",
-          reason: "Minimum products quantity required",
-          errors: [
-            {
-              // Show a validation error on the page
-              message: collectionErrors,
-            },
-          ],
-        };
-
-      }
-
-      if (canBlockProgress && vendorErrors) {
-        return {
-          behavior: "block",
-          reason: "Minimum products quantity required",
-          errors: [
-            {
-              // Show a validation error on the page
-              message: vendorErrors,
-            },
-          ],
-        };
-
       }
     }
-    return {
-      behavior: "allow",
-      perform: () => {
-        // Ensure any errors are hidden
-        setErrorMessages("");
-      },
-    };
-  });
+
+    // Check minimum and maximum weight
+    if (canBlockProgress && totalWeight < Number(generalLimiters?.weightMin)) {
+      return {
+        behavior: "block",
+        reason: "Minimum weight required",
+        errors: [
+          {
+            message:
+              errorMsgs?.weightMinErrMsg
+                ? errorMsgs.weightMinErrMsg.replace("{weightMin}", generalLimiters?.weightMin).replace("{weightUnit}", generalLimiters?.weightUnit.toLowerCase())
+                : `Minimum weight ${generalLimiters?.weightMin} ${generalLimiters?.weightUnit.toLowerCase()} is required for checkout`,
+          },
+        ],
+      };
+    } else if (canBlockProgress && totalWeight > Number(generalLimiters?.weightMax)) {
+      return {
+        behavior: "block",
+        reason: "Maximum weight exceeded",
+        errors: [
+          {
+            message:
+              errorMsgs?.weightMaxErrMsg
+                ? errorMsgs.weightMaxErrMsg.replace("{weightMax}", generalLimiters?.weightMax).replace("{weightUnit}", generalLimiters?.weightUnit.toLowerCase())
+                : `Cart exceeds weight ${generalLimiters?.weightMax} ${generalLimiters?.weightUnit.toLowerCase()}. Please remove some items`,
+          },
+        ],
+      };
+    }
+
+    // Check for vendor errors
+    if (canBlockProgress && vendorErrors) {
+      return {
+        behavior: "block",
+        reason: "Vendor error",
+        errors: [
+          {
+            message: vendorErrors,
+          },
+        ],
+      };
+    }
+
+    // Check for collection errors
+    if (canBlockProgress && collectionErrors) {
+      return {
+        behavior: "block",
+        reason: "Collection error",
+        errors: [
+          {
+            message: collectionErrors,
+          },
+        ],
+      };
+    }
+
+    // Check for category errors
+    if (canBlockProgress && categoryErrors) {
+      return {
+        behavior: "block",
+        reason: "Category error",
+        errors: [
+          {
+            message: categoryErrors,
+          },
+        ],
+      };
+    }
+  }
+
+  return {
+    behavior: "allow",
+    perform: () => {
+      // Ensure any errors are hidden
+      setErrorMessages("");
+    },
+  };
+});
+
+
 
 }
 
