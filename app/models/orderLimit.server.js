@@ -213,15 +213,20 @@ export async function deleteNonPlanData(graphql) {
   };
 
   const fields = [
+    'productLimitField',
+    'productVariantLimitField',
     'categoryLimitField',
     'collectionLimitField'
   ];
 
   for (let product of allProductsData) {
     for (let field of fields) {
-      // Check and delete metafields at the product level
-      let productMetafieldId = product.node[field]?.id;
-      await deleteMetafield(productMetafieldId);
+      await deleteMetafield(product.node[field]?.id);
+      if (field === 'productVariantLimitField') {
+        for (let variant of product.node.variants.edges) {
+          await deleteMetafield(variant.node[field]?.id);
+        }
+      }
     }
   }
 
@@ -240,9 +245,17 @@ export async function deleteNonPlanData(graphql) {
             id
             value
           }
+          storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
+            id
+            value
+          }
           generalLimitersField: metafield(namespace: "generalLimiters", key: "generalLimiters"){
             id
             value
+          }
+          errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs") {
+            id 
+            value 
           }
         }
       }
@@ -252,9 +265,9 @@ export async function deleteNonPlanData(graphql) {
   const data = await response.json();
 
   const storeFieldIds = [
-    data?.data?.shop?.priceLimitField?.id,
-    data?.data?.shop?.weightLimitField?.id,
+    data?.data?.shop?.storeLimitField?.id,
     data?.data?.shop?.generalLimitersField?.id,
+    data?.data?.shop?.errorMsgsField?.id,
   ];
 
   for (const id of storeFieldIds) {

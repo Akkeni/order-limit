@@ -28,11 +28,11 @@ import { json, redirect } from '@remix-run/node';
 import { useState, useCallback, useEffect } from 'react';
 import { PageActions } from '@shopify/polaris';
 import { useNavigate, useSubmit, useLoaderData, useActionData } from '@remix-run/react';
-import { ImageIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, MenuVerticalIcon } from '@shopify/polaris-icons';
+import { ImageIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, MenuVerticalIcon, TargetFilledIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
 import db from '../db.server';
 import React from 'react';
-import { getAllProductsData, createFreePlanMetafields } from '../models/orderLimit.server';
+import { getAllProductsData, createFreePlanMetafields, deleteNonPlanData } from '../models/orderLimit.server';
 import { useAppBridge } from '@shopify/app-bridge-react';
 import '../resources/style.css';
 import { getSubscriptionStatus, createSubscriptionMetafield, deleteAppInstallationMetafields } from '../models/Subscription.server';
@@ -107,17 +107,18 @@ export async function loader({ request }) {
     console.log('plan before if ', plan);
 
     if (activeSubscriptions.length < 1) {
-      if(endDateStr) {
+      if (endDateStr) {
         const regex = /\d{4}-\d{2}-\d{2}/;
         currentDateStr = currentDateStr.match(regex);
         endDateStr = endDateStr.match(regex);
-        if(currentDateStr && endDateStr) {
+        if (currentDateStr && endDateStr) {
           currentDateStr = currentDateStr[0];
           endDateStr = endDateStr[0];
           const currentDate = new Date(currentDateStr);
           const endDate = new Date(endDateStr);
-          if(currentDate >= endDate) {
+          if (currentDate >= endDate) {
             await createSubscriptionMetafield(admin.graphql, "false");
+            await deleteNonPlanData(admin.graphql);
             existingLimiters = await db.limiters.findMany();
             await createFreePlanMetafields(admin.graphql, existingLimiters);
             plan = "freePlan";
@@ -136,7 +137,7 @@ export async function loader({ request }) {
       await createSubscriptionMetafield(admin.graphql, "true");
       plan = "paidPlan";
     }
-    
+
 
     let allProductsData = await getAllProductsData(admin.graphql);
 
@@ -1182,7 +1183,7 @@ export default function Index() {
     setQuantityLimit(prevLimits => prevLimits.filter(obj => obj.value !== '0,0'));
   };
 
-  const checkAvailableLimits = async (id, value) => {
+  const checkAvailableLimits = async (id, value, range) => {
     if (plan != "paidPlan") {
       const {
         productLimitCounts,
@@ -1209,7 +1210,7 @@ export default function Index() {
           if (!id.includes('ProductVariant')) {
 
             const title = allProductsData.find((item) => item.node.id === id)?.node?.title;
-            
+
             if (!(title in productLimitCounts)) {
               if (!exists) {
                 if (count.productCount < freePlanlimiters.products) {
@@ -1224,12 +1225,36 @@ export default function Index() {
               }
 
             } else {
-              limitExceeded = false;
+
+              const reseted = quantityLimit.some(item => {
+                if (item.id === id) {
+                  const [value1, value2] = item.value.split(',').map(Number);
+                  if (value1 == 0 && value2 == 0) {
+                    return true;
+                  } else {
+                    return false;
+                  }
+                }
+                return false;
+              });
+
+              if(reseted) {
+                if (count.productCount < freePlanlimiters.products) {
+                  limitExceeded = false;
+                  handleCount("productCount");
+                } else {
+                  limitExceeded = true;
+                }
+              } else {
+                limitExceeded = false;
+              }
             }
+
             /*if (!(title in productLimitCounts)) {
               name = "productCount";
               limitExceeded = (count.productCount + 1 > freePlanlimiters.products);
             }*/
+
           } else {
             if (count.productCount > freePlanlimiters.products) {
               limitExceeded = true;
@@ -1251,7 +1276,28 @@ export default function Index() {
             }
 
           } else {
-            limitExceeded = false;
+            const reseted = quantityLimit.some(item => {
+              if (item.id === id) {
+                const [value1, value2] = item.value.split(',').map(Number);
+                if (value1 == 0 && value2 == 0) {
+                  return true;
+                } else {
+                  return false;
+                }
+              }
+              return false;
+            });
+
+            if(reseted) {
+              if (count.categoryCount < freePlanlimiters.categories) {
+                limitExceeded = false;
+                handleCount("categoryCount");
+              } else {
+                limitExceeded = true;
+              }
+            } else {
+              limitExceeded = false;
+            }
           }
           /*if (!(id in categoryCounts)) {
             name = "categoryCount";
@@ -1273,7 +1319,28 @@ export default function Index() {
             }
 
           } else {
-            limitExceeded = false;
+            const reseted = quantityLimit.some(item => {
+              if (item.id === id) {
+                const [value1, value2] = item.value.split(',').map(Number);
+                if (value1 == 0 && value2 == 0) {
+                  return true;
+                } else {
+                  return false;
+                }
+              }
+              return false;
+            });
+
+            if(reseted) {
+              if (count.collectionCount < freePlanlimiters.collections) {
+                limitExceeded = false;
+                handleCount("collectionCount");
+              } else {
+                limitExceeded = true;
+              }
+            } else {
+              limitExceeded = false;
+            }
           }
           /*if (!(id in collectionCounts)) {
             name = "collectionCount";
@@ -1295,7 +1362,28 @@ export default function Index() {
             }
 
           } else {
-            limitExceeded = false;
+            const reseted = quantityLimit.some(item => {
+              if (item.id === id) {
+                const [value1, value2] = item.value.split(',').map(Number);
+                if (value1 == 0 && value2 == 0) {
+                  return true;
+                } else {
+                  return false;
+                }
+              }
+              return false;
+            });
+
+            if(reseted) {
+              if (count.vendorCount < freePlanlimiters.vendors) {
+                limitExceeded = false;
+                handleCount("vendorCount");
+              } else {
+                limitExceeded = true;
+              }
+            } else {
+              limitExceeded = false;
+            }
           }
           /*if (!(id in vendorCounts)) {
             name = "vendorCount";
@@ -1349,6 +1437,25 @@ export default function Index() {
       console.log('exists value in handle ', exists);
       if (exists) {
         handleCountDec();
+      } else {
+        let title = id;
+        if (tagValue === "Product Wise" && !id.includes('ProductVariant')) {
+          title = allProductsData.find((item) => item.node.id === id)?.node?.title;
+        }
+        if ((title in productLimitCounts) || (title in categoryCounts) || (title in collectionCounts) || (title in vendorCounts)) {
+          if (range === 'min') {
+            const max = getQuantityLimit(id, 'max');
+            if (Number(max) == 0) {
+              handleCountDec();
+            }
+          } else {
+            const min = getQuantityLimit(id, 'min');
+            if (Number(min) == 0) {
+              handleCountDec();
+            }
+          }
+
+        }
       }
     }
 
@@ -1366,7 +1473,7 @@ export default function Index() {
     console.log('count of product in handle', count.productCount);
 
     if (Number(value) > 0) {
-      const allow = await checkAvailableLimits(id, limitValue);
+      const allow = await checkAvailableLimits(id, limitValue, range);
       if (!allow) {
         setIsBlock(true);
         return;

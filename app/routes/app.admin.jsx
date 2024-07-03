@@ -8,6 +8,7 @@ import {
     InlineStack,
     BlockStack,
     Spinner,
+    Banner
 } from '@shopify/polaris';
 import { authenticate } from '../shopify.server';
 import { useState, useCallback, useEffect } from 'react';
@@ -36,7 +37,7 @@ export async function action({ request, params }) {
         const formData = await request.formData();
         console.log('formData name ', formData.get('name'));
         if (formData.get('action') === 'login') {
-            if (formData.get('name') === "Appfoster" && formData.get('password') === "Appfoster") {
+            if (formData.get('name') === "appfoster" && formData.get('password') === "appfoster") {
                 return json({
                     admin: true
                 });
@@ -116,6 +117,7 @@ export default function Admin() {
         vendors: existingLimiters.find((item) => item.typeName == 'vendors')?.value || 0,
     });
     const [isLoading, setIsLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
 
 
     useEffect(() => {
@@ -126,6 +128,7 @@ export default function Admin() {
             setError(false);
         } else if (actionData?.created) {
             setIsLoading(false);
+            setSuccess(true);
         } else if (actionData?.admin === false) {
             setIsLoading(false);
             setError(true);
@@ -198,6 +201,17 @@ export default function Admin() {
                 {error && (
                     <Text as="p" tone="critical">Invalid username or password</Text>
                 )}
+
+                {success && (
+                    <Banner
+                        title="Saved successfully!"
+                        tone="success"
+                        onDismiss={() => setSuccess(false)}
+                    />
+                )}
+
+                <br/>
+                <br/>
 
                 {!admin && (
                     <Card>
