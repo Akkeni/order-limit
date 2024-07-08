@@ -13,7 +13,8 @@ import {
     InlineStack,
     Spinner,
     Link,
-    Tooltip
+    Tooltip,
+    ButtonGroup,
 } from "@shopify/polaris";
 import { json } from "@remix-run/node";
 import { useLoaderData, useNavigate, useActionData, useSubmit } from "@remix-run/react";
@@ -23,7 +24,7 @@ import { createPlanNameMetafield } from '../models/Subscription.server';
 import {
     CheckCircleIcon
 } from '@shopify/polaris-icons'
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export async function loader({ request }) {
     const { admin, billing } = await authenticate.admin(request);
@@ -169,6 +170,15 @@ export default function PricingPage() {
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [activeButtonIndex, setActiveButtonIndex] = useState(plan.name != "Free Subscription" ? plan.name : "Annual Subscription");
+
+    const handleButtonClick = useCallback(
+      (index) => {
+        if (activeButtonIndex === index) return;
+        setActiveButtonIndex(index);
+      },
+      [activeButtonIndex],
+    );
 
     const handleSubscribe = (url, planName) => {
         if(endDate) {
@@ -223,7 +233,6 @@ export default function PricingPage() {
                 <Link url='/app/setup' onClick={() => setIsLoading(true)}>Setup</Link>
             </InlineStack>
 
-            <br />
             <br />
 
             {success && (
@@ -285,6 +294,27 @@ export default function PricingPage() {
                 </CalloutCard>
                 </Tooltip>
             )}
+
+            <div style={{ marginTop: "1rem", overflow: "auto" }}>
+            <div style={{ float: 'right' }}>            
+                <ButtonGroup variant="segmented">
+                    <Button
+                        pressed={activeButtonIndex === "Monthly Subscription"}
+                        onClick={() => handleButtonClick("Monthly Subscription")}
+                    >
+                        Monthly
+                    </Button>
+                    <Button
+                        pressed={activeButtonIndex === "Annual Subscription"}
+                        onClick={() => handleButtonClick("Annual Subscription")}
+                    >
+                        Annual
+                    </Button>
+                </ButtonGroup>
+            </div>
+            </div>
+
+
             <div style={{ margin: "0.5rem 0" }}>
                 <Divider />
             </div>
@@ -292,8 +322,10 @@ export default function PricingPage() {
             <Grid>
 
                 {planData.map((plan_item, index) => (
+                    <>
+                    {(activeButtonIndex == plan_item.name || plan_item.name == "Free Subscription") && (
                     <Grid.Cell key={index} columnSpan={{ xs: 6, sm: 6, md: 4, lg: 4, xl: 4 }}>
-                        <Card background={(plan_item.name == plan.name && expire == 'true') ? "bg-surface-success" : "bg-surface"} sectioned>
+                            <Card background={(plan_item.name == plan.name && expire == 'true') ? "bg-surface-success" : "bg-surface"} sectioned>
                             <Box padding="400">
                                 <Text as="h3" variant="headingMd">
                                     {plan_item.title}
@@ -352,7 +384,8 @@ export default function PricingPage() {
                                     : null*/}
                             </Box>
                         </Card>
-                    </Grid.Cell>
+                    </Grid.Cell>)}
+                    </>
                 ))}
 
             </Grid>
