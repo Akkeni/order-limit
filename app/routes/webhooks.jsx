@@ -44,11 +44,11 @@ export const action = async ({ request }) => {
       break;
 
     case "APP_SUBSCRIPTIONS_UPDATE":
-      console.log('webhook is triggered ', payload);
+     
       if (payload.app_subscription.status == "ACTIVE") {
         await createSubscriptionMetafield(admin.graphql, "true");
       } else if(payload.app_subscription.status == "DECLINED") {
-        console.log('declined');
+       
         await deletePlanNameMetafield(admin.graphql);
       } else {
         await createSubscriptionMetafield(admin.graphql, "false");
@@ -57,7 +57,6 @@ export const action = async ({ request }) => {
       break;
 
     case "CARTS_UPDATE":
-      //console.log('webhook payload for carts update ', payload);
       break;
 
     case "CUSTOMERS_DATA_REQUEST":

@@ -1,14 +1,6 @@
 export async function updateCollectionLimit(productId, limiters) {
 
-  //console.log('productId in update ', productId);
-  //console.log('limiters in updateLimiters ', limiters);
-
-
   const collectionValue = limiters?.collectionName + ',' + limiters?.collectionMin + ',' + limiters?.collectionMax;
-
-  //console.log('collectionValue in update ', collectionValue);
-
-
 
   return await makeGraphQLQuery(
     `mutation SetMetafield($namespace: String!, $ownerId: ID!, $key: String!, $type: String!, $value: String!) {
@@ -88,21 +80,18 @@ export async function getLimiters(collectionId) {
     }
   }`, {});
 
+
   if (planDetails?.data?.currentAppInstallation?.planMetaField?.value == "false") {
     limiters['plan'] = false;
     if (planDetails?.data?.currentAppInstallation?.freePlanLimitersMetaField?.value) {
       limiters['freePlanLimiters'] = JSON.parse(planDetails?.data?.currentAppInstallation?.freePlanLimitersMetaField?.value);
     }
-    //console.log('plan value in utils ', limiters?.plan);
-    //return limiters;
+
   } else {
     limiters['plan'] = true;
   }
 
   const allProductsData = await getAllProductsData();
-
-
-  //console.log('allProductsData in getLimiters ', allProductsData);
 
   for (const edge of allProductsData) {
     const collectionData = await getCollection(collectionId, edge?.node?.id);
@@ -149,7 +138,6 @@ export async function getExistingCollectionLimits() {
 
   allProductsData.forEach(item => {
     const node = item.node;
-    //console.log('node in for loop ', node);
 
     if (node.collectionLimitField && node.collectionLimitField.value) {
       const collectionValues = node.collectionLimitField.value.split(',');
@@ -164,8 +152,6 @@ export async function getExistingCollectionLimits() {
       }
     }
   });
-
-  console.log('collection counts in get functioni ', collectionCounts);
 
   return collectionCounts;
 }
@@ -192,7 +178,6 @@ async function getAllProductsData() {
 
   allProductsData = allProductsData.concat(allData?.data?.products?.edges);
 
-  //const products = allProductsData?.data?.products?.edges;
   let cursor = allProductsData[allProductsData.length - 1]?.cursor;
 
   while (true) {
@@ -220,7 +205,6 @@ async function getAllProductsData() {
 
     );
 
-    //console.log('product data in loader while loop', allProductsData);
     allProductsData = allProductsData.concat(productData?.data?.products?.edges);
 
     if (productData?.data?.products?.pageInfo?.hasNextPage) {

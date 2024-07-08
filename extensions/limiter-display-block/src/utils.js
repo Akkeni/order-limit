@@ -1,14 +1,9 @@
 export async function updateLimiters(productId, limiters) {
 
-  //console.log('productId in update ', productId);
-  //console.log('limiters in updateLimiters ', limiters);
   const productData = await getLimiters(productId);
 
   const productValue = limiters?.productMin + ',' + limiters?.productMax + ',' + limiters?.vendorName + ',' + limiters?.vendorMin + ',' + limiters?.vendorMax + ',' + productData?.data?.product?.title;
   const categoryValue = limiters?.categoryName + ',' + limiters?.categoryMin + ',' + limiters?.categoryMax;
-
-  //console.log('productValue in update ', productValue);
-  //console.log('categoryValue in update ', categoryValue);
 
   const metaData = await makeGraphQLQuery(
     `mutation SetMetafield($namespace: String!, $ownerId: ID!, $key: String!, $type: String!, $value: String!) {
@@ -64,13 +59,6 @@ export async function updateLimiters(productId, limiters) {
     }
   );
 
-  //const metaData = await makeGraphQLQuery(mutationQuery, variables);
-  //const metaData = await metaResponse.json();
-  //const existingMetafields = metaData?.data?.productUpdate?.product?.metafields?.edges.map(edge => edge.node)
-  //console.log('metaData ', metaData);
-  //console.log('categoryData ', categoryData);
-
-
   return ({ success: true });
 }
 
@@ -104,7 +92,7 @@ export async function getPlan() {
     freePlanLimiters: [],
   };
 
-  const planDetails = await makeGraphQLQuery(`{
+  const planDetails = await makeGraphQLQuery(`query appInstallation {
       currentAppInstallation {
         id
         planMetaField: metafield(namespace:"hasPlan", key: "hasPlan") {
@@ -115,20 +103,19 @@ export async function getPlan() {
         }
       }
     }`, {});
-  console.log('planDetails value ', planDetails?.data?.currentAppInstallation?.freePlanLimitersMetaField?.value);
 
   if (planDetails?.data?.currentAppInstallation?.planMetaField?.value == "true") {
     allPlanDetails.plan = true;
-    //console.log('plan value in utils ', plan);
+
     return allPlanDetails;
 
   } else {
     if (planDetails?.data?.currentAppInstallation?.freePlanLimitersMetaField?.value) {
       allPlanDetails.freePlanLimiters = JSON.parse(planDetails?.data?.currentAppInstallation?.freePlanLimitersMetaField?.value);
-      console.log('freePlanLimiters in extension ', allPlanDetails.freePlanLimiters);
       return allPlanDetails;
     }
   }
+  return allPlanDetails;
 }
 
 async function makeGraphQLQuery(query, variables) {
@@ -195,8 +182,6 @@ export async function getExistingLimits() {
     }
   });
 
-  console.log('productLimitCounts in function ', productLimitCounts);
-
   return {
     productLimitCounts,
     vendorCounts,
@@ -230,7 +215,7 @@ async function getAllProductsData() {
 
   allProductsData = allProductsData.concat(allData?.data?.products?.edges);
 
-  //const products = allProductsData?.data?.products?.edges;
+
   let cursor = allProductsData[allProductsData.length - 1]?.cursor;
 
   while (true) {
@@ -262,7 +247,7 @@ async function getAllProductsData() {
 
     );
 
-    //console.log('product data in loader while loop', allProductsData);
+
     allProductsData = allProductsData.concat(productData?.data?.products?.edges);
 
     if (productData?.data?.products?.pageInfo?.hasNextPage) {

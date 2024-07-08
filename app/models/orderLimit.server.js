@@ -78,7 +78,7 @@ export async function getAllProductsData(graphql) {
   const allData = await resProduct.json();
   allProductsData = allProductsData.concat(allData?.data?.products?.edges);
 
-  //const products = allProductsData?.data?.products?.edges;
+ 
   let cursor = allProductsData[allProductsData.length - 1]?.cursor;
 
   while (true) {
@@ -167,9 +167,9 @@ export async function getAllProductsData(graphql) {
     );
 
     let productData = await productResponse.json();
-    //console.log('product data in loader while loop', allProductsData);
+  
     allProductsData = allProductsData.concat(productData?.data?.products?.edges);
-    //i++;
+    
     if (productData?.data?.products?.pageInfo?.hasNextPage) {
       const products = productData?.data?.products?.edges;
       if (products) {
@@ -186,7 +186,6 @@ export async function getAllProductsData(graphql) {
 }
 
 export async function deleteNonPlanData(graphql) {
-  //console.log('deletePreviousDataValue in if', formData.get('deletePreviousData'));
 
   let allProductsData = await getAllProductsData(graphql);
 
@@ -314,7 +313,6 @@ export async function deleteNonPlanData(graphql) {
 
   await graphql(mutationQuery, metafields);
 
-  //return redirect('/app');
   return null;
 
 }
@@ -460,10 +458,8 @@ export async function createVendorWiseLimiter(graphql, allProductsData, limiter)
 
   for (const id of productIds) {
     let value = '';
-    let allValues = limiter.value.split(',').slice(3,5);
+    let allValues = limiter.value.split(',').slice(3, 5);
     let vendorValue = `${allValues[0]},${allValues[1]}`;
-    //console.log(vendorValue)
-    //let value = limiter.value;
 
     const productResponse = await graphql(
       `{

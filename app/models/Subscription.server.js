@@ -83,7 +83,7 @@ export async function createEndPeriodMetafield(graphql, value) {
     }
   `);
 
-  console.log('value in create function ', value);
+ 
 
   const appIdQueryData = await appIdQuery.json();
   const appInstallationID = appIdQueryData.data.currentAppInstallation.id;
@@ -132,7 +132,6 @@ export async function createPlanNameMetafield(graphql, value) {
     }
   `);
 
-  console.log('value in create function ', value);
 
   const appIdQueryData = await appIdQuery.json();
   const appInstallationID = appIdQueryData.data.currentAppInstallation.id;
@@ -171,7 +170,7 @@ export async function createPlanNameMetafield(graphql, value) {
 }
 
 export async function deletePlanNameMetafield(graphql) {
-  
+
   const deleteMetafield = async (metafieldId) => {
     if (metafieldId) {
       await graphql(
@@ -208,10 +207,10 @@ export async function deletePlanNameMetafield(graphql) {
   const id = appQeryData?.data?.currentAppInstallation?.planNameMetaField?.id ? appQeryData?.data?.currentAppInstallation?.planNameMetaField?.id : '';
 
 
-  if(id){
+  if (id) {
     await deleteMetafield(id);
   }
-  
+
   return;
 }
 
@@ -265,7 +264,7 @@ export async function deleteAppInstallationMetafields(graphql) {
   ];
 
   for (const id of ids) {
-    if(id) {
+    if (id) {
       await deleteMetafield(id);
     }
   }
@@ -292,7 +291,7 @@ export async function cancelSubscritpiton(plan, billing, MONTHLY_PLAN, ANNUAL_PL
       prorate: false,
     });
 
-    console.log('cancelledSubscription response ', cancelledSubscription);
+
   } else {
     const billingCheck = await billing.require({
       plans: [ANNUAL_PLAN],

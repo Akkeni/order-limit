@@ -51,9 +51,9 @@ function App() {
 
   const [loading, setLoading] = useState(true);
   const productId = data.selected[0].id;
-  //console.log({ data });
 
-  
+
+
   useEffect(() => {
     (async function getProductInfo() {
 
@@ -61,8 +61,7 @@ function App() {
       const productData = await getLimiters(productId);
       const allPlanDetails = await getPlan();
       const existingLimiters = allPlanDetails.freePlanLimiters;
-      //console.log('existing limiters ', allPlanDetails.freePlanLimiters);
-      console.log('plan ', allPlanDetails.plan);
+
       if (allPlanDetails.plan === false) {
         freePlanLimiters.products = existingLimiters.find((item) => item.typeName == 'products')?.value || 0;
         freePlanLimiters.categories = existingLimiters.find((item) => item.typeName == 'categories')?.value || 0;
@@ -81,9 +80,6 @@ function App() {
           vendorCounts,
           categoryCounts
         } = await getExistingLimits();
-
-        console.log('existing limiters ', existingLimiters);
-        console.log('freeplanlimiter ', freePlanLimiters);
 
         if (Number(freePlanLimiters.products) > Object.keys(productLimitCounts).length && Number(freePlanLimiters.products) > 0) {
           setIsAllow(prevState => ({
@@ -121,17 +117,15 @@ function App() {
       //category limits
       if (productData?.data?.product?.category?.name) {
 
-        //setCategoryName(productData?.data?.product?.category?.name);
         setLimiters(prevState => ({
           ...prevState,
           categoryName: productData?.data?.product?.category?.name
         }));
-        //console.log('category limit value ', productData?.data?.product?.categoryLimitField?.value);
 
         if (productData?.data?.product?.categoryLimitField?.value) {
 
           const [categoryName, categoryMin, categoryMax] = productData?.data?.product?.categoryLimitField?.value.split(',');
-          //console.log('categoryMin ', categoryMin);
+
           setLimiters(prevState => ({
             ...prevState,
             categoryMin: categoryMin ? Number(categoryMin) : 0,
@@ -182,7 +176,7 @@ function App() {
       ...prevState,
       [name]: value
     }));
-    //console.log('updated limiters ', limiters);
+
   }
 
   const handleSave = async () => {
@@ -192,9 +186,6 @@ function App() {
       setLoading(false);
     }
   }
-
-  //console.log('categoryMin ' + limiters?.categoryMin + 'categoryMax ' + limiters?.categoryMax + " plan" + limiters?.plan);
-
 
   return (
     // The AdminBlock component provides an API for setting the title of the Block extension wrapper.

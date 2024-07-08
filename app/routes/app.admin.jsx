@@ -36,7 +36,7 @@ export async function action({ request, params }) {
     try {
 
         const formData = await request.formData();
-        console.log('formData name in action ', formData.get('name'));
+
         if (formData.get('action') === 'login') {
             if (formData.get('name') === `${process.env.ADMIN_NAME}` && formData.get('password') === `${process.env.ADMIN_PASSWORD}`) {
                 return json({
@@ -122,7 +122,7 @@ export default function Admin() {
 
 
     useEffect(() => {
-        console.log('action data ', actionData?.admin);
+
         if (actionData?.admin) {
             setAdmin(true);
             setIsLoading(false);
@@ -140,23 +140,21 @@ export default function Admin() {
     }, [actionData]);
 
     useEffect(() => {
-        if(loaderData?.ok) { 
-            if(getWithExpiry('admin')/*localStorage.getItem('admin')*/ ) {
+        if (loaderData?.ok) {
+            if (getWithExpiry('admin')/*localStorage.getItem('admin')*/) {
                 setAdmin(true);
                 //localStorage.removeItem('admin');
             }
-            console.log('localStorage ', localStorage.getItem('admin') );
-            console.log("cookies ", Cookies.get('admin'));
+            // console.log('localStorage ', localStorage.getItem('admin') );
+            // console.log("cookies ", Cookies.get('admin'));
         }
     }, [loaderData]);
 
     const handleName = (value) => {
-        console.log(value);
         setName(value);
     }
 
     const handlePassword = (value) => {
-        console.log(value);
         setPassword(value);
     }
 
@@ -168,13 +166,13 @@ export default function Admin() {
     }
 
     const handleSave = () => {
-        console.log('save');
+
         setIsLoading(true);
         submit({ limiters: JSON.stringify(limiters), action: "save" }, { method: "post" });
     }
 
     const handleLogin = () => {
-        console.log('name and password ' + name + " " + password);
+
         if (name && password) {
             setIsLoading(true);
             submit({ name: name, password: password, action: "login" }, { method: "post" });
@@ -205,7 +203,7 @@ export default function Admin() {
     }
 
     if (isLoading) {
-        //console.log('isSaving ', isSaving);
+
         return (
             <div style={{
                 position: "fixed",

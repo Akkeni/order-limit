@@ -16,7 +16,7 @@ export default function HelpPage() {
     const [isLoading, setIsLoading] = useState(false);
 
     if (isLoading) {
-        //console.log('isSaving ', isSaving);
+
         return (
             <div style={{
                 position: "fixed",
@@ -74,7 +74,7 @@ export default function HelpPage() {
                     <div>
                         <strong>
                             <p>
-                                 To activate extension please refer <Link url='/app/setup' onClick={() => setIsLoading(true)}>here</Link> :
+                                To activate extension please refer <Link url='/app/setup' onClick={() => setIsLoading(true)}>here</Link> :
                             </p>
                             <ul>
                                 <li>
@@ -133,7 +133,7 @@ export default function HelpPage() {
                         </ul>
                     </div>
                 </Banner>
-                
+
                 <br />
 
                 <Banner title="Collection Wise Limits" status="info">
@@ -148,7 +148,7 @@ export default function HelpPage() {
                     </div>
                 </Banner>
 
-                <br/>
+                <br />
 
                 <Banner title="Category Wise Limits" status="info">
                     <div>

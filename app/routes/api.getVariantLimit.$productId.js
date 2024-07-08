@@ -11,7 +11,7 @@ export const loader = async ({ request, params }) => {
 
         const productId = "gid://shopify/ProductVariant/" + params.productId;
 
-        //console.log('variantId in api ', productId);
+
         const response = await admin.graphql(`
         {
             productVariant(id: "${productId}") {
@@ -27,7 +27,7 @@ export const loader = async ({ request, params }) => {
         const variantData = await response.json();
         const productVariantLimitField = variantData?.data?.productVariant?.productVariantLimitField;
 
-        // console.log('productVariantLimitField in api ', productVariantLimitField);
+
 
         return cors(json({ productVariantLimitField: productVariantLimitField }));
     } catch (error) {

@@ -43,7 +43,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const canBlockProgress = useExtensionCapability("block_progress");
-  //console.log('canBlockProgress in app', canBlockProgress);
+
 
   const errorMsgsMetaField = errorMsgsField[0]?.metafield;
   let errorMsgs = {};
@@ -64,7 +64,6 @@ function App() {
       return;
     }
 
-    //console.log('cartLineTarget in app ', cartLineTarget);
     const quantity = cartLineTarget?.quantity;
 
     const productMetafield = productLimitFields.find(({ target }) => {
@@ -77,10 +76,6 @@ function App() {
       return `gid://shopify/ProductVariant/${target.id}` === productVariantId;
     });
 
-    //console.log('productMetaField', productVariantMetafield);
-
-
-
     if (productMetafield || productVariantMetafield) {
       const productMeta = productMetafield?.metafield;
       const productMin = Number(productMeta?.value.split(',')[0]);
@@ -89,8 +84,6 @@ function App() {
       const productVariantMeta = productVariantMetafield?.metafield;
       const productVariantMin = Number(productVariantMeta?.value.split(',')[0]);
       const productVariantMax = Number(productVariantMeta?.value.split(',')[1]);
-
-      //console.log('quantity ', quantity);
 
       // If we find the metafield, set the watering instructions for this cart line
       if (quantity < productMin && productMin !== 0) {

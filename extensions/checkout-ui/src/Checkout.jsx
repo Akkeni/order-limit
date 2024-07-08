@@ -20,7 +20,7 @@ function Extension() {
   const translate = useTranslate();
   const { extension, query } = useApi();
 
-  //console.log('Extension in checkout UI is working...!');
+
 
   const priceLimitField = useAppMetafields({
     type: "shop",
@@ -70,8 +70,6 @@ function Extension() {
     key: "collectionLimit"
   });
 
-  //console.log('collectionLimitField in extension ', collectionLimitFields);
-  //console.log('productLimitField in extension ', productLimitFields);
 
   const priceMetaField = priceLimitField[0]?.metafield;
   const priceMin = priceMetaField?.value.split(',')[0];
@@ -101,7 +99,6 @@ function Extension() {
 
   const [errorMessages, setErrorMessages] = useState("");
   const canBlockProgress = useExtensionCapability("block_progress");
-  //console.log('canBlockProgress in extension ', canBlockProgress);
 
 
 
@@ -110,13 +107,10 @@ function Extension() {
   // Ensure the totalAmount is a valid number
   const totalAmountValue = Number(totalAmount?.amount);
 
-  //console.log('totalAmountValue in extension ', totalAmountValue);
-  //console.log('cartlines in extension ', cartLines);
   const cartCurrencyCode = cartLines[0]?.cost?.totalAmount?.currencyCode;
 
 
   const totalQuantity = cartLines.reduce((acc, curr) => acc + curr.quantity, 0);
-  //console.log('currencyCode in extension '+ cartCurrencyCode + " , " + generalLimiters?.currencyCode);
 
   const categoriesWithProducts = {};
   const categoriesWithMinValues = {};
@@ -125,7 +119,7 @@ function Extension() {
 
   const convertWeight = (value, fromUnit, toUnit) => {
     let grams;
-    console.log('toUnit in covert ', toUnit);
+
     try {
       // Convert the input weight to grams first
       switch (fromUnit.toLowerCase()) {
@@ -170,9 +164,6 @@ function Extension() {
     }
   }
 
-  // Example usage:
-  //console.log(convertWeight(1000, 'grams', 'kilograms'));  // Output: 1
-
   for (const cartLine of cartLines) {
     const productId = cartLine?.merchandise?.product?.id;
     const productVariantId = cartLine?.merchandise?.id;
@@ -193,31 +184,27 @@ function Extension() {
         }
       }
       `).then(({ data }) => {
-      //console.log('data in query', data);
+
       const variant = data?.product?.variants?.edges.find(variant => variant.node.id === productVariantId);
-      //console.log('variant from query ', variant);
+
       if (variant) {
-        //console.log('weight of variant ', Number(variant.node.weight));
+
         let cartWeight = Number(variant.node.weight);
         const fromWeightUnit = variant.node?.weightUnit;
         const toWeightUnit = generalLimiters.weightUnit;
-        if(fromWeightUnit && toWeightUnit) {
-        //console.log('from weight unit ', fromWeightUnit);
-        //console.log('toweightUnit ', toWeightUnit);
-        let weight = convertWeight(cartWeight, fromWeightUnit, toWeightUnit);
-        totalWeight = totalWeight + (quantity * weight);
+        if (fromWeightUnit && toWeightUnit) {
+
+          let weight = convertWeight(cartWeight, fromWeightUnit, toWeightUnit);
+          totalWeight = totalWeight + (quantity * weight);
         }
-        
-        //console.log('totalWeight ', totalWeight);
+
+
       }
     }).catch((error) => {
       console.error(error);
     });
   }
 
-
-  //console.log('totalWeight ', totalWeight);
-  //console.log('weight min', weightMin);
 
   categoryLimitFields.forEach(item => {
     const valueParts = item.metafield.value.split(',');
@@ -243,8 +230,6 @@ function Extension() {
     }
   });
 
-  //console.log('category product ids in extension', categoriesWithProducts);
-  //console.log('category min values extenison', categoriesWithMinValues);
 
   const totalCategoriesQuantity = {};
   for (const name in categoriesWithProducts) {
@@ -258,19 +243,13 @@ function Extension() {
     totalCategoriesQuantity[name] = c;
   }
 
-  //console.log('totalCategriesquantities', totalCategoriesQuantity);
-
-
-
-
-
   let categoryErrors = [];
 
   Object.keys(categoriesWithMinValues).forEach(category => {
     const minQuantity = Number(categoriesWithMinValues[category]);
     const maxQuantity = Number(categoriesWithMaxValues[category]);
     const totalQuantity = totalCategoriesQuantity[category] || 0;
-    //console.log('minQuantity in object', minQuantity);
+
     if (totalQuantity < minQuantity) {
 
       let msg = errorMsgs?.categoryMinErrMsg
@@ -287,7 +266,7 @@ function Extension() {
   });
   categoryErrors = categoryErrors.join(' and ');
 
-  console.log('category errors ', categoryErrors);
+
 
   //collection wise min limit
   const collectionsWithProducts = {};
@@ -318,9 +297,6 @@ function Extension() {
     }
   });
 
-  //console.log('collection product ids in extension', collectionsWithProducts);
-  //console.log('collection min values extenison', collectionsWithMinValues);
-
   const totalCollectionsQuantity = {};
   for (const name in collectionsWithProducts) {
     let c = 0;
@@ -333,15 +309,12 @@ function Extension() {
     totalCollectionsQuantity[name] = c;
   }
 
-  //console.log('totalCollectionsquantities', totalCollectionsQuantity);
-
   let collectionErrors = [];
 
   Object.keys(collectionsWithMinValues).forEach(collection => {
     const minQuantity = Number(collectionsWithMinValues[collection]);
     const maxQuantity = Number(collectionsWithMaxValues[collection]);
     const totalQuantity = totalCollectionsQuantity[collection] || 0;
-    //console.log('minQuantity of collection in object', minQuantity);
     if (totalQuantity < minQuantity) {
 
       let msg = errorMsgs?.collectionMinErrMsg
@@ -358,7 +331,6 @@ function Extension() {
   });
 
   collectionErrors = collectionErrors.join(' and ');
-  //console.log('collection errors in extension ', collectionErrors);
 
   //vendor wise min limit
   const vendorsWithProducts = {};
@@ -393,8 +365,6 @@ function Extension() {
     }
   });
 
-  //console.log('venodor product ids in extension', vendorsWithProducts);
-  //console.log('vendor min values extenison', vendorsWithMinValues);
 
   const totalVendorsQuantity = {};
   if (vendorsWithProducts) {
@@ -410,8 +380,6 @@ function Extension() {
     }
   }
 
-  //console.log('totalVendorsquantities', totalVendorsQuantity);
-
   let vendorErrors = [];
 
   if (vendorsWithMinValues) {
@@ -420,7 +388,6 @@ function Extension() {
       const minQuantity = Number(vendorsWithMinValues[vendor]);
       const maxQuantity = Number(vendorsWithMaxValues[vendor]);
       const totalQuantity = totalVendorsQuantity[vendor] || 0;
-      //console.log('minQuantity of vendor in object', minQuantity);
       if (totalQuantity < minQuantity) {
 
         let msg = errorMsgs?.vendorMinErrMsg
@@ -437,164 +404,162 @@ function Extension() {
     });
 
     vendorErrors = vendorErrors.join(' and ');
-    //console.log('vendor errors in extension ', vendorErrors);
+
 
   }
 
-  //console.log('priceMin ', priceMin);
+
 
   useBuyerJourneyIntercept(({ canBlockProgress }) => {
-  if (errorMsgs?.extensionMsg === "Checkout Extension" || errorMsgs?.extensionMsg === "Both") {
-    console.log('category errors in useBuyer ', categoryErrors);
-    console.log('canBlockProgress in useBuyer ', canBlockProgress);
+    if (errorMsgs?.extensionMsg === "Checkout Extension" || errorMsgs?.extensionMsg === "Both") {
 
-    // Check minimum product quantity
-    if (canBlockProgress && totalQuantity < storeMin && storeMin > 0) {
-      return {
-        behavior: "block",
-        reason: "Minimum products quantity required",
-        errors: [
-          {
-            message:
-              errorMsgs?.shopMinErrMsg
-                ? errorMsgs.shopMinErrMsg.replace("{shopMin}", storeMin)
-                : `Minimum ${storeMin} products are required for checkout`,
-          },
-        ],
-      };
-    } else if (canBlockProgress && totalQuantity > storeMax && storeMax > 0) {
-      return {
-        behavior: "block",
-        reason: "Maximum products quantity reached",
-        errors: [
-          {
-            message:
-              errorMsgs?.shopMaxErrMsg
-                ? errorMsgs.shopMaxErrMsg.replace("{shopMax}", storeMax)
-                : `Cart exceeds ${storeMax} products. Please remove some items`,
-          },
-        ],
-      };
-    }
-
-    // Check currency code mismatch
-    if (cartCurrencyCode !== generalLimiters?.currencyCode && errorMsgs?.plan) {
-      return {
-        behavior: "block",
-        reason: "Correct currency code is required",
-        errors: [
-          {
-            message: `Please change your shopping currency to ${generalLimiters?.currencyCode} to proceed with checkout`,
-          },
-        ],
-      };
-    } else {
-      if (canBlockProgress && totalAmountValue < Number(generalLimiters?.priceMin) && Number(generalLimiters?.priceMin) > 0) {
+      // Check minimum product quantity
+      if (canBlockProgress && totalQuantity < storeMin && storeMin > 0) {
         return {
           behavior: "block",
-          reason: "Minimum price required",
+          reason: "Minimum products quantity required",
           errors: [
             {
               message:
-                errorMsgs?.priceMinErrMsg
-                  ? errorMsgs.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin).replace("{currencyCode}", generalLimiters?.currencyCode)
-                  : `Minimum amount ${generalLimiters?.priceMin} ${generalLimiters?.currencyCode} is required for checkout.`,
+                errorMsgs?.shopMinErrMsg
+                  ? errorMsgs.shopMinErrMsg.replace("{shopMin}", storeMin)
+                  : `Minimum ${storeMin} products are required for checkout`,
             },
           ],
         };
-      } else if (canBlockProgress && totalAmountValue > Number(generalLimiters?.priceMax) && Number(generalLimiters?.priceMax) > 0) {
+      } else if (canBlockProgress && totalQuantity > storeMax && storeMax > 0) {
         return {
           behavior: "block",
-          reason: "Maximum price reached",
+          reason: "Maximum products quantity reached",
           errors: [
             {
               message:
-                errorMsgs?.priceMaxErrMsg
-                  ? errorMsgs.priceMaxErrMsg.replace("{priceMax}", generalLimiters.priceMax).replace("{currencyCode}", generalLimiters?.currencyCode)
-                  : `Cart exceeds amount ${generalLimiters.priceMax} ${generalLimiters?.currencyCode}. Please remove some items.`,
+                errorMsgs?.shopMaxErrMsg
+                  ? errorMsgs.shopMaxErrMsg.replace("{shopMax}", storeMax)
+                  : `Cart exceeds ${storeMax} products. Please remove some items`,
+            },
+          ],
+        };
+      }
+
+      // Check currency code mismatch
+      if (cartCurrencyCode !== generalLimiters?.currencyCode && errorMsgs?.plan) {
+        return {
+          behavior: "block",
+          reason: "Correct currency code is required",
+          errors: [
+            {
+              message: `Please change your shopping currency to ${generalLimiters?.currencyCode} to proceed with checkout`,
+            },
+          ],
+        };
+      } else {
+        if (canBlockProgress && totalAmountValue < Number(generalLimiters?.priceMin) && Number(generalLimiters?.priceMin) > 0) {
+          return {
+            behavior: "block",
+            reason: "Minimum price required",
+            errors: [
+              {
+                message:
+                  errorMsgs?.priceMinErrMsg
+                    ? errorMsgs.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin).replace("{currencyCode}", generalLimiters?.currencyCode)
+                    : `Minimum amount ${generalLimiters?.priceMin} ${generalLimiters?.currencyCode} is required for checkout.`,
+              },
+            ],
+          };
+        } else if (canBlockProgress && totalAmountValue > Number(generalLimiters?.priceMax) && Number(generalLimiters?.priceMax) > 0) {
+          return {
+            behavior: "block",
+            reason: "Maximum price reached",
+            errors: [
+              {
+                message:
+                  errorMsgs?.priceMaxErrMsg
+                    ? errorMsgs.priceMaxErrMsg.replace("{priceMax}", generalLimiters.priceMax).replace("{currencyCode}", generalLimiters?.currencyCode)
+                    : `Cart exceeds amount ${generalLimiters.priceMax} ${generalLimiters?.currencyCode}. Please remove some items.`,
+              },
+            ],
+          };
+        }
+      }
+
+      // Check minimum and maximum weight
+      if (canBlockProgress && totalWeight < Number(generalLimiters?.weightMin)) {
+        return {
+          behavior: "block",
+          reason: "Minimum weight required",
+          errors: [
+            {
+              message:
+                errorMsgs?.weightMinErrMsg
+                  ? errorMsgs.weightMinErrMsg.replace("{weightMin}", generalLimiters?.weightMin).replace("{weightUnit}", generalLimiters?.weightUnit.toLowerCase())
+                  : `Minimum weight ${generalLimiters?.weightMin} ${generalLimiters?.weightUnit.toLowerCase()} is required for checkout`,
+            },
+          ],
+        };
+      } else if (canBlockProgress && totalWeight > Number(generalLimiters?.weightMax)) {
+        return {
+          behavior: "block",
+          reason: "Maximum weight exceeded",
+          errors: [
+            {
+              message:
+                errorMsgs?.weightMaxErrMsg
+                  ? errorMsgs.weightMaxErrMsg.replace("{weightMax}", generalLimiters?.weightMax).replace("{weightUnit}", generalLimiters?.weightUnit.toLowerCase())
+                  : `Cart exceeds weight ${generalLimiters?.weightMax} ${generalLimiters?.weightUnit.toLowerCase()}. Please remove some items`,
+            },
+          ],
+        };
+      }
+
+      // Check for vendor errors
+      if (canBlockProgress && vendorErrors) {
+        return {
+          behavior: "block",
+          reason: "Vendor error",
+          errors: [
+            {
+              message: vendorErrors,
+            },
+          ],
+        };
+      }
+
+      // Check for collection errors
+      if (canBlockProgress && collectionErrors) {
+        return {
+          behavior: "block",
+          reason: "Collection error",
+          errors: [
+            {
+              message: collectionErrors,
+            },
+          ],
+        };
+      }
+
+      // Check for category errors
+      if (canBlockProgress && categoryErrors) {
+        return {
+          behavior: "block",
+          reason: "Category error",
+          errors: [
+            {
+              message: categoryErrors,
             },
           ],
         };
       }
     }
 
-    // Check minimum and maximum weight
-    if (canBlockProgress && totalWeight < Number(generalLimiters?.weightMin)) {
-      return {
-        behavior: "block",
-        reason: "Minimum weight required",
-        errors: [
-          {
-            message:
-              errorMsgs?.weightMinErrMsg
-                ? errorMsgs.weightMinErrMsg.replace("{weightMin}", generalLimiters?.weightMin).replace("{weightUnit}", generalLimiters?.weightUnit.toLowerCase())
-                : `Minimum weight ${generalLimiters?.weightMin} ${generalLimiters?.weightUnit.toLowerCase()} is required for checkout`,
-          },
-        ],
-      };
-    } else if (canBlockProgress && totalWeight > Number(generalLimiters?.weightMax)) {
-      return {
-        behavior: "block",
-        reason: "Maximum weight exceeded",
-        errors: [
-          {
-            message:
-              errorMsgs?.weightMaxErrMsg
-                ? errorMsgs.weightMaxErrMsg.replace("{weightMax}", generalLimiters?.weightMax).replace("{weightUnit}", generalLimiters?.weightUnit.toLowerCase())
-                : `Cart exceeds weight ${generalLimiters?.weightMax} ${generalLimiters?.weightUnit.toLowerCase()}. Please remove some items`,
-          },
-        ],
-      };
-    }
-
-    // Check for vendor errors
-    if (canBlockProgress && vendorErrors) {
-      return {
-        behavior: "block",
-        reason: "Vendor error",
-        errors: [
-          {
-            message: vendorErrors,
-          },
-        ],
-      };
-    }
-
-    // Check for collection errors
-    if (canBlockProgress && collectionErrors) {
-      return {
-        behavior: "block",
-        reason: "Collection error",
-        errors: [
-          {
-            message: collectionErrors,
-          },
-        ],
-      };
-    }
-
-    // Check for category errors
-    if (canBlockProgress && categoryErrors) {
-      return {
-        behavior: "block",
-        reason: "Category error",
-        errors: [
-          {
-            message: categoryErrors,
-          },
-        ],
-      };
-    }
-  }
-
-  return {
-    behavior: "allow",
-    perform: () => {
-      // Ensure any errors are hidden
-      setErrorMessages("");
-    },
-  };
-});
+    return {
+      behavior: "allow",
+      perform: () => {
+        // Ensure any errors are hidden
+        setErrorMessages("");
+      },
+    };
+  });
 
 
 

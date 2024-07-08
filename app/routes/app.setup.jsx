@@ -15,7 +15,6 @@ export default function SetUp() {
     const [isLoading, setIsLoading] = useState(false);
 
     if (isLoading) {
-        //console.log('isSaving ', isSaving);
         return (
             <div style={{
                 position: "fixed",
@@ -41,9 +40,8 @@ export default function SetUp() {
             </div>
         );
     }
-    
-    //const importedBlobs = getBlobs();
-    //console.log('blobs in helpPage ', importedBlobs);
+
+
     return (
         <Page>
             <ui-title-bar title="Setup" />

@@ -23,7 +23,7 @@ export default reactExtension(TARGET, () => <App />);
 function App() {
   // The useApi hook provides access to several useful APIs like i18n and data.
   const { i18n, data } = useApi(TARGET);
-  //console.log({ data });
+
 
   const [limiters, setLimiters] = useState({
     collectionName: '',
@@ -35,29 +35,13 @@ function App() {
   const [isAllow, setIsAllow] = useState(false);
   const collectionId = data.selected[0].id;
 
-  const freePlanLimiters={
+  const freePlanLimiters = {
     products: 0,
     categories: 0,
     collections: 0,
     vendors: 0,
   };
 
-  // useEffect(() => {
-  //   (async function getFreePlanLimiters() {
-  //     const collectionData = await getLimiters(collectionId);
-   
-
-  //     const existingLimiters = collectionData?.freePlanLimiters;
-
-  //     setFreePlanLimiters(prevState => ({
-  //       ...prevState,
-  //       products: existingLimiters.find((item) => item.typeName == 'products')?.value || 0,
-  //       categories: existingLimiters.find((item) => item.typeName == 'categories')?.value || 0,
-  //       collections: existingLimiters.find((item) => item.typeName == 'collections')?.value || 0,
-  //       vendors: existingLimiters.find((item) => item.typeName == 'vendors')?.value || 0,
-  //     }));
-  //   })();
-  // }, [collectionId]);
 
   useEffect(() => {
     (async function getCollectionInfo() {
@@ -76,11 +60,9 @@ function App() {
         }
 
         if (freePlanLimiters) {
-          console.log('value of free plan collection ', freePlanLimiters);
+
           const existingCollectionLimit = await getExistingCollectionLimits();
-          console.log('value of existing ', Object.keys(existingCollectionLimit).length);
           if (Number(freePlanLimiters.collections) > Object.keys(existingCollectionLimit).length && Number(freePlanLimiters.collections) > 0) {
-            console.log('allow to add');
             setIsAllow(true);
           }
         }
@@ -107,7 +89,7 @@ function App() {
       ...prevState,
       [name]: value
     }));
-    //console.log('updated limiters ', limiters);
+
   }
 
   const handleSave = async () => {
@@ -118,7 +100,6 @@ function App() {
     }
   }
 
-  //console.log('collectionMin ' + limiters?.collectionMin + 'collectionMax ' + limiters?.collectionMax + " plan " + limiters?.plan);
 
 
   return (

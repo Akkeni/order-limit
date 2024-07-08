@@ -44,28 +44,15 @@ export async function loader({ request }) {
   const { admin, billing, session } = await authenticate.admin(request);
 
   const subscription = await getSubscriptionStatus(admin.graphql);
-  //console.log(subscription);
+
   const activeSubscriptions = subscription.data.app.installation.activeSubscriptions;
-  //console.log(activeSubscriptions.length);
+
   let plan = 'freePlan';
 
   let existingLimiters = [];
 
   let currentDateStr = new Date();
   currentDateStr = currentDateStr.toISOString();
-  console.log('today date is ', currentDateStr);
-
-  /*if (activeSubscriptions.length < 1) {
-    //await createSubscriptionMetafield(admin.graphql, "false");
-    //existingLimiters = await db.limiters.findMany();
-    console.log('plan value', plan);
-  } else {
-    await createSubscriptionMetafield(admin.graphql, "true");
-    //plan = true;
-  }*/
-
-
-    
 
   const orderLimit = await db.order_Limit.findFirst({
     where: {
@@ -74,7 +61,6 @@ export async function loader({ request }) {
   });
 
   try {
-
 
     let needsConfirmation = false;
 
@@ -107,8 +93,8 @@ export async function loader({ request }) {
     const appQeryData = await appQueryResponse.json();
     let endDateStr = appQeryData?.data?.currentAppInstallation?.endDateMetaField ? appQeryData?.data?.currentAppInstallation?.endDateMetaField?.value : '';
     plan = appQeryData?.data?.currentAppInstallation?.planMetaField ? appQeryData?.data?.currentAppInstallation?.planMetaField?.value : 'freePlan';
-    console.log('endDateStr before if ', endDateStr);
-    console.log('plan before if ', plan);
+    // console.log('endDateStr before if ', endDateStr);
+    // console.log('plan before if ', plan);
 
     if (activeSubscriptions.length < 1) {
       if (endDateStr) {
@@ -257,7 +243,6 @@ export async function loader({ request }) {
         obj['categoryName'] = productTaxonomyNode.name;
         obj['quantityLimit'] = quantityLimit;
         categoriesData.push(obj);
-        //categoryLimits[name] = quantityLimit;
       }
     }
 
@@ -268,10 +253,8 @@ export async function loader({ request }) {
         let name = vendor?.node;
         let obj = {};
         for (const edge of allProductsData) {
-          //console.log('edge in allVendors ', edge);
           const productVendor = edge.node?.vendor ? edge.node?.vendor : null;
-          //console.log('productVendor in allVendors ', productVendor);
-          // If the product category matches the current category, increment the count
+          // If the product vendor matches the current vendor, increment the count
           if (productVendor === name) {
             quantityLimit++;
           }
@@ -279,22 +262,15 @@ export async function loader({ request }) {
         obj['vendorName'] = name;
         obj['quantityLimit'] = quantityLimit;
         vendorsData.push(obj);
-        //categoryLimits[name] = quantityLimit;
       }
     }
-
-    console.log('plan value at the end of loader', plan);
-
-    /*if(activeSubscriptions.length < 1) {
-      return redirect('/app/pricing');
-    }*/
 
 
     const vendorLimiters = [];
     const collectionLimiters = [];
     const categoryLimiters = [];
 
-    for(const item of allProductsData) {
+    for (const item of allProductsData) {
       const node = item.node;
 
       if (node.productLimitField && node.productLimitField.value) {
@@ -351,7 +327,6 @@ export async function loader({ request }) {
       }
     }
 
-    console.log('category limiters in loader ', categoryLimiters);
 
     return json({
       ok: true,
@@ -825,15 +800,6 @@ export default function Index() {
 
   const activeSubscriptions = loaderData?.activeSubscriptions ? loaderData.activeSubscriptions : [];
 
-  /*useEffect(() => {
-    if(activeSubscriptions.length < 1) {
-      navigate('/app/pricing');
-    }
-  }, [loaderData]);*/
-
-
-
-
   const allProductCategories = loaderData?.data?.data.shop.allProductCategories;
   const shopName = loaderData.shopName;
   const shopLimit = loaderData.storeLimit;
@@ -864,7 +830,7 @@ export default function Index() {
   const [tagValue, setTagValue] = useState((plan != "paidPlan") ? 'Vendor Wise' : 'Store Wise');
   const [quantityLimit, setQuantityLimit] = useState([]);
   const [variantQuantityLimits, setVariantQuantityLimits] = useState({});
-  //const submit = useSubmit();
+
   const [isSaving, setIsSaving] = useState(false);
 
   const [selectedSortColumn, setSelectedSortColumn] = useState('id');
@@ -927,15 +893,12 @@ export default function Index() {
 
   //abscent of categories in the store
   if (!(categoriesData)) {
-    //console.log('categoriesData in if not', categoriesData);
-    //console.log('no categories');
     categoriesData.push({ categoryName: 'No Categories' });
   }
 
 
   useEffect(() => {
     if (actionData?.exist) {
-      //console.log('exist', actionData?.exist);
       toggleAlert();
     }
     if (actionData?.created || actionData?.updated) {
@@ -1009,7 +972,7 @@ export default function Index() {
 
   // Sort the filtered rows based on the current sort column and direction
   const sortedCollectionFilteredRows = filteredCollectionRows.sort((a, b) => {
-    // Custom comparison logic for priceRangeV2
+    // Custom comparison logic for count
     if (selectedSortColumn === 'count') {
       const aCount = a?.node?.productsCount?.count;
       const bCount = b?.node?.productsCount?.count;
@@ -1033,7 +996,6 @@ export default function Index() {
 
   //handle sorting
   const handleSort = (column) => {
-    //console.log('handleSort', column);
     if (selectedSortColumn === column) {
       setSortDirection((prevDirection) =>
         prevDirection === 'ascending' ? 'descending' : 'ascending'
@@ -1042,7 +1004,6 @@ export default function Index() {
       setSelectedSortColumn(column);
       setSortDirection('ascending');
     }
-    //console.log('direction', sortDirection);
   };
 
 
@@ -1082,15 +1043,11 @@ export default function Index() {
 
   useEffect(() => {
     if (actionData?.deleted) {
-      //return <DeleteConfirmation onConfirm={handleConfirm} onCancel={handleCancel} />;
       setIsSaving(false);
       navigate('/app');
     }
   }, [actionData]);
-  /*if (!(showConfirmation)) {
-    //return <DeleteConfirmation onConfirm={handleConfirm} onCancel={handleCancel} />;
-    setIsSaving(false);
-  }*/
+
 
   const toggleAlert = useCallback(
     () => setAlert((alert) => !alert),
@@ -1101,7 +1058,7 @@ export default function Index() {
     [],
   );
 
-  //console.log('vendors in index ', vendorsData);
+
 
   const handleErrorMessages = (name, value) => {
     setErrorMessages(prevState => ({
@@ -1128,7 +1085,6 @@ export default function Index() {
 
   const handleTagValueChange = (value) => {
     setTagValue(value);
-    //console.log('tag value', tagValue);
   };
 
   const togglePopoverActive = useCallback(
@@ -1328,11 +1284,6 @@ export default function Index() {
               }
             }
 
-            /*if (!(title in productLimitCounts)) {
-              name = "productCount";
-              limitExceeded = (count.productCount + 1 > freePlanlimiters.products);
-            }*/
-
           } else {
             if (count.productCount > freePlanlimiters.products) {
               limitExceeded = true;
@@ -1377,11 +1328,9 @@ export default function Index() {
               limitExceeded = false;
             }
           }
-          /*if (!(id in categoryCounts)) {
-            name = "categoryCount";
-            limitExceeded = (count.categoryCount + 1 > freePlanlimiters.categories);
-          }*/
+
           break;
+
         case 'Collection Wise':
           if (!(id in collectionCounts)) {
             if (!exists) {
@@ -1420,11 +1369,8 @@ export default function Index() {
               limitExceeded = false;
             }
           }
-          /*if (!(id in collectionCounts)) {
-            name = "collectionCount";
-            limitExceeded = (count.collectionCount + 1 > freePlanlimiters.collections);
-          }*/
           break;
+
         case 'Vendor Wise':
           if (!(id in vendorCounts)) {
             if (!exists) {
@@ -1463,10 +1409,7 @@ export default function Index() {
               limitExceeded = false;
             }
           }
-          /*if (!(id in vendorCounts)) {
-            name = "vendorCount";
-            limitExceeded = (count.vendorCount + 1 > freePlanlimiters.vendors);
-          }*/
+
           break;
         default:
           return true;
@@ -1476,7 +1419,6 @@ export default function Index() {
         return false;
       }
 
-      //handleCount(name);
       return true;
     }
     return true;
@@ -1489,13 +1431,8 @@ export default function Index() {
 
     if (value == '' || Number(value) == 0) {
       const exists = quantityLimit.some(item => {
-        console.log('item in handle ', item);
         if (item.id === id) {
-          console.log('id in handle ', id);
           const [value1, value2] = item.value.split(',').map(Number);
-          console.log('value1 ', value1);
-          console.log('value2 ', value2);
-          console.log('range ', range);
           if (range == 'min') {
             if (value1 > 0 && value2 == 0) {
               return true;
@@ -1512,7 +1449,6 @@ export default function Index() {
         }
         return false;
       });
-      console.log('exists value in handle ', exists);
       if (exists) {
         handleCountDec();
       } else {
@@ -1548,7 +1484,6 @@ export default function Index() {
       limitValue = `${min},${value}`;
     }
 
-    console.log('count of product in handle', count.productCount);
 
     if (Number(value) > 0) {
       const allow = await checkAvailableLimits(id, limitValue, range);
@@ -1558,9 +1493,6 @@ export default function Index() {
       }
     }
 
-    /*if(limitValue == '0,0') {
-      handleCountDec();
-    }*/
 
     if (tagValue !== 'General') {
       value = limitValue;
@@ -1626,94 +1558,9 @@ export default function Index() {
     });
   }
 
-  /*const handleQuantityLimit = (value, id, range = '') => {
-    console.log('value and id in handlequantity', value, id, quantityLimit);
-    setIsBlock(false);
-    const allow = checkAvailableLimits(id);
-    if (!allow) {
-      setIsBlock(true);
-      return;
-    }
-    console.log('allow in handle ', allow);
-    let limitValue = '';
-    if (range === 'min') {
-      if (tagValue === "Collection Wise") {
-        let max = getCollectionQuantityLimit(id, 'max');
-        limitValue = limitValue + value + ',' + max;
-      } else if (id.includes("ProductVariant")) {
-        let max = getVariantQunatity(id, 'max');
-        limitValue = limitValue + value + ',' + max;
-      } else if (id.includes("Product")) {
-        let max = getProductQuantityLimit(id, 'max');
-        limitValue = limitValue + value + ',' + max;
-      } else if (id.includes('shop')) {
-        let max = getStoreQuantityLimit(id, 'max');
-        limitValue = limitValue + value + ',' + max;
-      } else if (tagValue === "Vendor Wise") {
-        let max = getVendorQuantityLimit(id, 'max');
-        limitValue = limitValue + value + ',' + max;
-      } else {
-        let max = getCategoryQuantityLimit(id, 'max');
-        limitValue = limitValue + value + ',' + max;
-      }
-    } else {
-      if (tagValue === "Collection Wise") {
-        let min = getCollectionQuantityLimit(id, 'min');
-        limitValue = limitValue + min + ',' + value;
-      } else if (id.includes("ProductVariant")) {
-        let min = getVariantQunatity(id, 'min');
-        limitValue = limitValue + min + ',' + value;
-      } else if (id.includes("Product")) {
-        let min = getProductQuantityLimit(id, 'min');
-        limitValue = limitValue + min + ',' + value;
-      } else if (id.includes('shop')) {
-        let min = getStoreQuantityLimit(id, 'min');
-        limitValue = limitValue + min + ',' + value;
-      } else if (tagValue === "Vendor Wise") {
-        let min = getVendorQuantityLimit(id, 'min');
-        limitValue = limitValue + min + ',' + value;
-      } else {
-        let min = getCategoryQuantityLimit(id, 'min');
-        limitValue = limitValue + min + ',' + value;
-      }
-    }
-    if (!(tagValue === 'General')) {
-      value = limitValue;
-    }
-
-    //console.log('value in handleQuantityLimit ', value);
-
-    // Update quantityLimit state to contain objects with id as keys and quantity limits as values
-    setQuantityLimit((prevQuantityLimit) => {
-      // Check if the id already exists in the state
-      const index = prevQuantityLimit.findIndex(item => item.id === id);
-
-      if (index !== -1) {
-        // If id exists, update its quantity limit
-        return prevQuantityLimit.map(item => {
-          if (item.id === id) {
-            return { ...item, value, type: tagValue };
-          } else {
-            return item;
-          }
-        });
-      } else {
-        // If id doesn't exist, add it to the state
-        return [...prevQuantityLimit, { id, value, type: tagValue }];
-      }
-    });
-    setVariantQuantityLimits(prevState => ({
-      ...prevState,
-      [id]: value
-    }));
-
-  };*/
 
   const getProductQuantityLimit = (productId, range) => {
-    //console.log('quantitylimits in getProduct', quantityLimit);
-    //console.log('range in getProduct', range);
     const productLimit = quantityLimit.find(item => item.id === productId);
-    //console.log('productLimit in getProduct ', productLimit);
     if (productLimit) {
       const productLimitValue = productLimit.value;
       if (range === "min") {
@@ -1723,7 +1570,6 @@ export default function Index() {
       }
     } else {
       const productLimitFieldValue = allProductsData.find(product => product.node.id === productId)?.node.productLimitField?.value;
-      //console.log('productLimitValue in getProduct ', productLimitFieldValue);
 
       if (productLimitFieldValue) {
         if (range === "min") {
@@ -1749,7 +1595,6 @@ export default function Index() {
         const lastNumberId = productId.match(/\d+$/)[0];
         const response = await fetch(`/api/getVariantLimit/${lastNumberId}`);
         const responseData = await response.json();
-        //console.log('responseData in getvariant quantity', responseData);
         const productVariantLimitField = responseData?.productVariantLimitField;
         if (productVariantLimitField?.value) {
           return productVariantLimitField?.value;
@@ -1764,7 +1609,6 @@ export default function Index() {
 
   const getVariantQunatity = (id, range) => {
     const variantQuantityLimitValue = variantQuantityLimits[id];
-    //console.log('variantQuantityLimitValue in getVariantQuantity', variantQuantityLimitValue);
     if (variantQuantityLimitValue) {
       if (range === "min") {
         return variantQuantityLimitValue.split(',')[0];
@@ -1836,8 +1680,6 @@ export default function Index() {
 
 
   const getStoreQuantityLimit = (shopId, range) => {
-    //console.log('quantitylimit in getStore', quantityLimit);
-    //console.log('range in getStore', range);
     const storeLimit = quantityLimit.find(item => item.id === shopId);
     if (storeLimit) {
       const storeLimitValue = storeLimit.value;
@@ -1848,7 +1690,6 @@ export default function Index() {
       }
     } else {
       if (loaderData?.storeLimitFieldValue) {
-        //console.log('storeLimitFieldValue in getStore', loaderData?.storeLimitFieldValue);
         const storeLimit = loaderData?.storeLimitFieldValue;
         if (range === "min") {
           return storeLimit.split(',')[0];
@@ -1873,7 +1714,6 @@ export default function Index() {
         } else {
           return priceLimit.split(',')[1];
         }
-        //return parseInt(loaderData?.priceLimitFieldValue);
       } else {
         return 0;
       }
@@ -1893,7 +1733,6 @@ export default function Index() {
         } else {
           return weightLimit.split(',')[1];
         }
-        //return parseInt(loaderData?.weightLimitFieldValue);
       } else {
         return 0;
       }
@@ -1901,10 +1740,9 @@ export default function Index() {
   }
 
   const getVendorQuantityLimit = (id, range) => {
-    //console.log('quantitylimits in getProduct', quantityLimit);
-    //console.log('range in getProduct', range);
+
     const vendorLimit = quantityLimit.find(item => item.id === id);
-    //console.log('productLimit in getProduct ', productLimit);
+
     if (vendorLimit) {
       const vendorLimitValue = vendorLimit.value;
       if (range === "min") {
@@ -1914,7 +1752,6 @@ export default function Index() {
       }
     } else {
       const productLimitFieldValue = allProductsData.find(product => product.node.vendor === id)?.node.productLimitField?.value;
-      //console.log('productLimitValue in getProduct ', productLimitFieldValue);
 
       if (productLimitFieldValue) {
         if (range === "min") {
@@ -1929,7 +1766,6 @@ export default function Index() {
   };
 
   if (isSaving) {
-    //console.log('isSaving ', isSaving);
     return (
       <div style={{
         position: "fixed",
@@ -1955,7 +1791,7 @@ export default function Index() {
       </div>
     );
   }
-  //console.log('showconfirmation', showConfirmation);
+
   return (
 
     <>

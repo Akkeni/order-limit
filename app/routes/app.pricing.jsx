@@ -47,15 +47,14 @@ export async function loader({ request }) {
 
         // If the shop has an active subscription, log and return the details
         const subscription = billingCheck.appSubscriptions[0];
-        //console.log(`Shop is on ${subscription.name} (id ${subscription.id})`);
         return json({ billing, plan: subscription, expire, endDateStr });
 
     } catch (error) {
         // If the shop does not have an active plan, return an empty plan object
         if (error.message === 'No active plan') {
-            //console.log('Shop does not have any active plans.');
+
             currentDateStr = currentDateStr.toISOString();
-            console.log('today date is ', currentDateStr);
+
 
             const appQueryResponse = await admin.graphql(`query appInstallation {
             currentAppInstallation {
@@ -74,7 +73,7 @@ export async function loader({ request }) {
             const appQeryData = await appQueryResponse.json();
             endDateStr = appQeryData?.data?.currentAppInstallation?.endDateMetaField ? appQeryData?.data?.currentAppInstallation?.endDateMetaField?.value : '';
             expire = appQeryData?.data?.currentAppInstallation?.planMetaField ? appQeryData?.data?.currentAppInstallation?.planMetaField?.value : 'true';
-            console.log('endDateStr in loader ', endDateStr);
+
             if (endDateStr) {
 
                 const regex = /\d{4}-\d{2}-\d{2}/;
@@ -102,7 +101,7 @@ export async function loader({ request }) {
     }
 }
 
-export async function action({request}) {
+export async function action({ request }) {
     const { admin, billing } = await authenticate.admin(request);
     const formData = await request.formData();
     await createPlanNameMetafield(admin.graphql, formData.get('planName'));
@@ -151,7 +150,7 @@ let planData = [
         url: "/app/subscribe/annualy",
         features: [
             "Store Wise Limit",
-            "General limits price, weight",            
+            "General limits price, weight",
             "Vendor Wise Limit",
             "Collection Wise Limit",
             "Category Wise Limit",
@@ -173,31 +172,31 @@ export default function PricingPage() {
     const [activeButtonIndex, setActiveButtonIndex] = useState(plan.name != "Free Subscription" ? plan.name : "Annual Subscription");
 
     const handleButtonClick = useCallback(
-      (index) => {
-        if (activeButtonIndex === index) return;
-        setActiveButtonIndex(index);
-      },
-      [activeButtonIndex],
+        (index) => {
+            if (activeButtonIndex === index) return;
+            setActiveButtonIndex(index);
+        },
+        [activeButtonIndex],
     );
 
     const handleSubscribe = (url, planName) => {
-        if(endDate) {
-            submit({planName: planName}, {method: 'post'});
+        if (endDate) {
+            submit({ planName: planName }, { method: 'post' });
         } else {
             setIsLoading(true);
             navigate(url);
         }
     }
 
-    useEffect(()=>{
-        if(actionData?.ok) {
+    useEffect(() => {
+        if (actionData?.ok) {
             setSuccess(true);
         }
-    },[actionData]);
+    }, [actionData]);
 
-    console.log('plan', plan);
+
     if (isLoading) {
-        //console.log('isSaving ', isSaving);
+
         return (
             <div style={{
                 position: "fixed",
@@ -223,7 +222,7 @@ export default function PricingPage() {
             </div>
         );
     }
-    console.log('expire ', expire);
+
     return (
         <Page>
             <ui-title-bar title="Pricing" />
@@ -236,18 +235,18 @@ export default function PricingPage() {
             <br />
 
             {success && (
-            <>
-              <Banner
-                title="Reminder"
-                tone="info"
-                onDismiss={() => setSuccess(false)}
-              >
-                <p>
-                    You will be notified once you are current access to paid features is completed.
-                </p>
-            </Banner>
-            </>
-          )}
+                <>
+                    <Banner
+                        title="Reminder"
+                        tone="info"
+                        onDismiss={() => setSuccess(false)}
+                    >
+                        <p>
+                            You will be notified once you are current access to paid features is completed.
+                        </p>
+                    </Banner>
+                </>
+            )}
 
             {plan.name == "Free Subscription" && expire == 'true' && (
                 <Banner title="Select a plan" status="info">
@@ -266,52 +265,52 @@ export default function PricingPage() {
             )}
 
             {plan.name != "Free Subscription" && expire === 'true' && (
-                 <Tooltip width="wide" preferredPosition="below" content="Clicking on 'Cancel Plan' will cancel the recurring charges. Free plan will be activated after completion of current plan.">
-                <CalloutCard
-                    title="Cancel your plan"
-                    illustration="https://cdn.shopify.com/s/files/1/0583/6465/7734/files/tag.png?v=1705280535"
-                    primaryAction={{
-                        content: plan.name != "Free Subscription" ? 'Cancel Plan' : 'Select a Plan',
-                        url: plan.name === "Monthly Subscription" ? '/app/cancel/monthly' : '/app/cancel/annualy',
-                        onAction: () => { setIsLoading(true); }
-                    }}
-                >
-                    {plan.name == "Monthly Subscription" && (
-                        <p>
-                            You're currently on Monthly plan.
-                        </p>
-                    )}
-                    {plan.name == "Annual Subscription" && (
-                        <p>
-                            You're currently on Annual plan.
-                        </p>
-                    )}
-                    {plan.name == "Free plan" && (
-                        <p>
-                            You're currently on Free plan. Select any paid plan to access other limiters.
-                        </p>
-                    )}
-                </CalloutCard>
+                <Tooltip width="wide" preferredPosition="below" content="Clicking on 'Cancel Plan' will cancel the recurring charges. Free plan will be activated after completion of current plan.">
+                    <CalloutCard
+                        title="Cancel your plan"
+                        illustration="https://cdn.shopify.com/s/files/1/0583/6465/7734/files/tag.png?v=1705280535"
+                        primaryAction={{
+                            content: plan.name != "Free Subscription" ? 'Cancel Plan' : 'Select a Plan',
+                            url: plan.name === "Monthly Subscription" ? '/app/cancel/monthly' : '/app/cancel/annualy',
+                            onAction: () => { setIsLoading(true); }
+                        }}
+                    >
+                        {plan.name == "Monthly Subscription" && (
+                            <p>
+                                You're currently on Monthly plan.
+                            </p>
+                        )}
+                        {plan.name == "Annual Subscription" && (
+                            <p>
+                                You're currently on Annual plan.
+                            </p>
+                        )}
+                        {plan.name == "Free plan" && (
+                            <p>
+                                You're currently on Free plan. Select any paid plan to access other limiters.
+                            </p>
+                        )}
+                    </CalloutCard>
                 </Tooltip>
             )}
 
             <div style={{ marginTop: "1rem", overflow: "auto" }}>
-            <div style={{ float: 'right' }}>            
-                <ButtonGroup variant="segmented">
-                    <Button
-                        pressed={activeButtonIndex === "Monthly Subscription"}
-                        onClick={() => handleButtonClick("Monthly Subscription")}
-                    >
-                        Monthly
-                    </Button>
-                    <Button
-                        pressed={activeButtonIndex === "Annual Subscription"}
-                        onClick={() => handleButtonClick("Annual Subscription")}
-                    >
-                        Annual
-                    </Button>
-                </ButtonGroup>
-            </div>
+                <div style={{ float: 'right' }}>
+                    <ButtonGroup variant="segmented">
+                        <Button
+                            pressed={activeButtonIndex === "Monthly Subscription"}
+                            onClick={() => handleButtonClick("Monthly Subscription")}
+                        >
+                            Monthly
+                        </Button>
+                        <Button
+                            pressed={activeButtonIndex === "Annual Subscription"}
+                            onClick={() => handleButtonClick("Annual Subscription")}
+                        >
+                            Annual
+                        </Button>
+                    </ButtonGroup>
+                </div>
             </div>
 
 
@@ -323,68 +322,57 @@ export default function PricingPage() {
 
                 {planData.map((plan_item, index) => (
                     <>
-                    {(activeButtonIndex == plan_item.name || plan_item.name == "Free Subscription") && (
-                    <Grid.Cell key={index} columnSpan={{ xs: 6, sm: 6, md: 4, lg: 4, xl: 4 }}>
-                            <Card background={(plan_item.name == plan.name && expire == 'true') ? "bg-surface-success" : "bg-surface"} sectioned>
-                            <Box padding="400">
-                                <Text as="h3" variant="headingMd">
-                                    {plan_item.title}
-                                </Text>
-                                <Box as="p" variant="bodyMd">
-                                    {plan_item.description}
-                                    {/* If plan_item is 0, display nothing */}
-                                    <br />
-                                    <Text as="p" variant="headingLg" fontWeight="bold">
-                                        {plan_item.price === "0" ? "" : "$" + plan_item.price}
-                                    </Text>
-                                    {(plan_item.name === "Annual Subscription") &&
-                                        <Text as="span" tone="success">With discount 16.67%</Text>
-                                    }
-                                </Box>
-
-                                <div style={{ margin: "0.5rem 0" }}>
-                                    <Divider />
-                                </div>
-
-                                <BlockStack gap={100}>
-                                    {plan_item.features.map((feature, index) => (
-                                        <ExceptionList
-                                            key={index}
-                                            items={[
-                                                {
-                                                    icon: CheckCircleIcon,
-                                                    description: feature,
-                                                },
-                                            ]}
-                                        />
-                                    ))}
-                                </BlockStack>
-                                <div style={{ margin: "0.5rem 0" }}>
-                                    <Divider />
-                                </div>
-
-                                {(plan_item.name != 'Free Subscription') && (
-                                    <Tooltip active={plan.name != 'Free Subscription' && plan_item.name != plan.name} preferredPosition="below" content="If you subscribe to new plan, then it will start after current plan ends.">
-                                    <Button onClick={() => { handleSubscribe(plan_item.url, plan_item.name) }} disabled={(plan_item.name == plan.name || plan_item.name == 'Free Subscription')}>
-                                        {plan_item.action}
-                                    </Button>
-                                    </Tooltip>
-                                )}
-
-                                {/*plan_item.name == "Monthly subscription" ?
-                                    plan.name != "Monthly subscription" ? (
-                                        <a href={plan_item.url}>
-                                            {plan_item.action}
-                                        </a>
-                                    ) : (
-                                        <Text as="p" variant="bodyMd">
-                                            You're currently on this plan
+                        {(activeButtonIndex == plan_item.name || plan_item.name == "Free Subscription") && (
+                            <Grid.Cell key={index} columnSpan={{ xs: 6, sm: 6, md: 4, lg: 4, xl: 4 }}>
+                                <Card background={(plan_item.name == plan.name && expire == 'true') ? "bg-surface-success" : "bg-surface"} sectioned>
+                                    <Box padding="400">
+                                        <Text as="h3" variant="headingMd">
+                                            {plan_item.title}
                                         </Text>
-                                    )
-                                    : null*/}
-                            </Box>
-                        </Card>
-                    </Grid.Cell>)}
+                                        <Box as="p" variant="bodyMd">
+                                            {plan_item.description}
+                                            {/* If plan_item is 0, display nothing */}
+                                            <br />
+                                            <Text as="p" variant="headingLg" fontWeight="bold">
+                                                {plan_item.price === "0" ? "" : "$" + plan_item.price}
+                                            </Text>
+                                            {(plan_item.name === "Annual Subscription") &&
+                                                <Text as="span" tone="success">With discount 16.67%</Text>
+                                            }
+                                        </Box>
+
+                                        <div style={{ margin: "0.5rem 0" }}>
+                                            <Divider />
+                                        </div>
+
+                                        <BlockStack gap={100}>
+                                            {plan_item.features.map((feature, index) => (
+                                                <ExceptionList
+                                                    key={index}
+                                                    items={[
+                                                        {
+                                                            icon: CheckCircleIcon,
+                                                            description: feature,
+                                                        },
+                                                    ]}
+                                                />
+                                            ))}
+                                        </BlockStack>
+                                        <div style={{ margin: "0.5rem 0" }}>
+                                            <Divider />
+                                        </div>
+
+                                        {(plan_item.name != 'Free Subscription') && (
+                                            <Tooltip active={plan.name != 'Free Subscription' && plan_item.name != plan.name} preferredPosition="below" content="If you subscribe to new plan, then it will start after current plan ends.">
+                                                <Button onClick={() => { handleSubscribe(plan_item.url, plan_item.name) }} disabled={(plan_item.name == plan.name || plan_item.name == 'Free Subscription')}>
+                                                    {plan_item.action}
+                                                </Button>
+                                            </Tooltip>
+                                        )}
+
+                                    </Box>
+                                </Card>
+                            </Grid.Cell>)}
                     </>
                 ))}
 

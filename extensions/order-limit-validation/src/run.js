@@ -41,7 +41,6 @@ export function run(input) {
     generalLimiters = JSON.parse(input.shop?.generalLimitersField?.value);
   }
 
-  //console.log(generalLimiters);
 
   if (input.buyerJourney.step !== "CART_INTERACTION") {
 
@@ -82,13 +81,9 @@ export function run(input) {
       // Check price limit
       if (generalLimiters) {
 
-        //const priceLimit = input.shop.priceLimitField.value;
-        //const priceMin = priceLimit.split(',')[0];
-        //const priceMax = priceLimit.split(',')[1];
         const totalAmount = Number(input.cart?.cost?.totalAmount?.amount);
         const cartCurrencyCode = input.cart?.cost?.totalAmount?.currencyCode;
         const appliedCurrencyCode = generalLimiters?.currencyCode;
-        //console.log('priceMin ', Number(generalLimiters?.priceMin));
 
         if (cartCurrencyCode != appliedCurrencyCode && errorMessagesFieldValue?.plan == true) {
 
@@ -185,8 +180,6 @@ export function run(input) {
           }
         }
 
-        // Example usage:
-        //console.log(convertWeight(1000, 'grams', 'kilograms'));  // Output: 1
 
         cartLines.forEach(line => {
           const quantity = Number(line.quantity);
@@ -202,10 +195,6 @@ export function run(input) {
 
         // Parse the weightLimitField
         if (generalLimiters) {
-
-          //const weightLimitField = input.shop?.weightLimitField?.value;
-          //const [weightMin, weightMax] = weightLimitField.split(',').map(Number);
-
 
           if (Number(generalLimiters?.weightMin) > totalWeight && Number(generalLimiters?.weightMin) > 0 && (errorMessagesFieldValue?.extensionMsg === "Cart Extension" || errorMessagesFieldValue?.extensionMsg === "Both")) {
 
@@ -310,8 +299,6 @@ export function run(input) {
           }
         }
 
-        //console.log(totalWeight);
-
         // Check if product has category information
         if (product.categoryLimitField) {
 
@@ -380,9 +367,6 @@ export function run(input) {
           }
         } else if (product.productLimitField) {
 
-
-          //const productName = product?.title;
-          //console.log('productName ', productName);
           const [productMin, productMax] = product.productLimitField.value.split(',').map(Number);
           const [productM, productMa, vendorName, vendorMin, vendorMax, productName] = product.productLimitField.value.split(',');
 
@@ -412,7 +396,7 @@ export function run(input) {
     }
 
     for (const msg of errors) {
-      
+
       if (msg.target === "vendor") {
         vendorErrors.push({
           localizedMessage: msg.localizedMessage,
@@ -424,13 +408,11 @@ export function run(input) {
           target: "cart",
         });
       } else if (msg.target === "category") {
-        console.log('msg in category ', msg.localizedMessage);
         categoryErrors.push({
           localizedMessage: msg.localizedMessage,
           target: "cart",
         });
       } else if (msg.target === "product") {
-        console.log('msg ', msg.target);
         productErrors.push({
           localizedMessage: msg.localizedMessage,
           target: "cart",
@@ -446,18 +428,15 @@ export function run(input) {
 
   if (generalErrors.length) {
     errors = generalErrors;
-  } else if(vendorErrors.length) {
+  } else if (vendorErrors.length) {
     errors = vendorErrors;
   } else if (collectionErrors.length) {
     errors = collectionErrors;
   } else if (categoryErrors.length) {
-    console.log('category Errors in cart extension ', categoryErrors);
     errors = categoryErrors;
   } else if (productErrors.length) {
     errors = productErrors;
   }
-
-
 
   return {
     errors
