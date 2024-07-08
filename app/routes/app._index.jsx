@@ -890,7 +890,7 @@ export default function Index() {
     collectionMaxErrMsg: existingErrMsgs.collectionMaxErrMsg || '',
     vendorMinErrMsg: existingErrMsgs.vendorMinErrMsg || '',
     vendorMaxErrMsg: existingErrMsgs.vendorMaxErrMsg || '',
-    extensionMsg: existingErrMsgs?.extensionMsg || 'Both',
+    extensionMsg: existingErrMsgs?.extensionMsg || 'Cart Extension',
     plan: loaderData?.plan,
   });
 
@@ -2017,7 +2017,7 @@ export default function Index() {
                     />
                   </FormLayout>
                 </div>
-                <div style={{ paddingLeft: '0.5rem' }}>
+                {/*<div style={{ paddingLeft: '0.5rem' }}>
                   <FormLayout>
                     <Select
                       label="Use extension"
@@ -2026,7 +2026,7 @@ export default function Index() {
                       onChange={handleExtensionChange}
                     />
                   </FormLayout>
-                </div>
+                </div>*/}
                 {(tagValue !== 'General' && tagValue !== 'Store Wise') && (
                   <div style={{ paddingLeft: '0.5rem' }}>
                     <TextField

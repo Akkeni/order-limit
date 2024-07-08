@@ -82,56 +82,6 @@ export default function SetUp() {
                                 </dl>
                             </li>
                             <br />
-                            <li>
-                                <strong>
-                                    Checkout Extension: Validates products and displays a message on the checkout UI. Only works for Shopify Plus store owners. For Checkout Extension to work, customize checkout page by adding 'app blocks' before 'contact field' and after 'items in cart'.
-                                </strong>
-                                <dl>
-                                    <dt>
-                                        <b>Step 1: </b> Go to settings and click on Checkout, then click on 'Customize'.
-                                    </dt>
-                                    <dd>
-                                        <img src="https://i.postimg.cc/Hk98btyg/checkout-Extension0.png" alt="Checkout Extension 0" style={{ height: '450px', margin: '10px' }} />
-                                    </dd>
-                                    <dt>
-                                        <b>Step 2: </b> Click on 'Add app block'.
-                                    </dt>
-                                    <dd>
-                                        <img src="https://i.postimg.cc/SKZXvNd1/checkout-Extension1.png" alt="Checkout Extension 1" style={{ height: '450px', margin: '10px' }} />
-                                    </dd>
-                                    <dt>
-                                        <b>Step 3: </b> Click on 'checkout-ui'.
-                                    </dt>
-                                    <dd>
-                                        <img src="https://i.postimg.cc/SsJXFFtS/checkout-Extension2.png" alt="Checkout Extension 2" style={{ height: '450px', margin: '10px' }} />
-                                    </dd>
-                                    <dt>
-                                        <b>Step 4: </b> Click on checkbox to uncheck if you don't want to block the checkout otherwise leave it as it is.
-                                    </dt>
-                                    <dd>
-                                        <img src="https://i.postimg.cc/V6pJzG3j/checkout-Extension3.png" alt="Checkout Extension 3" style={{ height: '450px', margin: '10px' }} />
-                                    </dd>
-                                    <dt>
-                                        <b>Step 5: </b> Repeat steps from 2 to 5, to add another app block.
-                                    </dt>
-                                    <dd>
-                                        <img src="https://i.postimg.cc/j2fL26bB/checkout-Extension4.png" alt="Checkout Extension 4" style={{ height: '450px', margin: '10px' }} />
-                                    </dd>
-                                    <dt>
-                                        <b>Step 6: </b> Click and hold the created app block 'checkout-ui' to drag it under the 'Items in cart' field of 'Order summary'
-                                    </dt>
-                                    <dd>
-                                        <img src="https://i.postimg.cc/BnSnffXr/checkout-Extension5.png" alt="Checkout Extension 4" style={{ height: '450px', margin: '10px' }} />
-                                    </dd>
-                                    <dt>
-                                        <b>Step 7: </b> Click on 'Save' to save the settings.
-                                    </dt>
-                                    <dd>
-                                        <img src="https://i.postimg.cc/ZqkBkMzp/checkout-Extension6.png" alt="Checkout Extension 5" style={{ height: '450px', margin: '10px' }} />
-                                    </dd>
-                                </dl>
-                            </li>
-                            <br />
                         </ul>
                     </div>
                 </div>

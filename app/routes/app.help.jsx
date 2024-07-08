@@ -70,28 +70,16 @@ export default function HelpPage() {
             <Card sectioned>
 
 
-                <Banner title="Available Extensions" status="info">
+                <Banner title="Available Extension" status="info">
                     <div>
                         <strong>
                             <p>
-                                Two extensions are available. To activate them please refer <Link url='/app/setup' onClick={() => setIsLoading(true)}>here</Link> :
+                                 To activate extension please refer <Link url='/app/setup' onClick={() => setIsLoading(true)}>here</Link> :
                             </p>
                             <ul>
                                 <li>
                                     <strong>
                                         Cart Extension: Validates the cart for the minimum limit and displays a message on the checkout UI.
-                                    </strong>
-                                </li>
-                                <br />
-                                <li>
-                                    <strong>
-                                        Checkout Extension: Validates products and displays a message on the checkout UI. Only works for Shopify Plus store owners. For Checkout Extension to work, customize checkout page by adding 'app blocks' before 'contact field' and after 'items in cart'.
-                                    </strong>
-                                </li>
-                                <br />
-                                <li>
-                                    <strong>
-                                        Both: Validates products and displays a message on the cart UI and on the checkout UI.
                                     </strong>
                                 </li>
                             </ul>
