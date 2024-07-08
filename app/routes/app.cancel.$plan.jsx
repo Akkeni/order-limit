@@ -69,6 +69,6 @@ export const loader = async ({ request, params }) => {
 
 
 
-    return redirect('/app/pricing');
+    return redirect('/app');
 }
 
