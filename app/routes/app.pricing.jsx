@@ -119,9 +119,10 @@ let planData = [
         name: "Free Subscription",
         url: "/app",
         features: [
-            "Store Wise Limit",
+            "Vendor Wise Limit",
+            "Collection Wise Limit",
+            "Category Wise Limit",
             "Product Wise Limit",
-            "Vendor Wise Limit"
         ]
     },
     {
@@ -132,12 +133,12 @@ let planData = [
         name: "Monthly Subscription",
         url: "/app/subscribe/monthly",
         features: [
-            "General limits price, weight",
             "Store Wise Limit",
-            "Product Wise Limit",
-            "Category Wise Limit",
+            "General limits price, weight",
+            "Vendor Wise Limit",
             "Collection Wise Limit",
-            "Vendor Wise Limit"
+            "Category Wise Limit",
+            "Product Wise Limit",
         ]
     },
     {
@@ -148,12 +149,12 @@ let planData = [
         action: "Subscribe",
         url: "/app/subscribe/annualy",
         features: [
-            "General limits price, weight",
             "Store Wise Limit",
-            "Product Wise Limit",
-            "Category Wise Limit",
+            "General limits price, weight",            
+            "Vendor Wise Limit",
             "Collection Wise Limit",
-            "Vendor Wise Limit"
+            "Category Wise Limit",
+            "Product Wise Limit",
         ]
     },
 ]

@@ -1,6 +1,7 @@
 import { json, redirect } from "@remix-run/node";
 import { authenticate, MONTHLY_PLAN, ANNUAL_PLAN } from "../shopify.server";
 import { getSubscriptionStatus, createEndPeriodMetafield } from '../models/Subscription.server';
+import {deleteNonPlanData} from '../models/orderLimit.server';
 
 
 
@@ -32,7 +33,9 @@ export const loader = async ({ request, params }) => {
             const endPeriodDate = activeSubscriptions[0].currentPeriodEnd;
             console.log('endDate in cancel ', endPeriodDate);
             await createEndPeriodMetafield(admin.graphql, endPeriodDate);
-        } 
+        } else {
+            await deleteNonPlanData(admin.graphql);
+        }
     }
 
 
