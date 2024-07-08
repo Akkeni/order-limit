@@ -25,6 +25,7 @@ export async function loader({ request }) {
     return json({
         ok: true,
         limiters,
+        admin: false,
     });
 
 }
@@ -35,9 +36,9 @@ export async function action({ request, params }) {
     try {
 
         const formData = await request.formData();
-        console.log('formData name ', formData.get('name'));
+        console.log('formData name in action ', formData.get('name'));
         if (formData.get('action') === 'login') {
-            if (formData.get('name') === "appfoster" && formData.get('password') === "appfoster") {
+            if (formData.get('name') === `${process.env.ADMIN_NAME}` && formData.get('password') === `${process.env.ADMIN_PASSWORD}`) {
                 return json({
                     admin: true
                 });
@@ -105,7 +106,7 @@ export default function Admin() {
     const loaderData = useLoaderData();
     const [name, setName] = useState('');
     const [password, setPassword] = useState('');
-    const [admin, setAdmin] = useState(false);
+    const [admin, setAdmin] = useState(loaderData?.admin || false);
     const [error, setError] = useState(false);
     const submit = useSubmit();
     const actionData = useActionData();
@@ -126,6 +127,9 @@ export default function Admin() {
             setAdmin(true);
             setIsLoading(false);
             setError(false);
+            //localStorage.setItem('admin', true);
+            setWithExpiry('admin', true, 3600000);
+            Cookies.set('admin', 'true', { expires: 7 });
         } else if (actionData?.created) {
             setIsLoading(false);
             setSuccess(true);
@@ -134,6 +138,17 @@ export default function Admin() {
             setError(true);
         }
     }, [actionData]);
+
+    useEffect(() => {
+        if(loaderData?.ok) { 
+            if(getWithExpiry('admin')/*localStorage.getItem('admin')*/ ) {
+                setAdmin(true);
+                //localStorage.removeItem('admin');
+            }
+            console.log('localStorage ', localStorage.getItem('admin') );
+            console.log("cookies ", Cookies.get('admin'));
+        }
+    }, [loaderData]);
 
     const handleName = (value) => {
         console.log(value);
@@ -164,6 +179,29 @@ export default function Admin() {
             setIsLoading(true);
             submit({ name: name, password: password, action: "login" }, { method: "post" });
         }
+    }
+
+    const setWithExpiry = (key, value, ttl) => {
+        const now = new Date();
+        const item = {
+            value: value,
+            expiry: now.getTime() + ttl, // Calculate expiry time
+        };
+        localStorage.setItem(key, JSON.stringify(item)); // Store as a JSON string
+    }
+
+    const getWithExpiry = (key) => {
+        const itemStr = localStorage.getItem(key);
+        if (!itemStr) {
+            return null; // Item doesn't exist
+        }
+        const item = JSON.parse(itemStr);
+        const now = new Date();
+        if (now.getTime() > item.expiry) {
+            localStorage.removeItem(key); // Remove expired item
+            return null;
+        }
+        return item.value; // Return the original value
     }
 
     if (isLoading) {
@@ -210,8 +248,8 @@ export default function Admin() {
                     />
                 )}
 
-                <br/>
-                <br/>
+                <br />
+                <br />
 
                 {!admin && (
                     <Card>

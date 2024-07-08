@@ -1,6 +1,6 @@
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
-import { createSubscriptionMetafield } from "../models/Subscription.server";
+import { createSubscriptionMetafield, deletePlanNameMetafield } from "../models/Subscription.server";
 
 
 export const action = async ({ request }) => {
@@ -44,9 +44,12 @@ export const action = async ({ request }) => {
       break;
 
     case "APP_SUBSCRIPTIONS_UPDATE":
-      //console.log('webhook is triggered ', payload);
+      console.log('webhook is triggered ', payload);
       if (payload.app_subscription.status == "ACTIVE") {
         await createSubscriptionMetafield(admin.graphql, "true");
+      } else if(payload.app_subscription.status == "DECLINED") {
+        console.log('declined');
+        await deletePlanNameMetafield(admin.graphql);
       } else {
         await createSubscriptionMetafield(admin.graphql, "false");
         //await deleteNonPlanData(admin.graphql);

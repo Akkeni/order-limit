@@ -366,3 +366,139 @@ export async function createFreePlanMetafields(graphql, existingLimiters) {
   );
 
 }
+
+async function handleGraphqlMutation(graphql, mutationName, variables) {
+  const query = `
+    mutation SetMetafield($namespace: String!, $ownerId: ID!, $key: String!, $type: String!, $value: String!) {
+      metafieldDefinitionCreate(
+        definition: {namespace: $namespace, key: $key, name: "Limiters", ownerType: PRODUCT, type: $type, access: {admin: MERCHANT_READ_WRITE}}
+      ) {
+        createdDefinition {
+          id
+        }
+      }
+      metafieldsSet(metafields: [{ownerId:$ownerId, namespace:$namespace, key:$key, type:$type, value:$value}]) {
+        userErrors {
+          field
+          message
+          code
+        }
+      }
+    }
+  `;
+
+  await graphql(query, {
+    variables: {
+      ownerId: variables.input.id,
+      namespace: variables.input.metafields[0].namespace,
+      key: variables.input.metafields[0].key,
+      type: variables.input.metafields[0].type,
+      value: variables.input.metafields[0].value,
+    },
+  });
+}
+
+export async function createCategoryWiseLimiter(graphql, allProductsData, limiter) {
+  const productIds = allProductsData
+    .filter(product => product.node.category?.name === limiter.id)
+    .map(product => product.node.id);
+
+  for (const id of productIds) {
+    let value = `${limiter.value}`;
+    const variables = {
+      input: {
+        id: id,
+        metafields: [
+          { namespace: "categoryLimit", key: "categoryLimit", type: "string", value },
+        ]
+      }
+    };
+
+    await handleGraphqlMutation(graphql, 'productUpdate', variables);
+  }
+}
+
+export async function createCollectionWiseLimiter(graphql, allCollectionsData, allProductsData, limiter) {
+
+  const collectionId = allCollectionsData.find((item) => item.node.title === limiter.id)?.node?.id;
+
+  if (collectionId) {
+    for (const product of allProductsData) {
+      const productId = product?.node?.id;
+      let response = await graphql(
+        `{
+          collection(id: "${collectionId}"){
+            hasProduct(id: "${productId}")
+          }
+        }`
+      );
+      const responseData = await response.json();
+      if (responseData?.data?.collection?.hasProduct) {
+        let value = `${limiter.value}`;
+        const variables = {
+
+          input: {
+            id: productId,
+            metafields: [
+              { namespace: "collectionLimit", key: "collectionLimit", type: "string", value }
+            ]
+          }
+
+        };
+
+        await handleGraphqlMutation(graphql, 'productUpdate', variables);
+      }
+    }
+  }
+}
+
+export async function createVendorWiseLimiter(graphql, allProductsData, limiter) {
+
+  const productIds = allProductsData
+    .filter(product => product.node.vendor === limiter.id)
+    .map(product => product.node.id);
+
+  for (const id of productIds) {
+    let value = '';
+    let allValues = limiter.value.split(',').slice(3,5);
+    let vendorValue = `${allValues[0]},${allValues[1]}`;
+    //console.log(vendorValue)
+    //let value = limiter.value;
+
+    const productResponse = await graphql(
+      `{
+        product(id: "${id}") {
+          title
+          productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+            value
+          }
+        }
+      }`
+    );
+
+    const productData = await productResponse.json();
+
+    const product = productData.data.product;
+
+    const productLimitFieldValue = product?.productLimitField?.value;
+
+    if (productLimitFieldValue) {
+      const [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
+
+      value = `${productMin},${productMax},${limiter.id},${vendorValue},${product.title}`;
+    } else {
+      // If there is no previous metafield value, construct a new value
+      value = `0,0,${limiter.id},${vendorValue},${product.title}`;
+    }
+
+    const variables = {
+      input: {
+        id: id,
+        metafields: [
+          { namespace: "productLimit", key: "productLimit", type: "string", value },
+        ]
+      }
+    };
+    await handleGraphqlMutation(graphql, 'productUpdate', variables);
+  }
+}

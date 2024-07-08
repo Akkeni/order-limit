@@ -32,7 +32,7 @@ import { ImageIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, M
 import { authenticate } from '../shopify.server';
 import db from '../db.server';
 import React from 'react';
-import { getAllProductsData, createFreePlanMetafields, deleteNonPlanData } from '../models/orderLimit.server';
+import { getAllProductsData, createFreePlanMetafields, deleteNonPlanData, createVendorWiseLimiter, createCollectionWiseLimiter, createCategoryWiseLimiter } from '../models/orderLimit.server';
 import { useAppBridge } from '@shopify/app-bridge-react';
 import '../resources/style.css';
 import { getSubscriptionStatus, createSubscriptionMetafield, deleteAppInstallationMetafields } from '../models/Subscription.server';
@@ -65,7 +65,7 @@ export async function loader({ request }) {
   }*/
 
 
-
+    
 
   const orderLimit = await db.order_Limit.findFirst({
     where: {
@@ -97,6 +97,10 @@ export async function loader({ request }) {
           value
           id
         }
+        planNameMetaField: metafield(namespace:"planName", key: "planName") {
+          value
+          id
+        }
       }
     }`);
 
@@ -117,6 +121,17 @@ export async function loader({ request }) {
           const currentDate = new Date(currentDateStr);
           const endDate = new Date(endDateStr);
           if (currentDate >= endDate) {
+            const planName = appQeryData?.data?.currentAppInstallation?.planNameMetaField ? appQeryData?.data?.currentAppInstallation?.planNameMetaField?.value : '';
+            if (planName) {
+              if (planName === "Monthly Subscription") {
+                return redirect("/app/subscribe/monthly");
+              } else if (planName === "Annual Subscription") {
+                return redirect("/app/subscribe/annualy");
+
+              }
+            }
+
+            await deleteAppInstallationMetafields(admin.graphql)
             await createSubscriptionMetafield(admin.graphql, "false");
             await deleteNonPlanData(admin.graphql);
             existingLimiters = await db.limiters.findMany();
@@ -274,6 +289,69 @@ export async function loader({ request }) {
       return redirect('/app/pricing');
     }*/
 
+
+    const vendorLimiters = [];
+    const collectionLimiters = [];
+    const categoryLimiters = [];
+
+    for(const item of allProductsData) {
+      const node = item.node;
+
+      if (node.productLimitField && node.productLimitField.value) {
+        const productLimitValues = node.productLimitField.value.split(',');
+        const productLimits = productLimitValues.slice(0, 2).map(Number);
+        const vendorName = productLimitValues[2];
+        const vendorLimits = productLimitValues.slice(3, 5).map(Number);
+        const productName = productLimitValues[5];
+
+        if (vendorLimits.some(value => value !== 0)) {
+          if (!vendorLimiters.find((item) => item.id === vendorName)) {
+            let vendorLimiter = {
+              id: vendorName,
+              value: node.productLimitField.value
+            };
+            vendorLimiters.push(vendorLimiter);
+            await createVendorWiseLimiter(admin.graphql, allProductsData, vendorLimiter);
+          }
+        }
+      }
+
+      if (node.categoryLimitField && node.categoryLimitField.value) {
+        const categoryValues = node.categoryLimitField.value.split(',');
+        const categoryName = categoryValues[0].trim();
+        const categoryLimits = categoryValues.slice(1).map(Number);
+
+        if (categoryLimits.some(value => value !== 0)) {
+          if (!categoryLimiters.find((item) => item.id === categoryName)) {
+            let categoryLimiter = {
+              id: categoryName,
+              value: node.categoryLimitField.value
+            };
+            categoryLimiters.push(categoryLimiter);
+            await createCategoryWiseLimiter(admin.graphql, allProductsData, categoryLimiter);
+          }
+        }
+      }
+
+      if (node.collectionLimitField && node.collectionLimitField.value) {
+        const collectionValues = node.collectionLimitField.value.split(',');
+        const collectionName = collectionValues[0].trim();
+        const collectionLimits = collectionValues.slice(1).map(Number);
+
+        if (collectionLimits.some(value => value !== 0)) {
+          if (!collectionLimiters.find((item) => item.id === collectionName)) {
+            let collectionLimiter = {
+              id: collectionName,
+              value: node.collectionLimitField.value
+            };
+            collectionLimiters.push(collectionLimiter);
+            await createCollectionWiseLimiter(admin.graphql, allCollectionsData, allProductsData, collectionLimiter);
+          }
+        }
+      }
+    }
+
+    console.log('category limiters in loader ', categoryLimiters);
 
     return json({
       ok: true,
@@ -1238,7 +1316,7 @@ export default function Index() {
                 return false;
               });
 
-              if(reseted) {
+              if (reseted) {
                 if (count.productCount < freePlanlimiters.products) {
                   limitExceeded = false;
                   handleCount("productCount");
@@ -1288,7 +1366,7 @@ export default function Index() {
               return false;
             });
 
-            if(reseted) {
+            if (reseted) {
               if (count.categoryCount < freePlanlimiters.categories) {
                 limitExceeded = false;
                 handleCount("categoryCount");
@@ -1331,7 +1409,7 @@ export default function Index() {
               return false;
             });
 
-            if(reseted) {
+            if (reseted) {
               if (count.collectionCount < freePlanlimiters.collections) {
                 limitExceeded = false;
                 handleCount("collectionCount");
@@ -1374,7 +1452,7 @@ export default function Index() {
               return false;
             });
 
-            if(reseted) {
+            if (reseted) {
               if (count.vendorCount < freePlanlimiters.vendors) {
                 limitExceeded = false;
                 handleCount("vendorCount");

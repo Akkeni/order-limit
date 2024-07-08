@@ -13,15 +13,17 @@ import {
     InlineStack,
     Spinner,
     Link,
+    Tooltip
 } from "@shopify/polaris";
 import { json } from "@remix-run/node";
-import { useLoaderData, useNavigate } from "@remix-run/react";
+import { useLoaderData, useNavigate, useActionData, useSubmit } from "@remix-run/react";
 import { authenticate, MONTHLY_PLAN, ANNUAL_PLAN } from "../shopify.server";
+import { createPlanNameMetafield } from '../models/Subscription.server';
 
 import {
     CheckCircleIcon
 } from '@shopify/polaris-icons'
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export async function loader({ request }) {
     const { admin, billing } = await authenticate.admin(request);
@@ -99,6 +101,14 @@ export async function loader({ request }) {
     }
 }
 
+export async function action({request}) {
+    const { admin, billing } = await authenticate.admin(request);
+    const formData = await request.formData();
+    await createPlanNameMetafield(admin.graphql, formData.get('planName'));
+    return json({
+        ok: true
+    });
+}
 
 let planData = [
     {
@@ -151,12 +161,30 @@ let planData = [
 export default function PricingPage() {
     const { plan } = useLoaderData();
     const loaderData = useLoaderData();
+    const actionData = useActionData();
+    const submit = useSubmit();
     const expire = loaderData?.expire;
-    const endDate = loaderData?.endDateStr;
+    const endDate = loaderData?.endDateStr ? loaderData?.endDateStr : '';
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
 
-    //console.log('plan', plan);
+    const handleSubscribe = (url, planName) => {
+        if(endDate) {
+            submit({planName: planName}, {method: 'post'});
+        } else {
+            setIsLoading(true);
+            navigate(url);
+        }
+    }
+
+    useEffect(()=>{
+        if(actionData?.ok) {
+            setSuccess(true);
+        }
+    },[actionData]);
+
+    console.log('plan', plan);
     if (isLoading) {
         //console.log('isSaving ', isSaving);
         return (
@@ -184,6 +212,7 @@ export default function PricingPage() {
             </div>
         );
     }
+    console.log('expire ', expire);
     return (
         <Page>
             <ui-title-bar title="Pricing" />
@@ -196,6 +225,20 @@ export default function PricingPage() {
             <br />
             <br />
 
+            {success && (
+            <>
+              <Banner
+                title="Reminder"
+                tone="info"
+                onDismiss={() => setSuccess(false)}
+              >
+                <p>
+                    You will be notified once you are current access to paid features is completed.
+                </p>
+            </Banner>
+            </>
+          )}
+
             {plan.name == "Free Subscription" && expire == 'true' && (
                 <Banner title="Select a plan" status="info">
                     <p>
@@ -207,12 +250,13 @@ export default function PricingPage() {
             {plan.name == "Free Subscription" && expire == 'false' && (
                 <Banner title="Subscripiton end date" status="info">
                     <p>
-                        You cancelled the recurring charges. You're current plan will end on {endDate}, from which 'free plan' will be activated.
+                        You cancelled the recurring charges. Your access to paid plan features will end on {endDate}, from which 'free plan' will be activated.
                     </p>
                 </Banner>
             )}
 
-            {plan.name != "Free Subscription" && (
+            {plan.name != "Free Subscription" && expire === 'true' && (
+                 <Tooltip width="wide" preferredPosition="below" content="Clicking on 'Cancel Plan' will cancel the recurring charges. Free plan will be activated after completion of current plan.">
                 <CalloutCard
                     title="Cancel your plan"
                     illustration="https://cdn.shopify.com/s/files/1/0583/6465/7734/files/tag.png?v=1705280535"
@@ -238,6 +282,7 @@ export default function PricingPage() {
                         </p>
                     )}
                 </CalloutCard>
+                </Tooltip>
             )}
             <div style={{ margin: "0.5rem 0" }}>
                 <Divider />
@@ -259,6 +304,9 @@ export default function PricingPage() {
                                     <Text as="p" variant="headingLg" fontWeight="bold">
                                         {plan_item.price === "0" ? "" : "$" + plan_item.price}
                                     </Text>
+                                    {(plan_item.name === "Annual Subscription") &&
+                                        <Text as="span" tone="success">With discount 16.67%</Text>
+                                    }
                                 </Box>
 
                                 <div style={{ margin: "0.5rem 0" }}>
@@ -283,9 +331,11 @@ export default function PricingPage() {
                                 </div>
 
                                 {(plan_item.name != 'Free Subscription') && (
-                                    <Button onClick={() => { setIsLoading(true); navigate(plan_item.url); }} disabled={(plan_item.name == plan.name || plan_item.name == 'Free Subscription')}>
+                                    <Tooltip active={plan.name != 'Free Subscription' && plan_item.name != plan.name} preferredPosition="below" content="If you subscribe to new plan, then it will start after current plan ends.">
+                                    <Button onClick={() => { handleSubscribe(plan_item.url, plan_item.name) }} disabled={(plan_item.name == plan.name || plan_item.name == 'Free Subscription')}>
                                         {plan_item.action}
                                     </Button>
+                                    </Tooltip>
                                 )}
 
                                 {/*plan_item.name == "Monthly subscription" ?
