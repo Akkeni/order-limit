@@ -3,7 +3,7 @@
 client_id = "39c03c0ba0965aba6f40b779e1eb966f"
 name = "Order Limit"
 handle = "order-limit-20"
-application_url = "https://hrs-requiring-cave-willing.trycloudflare.com"
+application_url = "https://order-limit-lcxo.onrender.com/"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_orders,read_products,read_publications,write_products"
 
 [auth]
 redirect_urls = [
-  "https://hrs-requiring-cave-willing.trycloudflare.com/auth/callback",
-  "https://hrs-requiring-cave-willing.trycloudflare.com/auth/shopify/callback",
-  "https://hrs-requiring-cave-willing.trycloudflare.com/api/auth/callback"
+  "https://order-limit-lcxo.onrender.com/auth/callback",
+  "https://order-limit-lcxo.onrender.com/auth/shopify/callback",
+  "https://order-limit-lcxo.onrender.com/api/auth/callback"
 ]
 
 [webhooks]
