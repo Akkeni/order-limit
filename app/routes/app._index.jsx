@@ -1819,7 +1819,7 @@ export default function Index() {
       {!showConfirmation && (
 
         <Page fullWidth={true}>
-          <ui-title-bar title="Order Wise Limit"></ui-title-bar>
+          <ui-title-bar title="Order Limit"></ui-title-bar>
 
           {(plan != "paidPlan") && (
             <Banner tone="critical">
