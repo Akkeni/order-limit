@@ -104,7 +104,7 @@ function App() {
 
   return (
     // The AdminBlock component provides an API for setting the title of the Block extension wrapper.
-    <AdminBlock title="Order Wise Limit app limiters">
+    <AdminBlock title="Order Limit app limiters">
 
       {loading && (
         <Text>
