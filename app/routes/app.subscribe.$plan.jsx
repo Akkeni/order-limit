@@ -15,7 +15,7 @@ export const loader = async ({ request, params }) => {
       onFailure: async () => billing.request({
         plan: MONTHLY_PLAN,
         isTest: true,
-        returnUrl: `https://${shop}/admin/apps/order-limit-18/app`,
+        returnUrl: `https://${shop}/admin/apps/${process.env.APP_NAME}/app`,
       }),
     });
   } else {
@@ -25,7 +25,7 @@ export const loader = async ({ request, params }) => {
       onFailure: async () => billing.request({
         plan: ANNUAL_PLAN,
         isTest: true,
-        returnUrl: `https://${shop}/admin/apps/order-limit-18/app`,
+        returnUrl: `https://${shop}/admin/apps/${process.env.APP_NAME}/app`,
       }),
     });
   }
