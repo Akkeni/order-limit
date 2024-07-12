@@ -10,3 +10,13 @@
 .red {
     color: red;
 }
+
+.pL-1 {
+    padding-left: 1rem;
+}
+
+.responsive-image {
+    width: 100%;
+    height: auto;
+    margin: 10px 0;
+}

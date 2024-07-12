@@ -1821,39 +1821,41 @@ export default function Index() {
         <Page fullWidth={true}>
           <ui-title-bar title="Order Limit"></ui-title-bar>
 
-          {(plan != "paidPlan") && (
-            <Banner tone="critical">
-              <p>
-                You don't have any plan. Please select any paid plan to unlock more features from here. <Link url="/app/pricing" onClick={() => setIsSaving(true)}><span style={{ color: "blue" }}>Plan selection</span></Link>
-              </p>
-            </Banner>
-          )}
-          <br />
-          {/* Alert message */}
-          {success && (
-            <>
-              <Banner
-                title="Saved successfully!"
-                tone="success"
-                onDismiss={() => setSuccess(false)}
-              />
-            </>
-          )}
+          <div className='pL-1'>
 
-          <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
-            <div style={{ paddingTop: '0.5rem', paddingBottom: '1.5rem', paddingRight: '1rem' }}>
-              <InlineStack gap="500">
-                <div style={{ paddingLeft: '0.5rem' }}>
-                  <FormLayout>
-                    <Select
-                      label="Limit By"
-                      options={tagOptions}
-                      value={tagValue}
-                      onChange={handleTagValueChange}
-                    />
-                  </FormLayout>
-                </div>
-                {/*<div style={{ paddingLeft: '0.5rem' }}>
+            {(plan != "paidPlan") && (
+              <Banner tone="critical">
+                <p>
+                  You don't have any plan. Please select any paid plan to unlock more features from here. <Link url="/app/pricing" onClick={() => setIsSaving(true)}><span style={{ color: "blue" }}>Plan selection</span></Link>
+                </p>
+              </Banner>
+            )}
+            <br />
+            {/* Alert message */}
+            {success && (
+              <>
+                <Banner
+                  title="Saved successfully!"
+                  tone="success"
+                  onDismiss={() => setSuccess(false)}
+                />
+              </>
+            )}
+
+            <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+              <div style={{ paddingTop: '0.5rem', paddingBottom: '1.5rem', paddingRight: '1rem' }}>
+                <InlineStack gap="500">
+                  <div style={{ paddingLeft: '0.5rem' }}>
+                    <FormLayout>
+                      <Select
+                        label="Limit By"
+                        options={tagOptions}
+                        value={tagValue}
+                        onChange={handleTagValueChange}
+                      />
+                    </FormLayout>
+                  </div>
+                  {/*<div style={{ paddingLeft: '0.5rem' }}>
                   <FormLayout>
                     <Select
                       label="Use extension"
@@ -1863,741 +1865,742 @@ export default function Index() {
                     />
                   </FormLayout>
                 </div>*/}
-                {(tagValue !== 'General' && tagValue !== 'Store Wise') && (
-                  <div style={{ paddingLeft: '0.5rem' }}>
-                    <TextField
-                      label="Search"
-                      value={searchValue}
-                      onChange={setSearchValue}
-                      prefix={<Icon source={SearchIcon} color="skyDark" />}
-                    />
+                  {(tagValue !== 'General' && tagValue !== 'Store Wise') && (
+                    <div style={{ paddingLeft: '0.5rem' }}>
+                      <TextField
+                        label="Search"
+                        value={searchValue}
+                        onChange={setSearchValue}
+                        prefix={<Icon source={SearchIcon} color="skyDark" />}
+                      />
+                    </div>
+                  )}
+                  <div style={{ marginLeft: 'auto' }}>
+                    <InlineStack gap="400" blockAlign='center'>
+                      <PageActions
+                        primaryAction={{
+                          content: 'Save',
+                          onAction: handleSaveProduct
+                        }}
+                      />
+                      <>
+                        <Popover
+                          active={popoverActive}
+                          activator={activator}
+                          autofocusTarget="first-node"
+                          onClose={togglePopoverActive}
+                        >
+                          <Popover.Pane>
+                            <ActionList
+                              actionRole="menuitem"
+                              items={[
+                                { content: 'Help', url: '/app/help' },
+                                { content: 'Plan', url: '/app/pricing' },
+                                { content: 'Setup', url: '/app/setup' }
+                              ]}
+                            />
+                          </Popover.Pane>
+                        </Popover>
+                      </>
+                    </InlineStack>
                   </div>
-                )}
-                <div style={{ marginLeft: 'auto' }}>
-                  <InlineStack gap="400" blockAlign='center'>
-                    <PageActions
-                      primaryAction={{
-                        content: 'Save',
-                        onAction: handleSaveProduct
-                      }}
-                    />
-                    <>
-                      <Popover
-                        active={popoverActive}
-                        activator={activator}
-                        autofocusTarget="first-node"
-                        onClose={togglePopoverActive}
-                      >
-                        <Popover.Pane>
-                          <ActionList
-                            actionRole="menuitem"
-                            items={[
-                              { content: 'Help', url: '/app/help' },
-                              { content: 'Plan', url: '/app/pricing' },
-                              { content: 'Setup', url: '/app/setup' }
-                            ]}
-                          />
-                        </Popover.Pane>
-                      </Popover>
-                    </>
-                  </InlineStack>
-                </div>
-              </InlineStack>
+                </InlineStack>
+              </div>
             </div>
-          </div>
 
 
 
-          <BlockStack gap="500">
-            <Layout>
-              <Layout.Section>
-                {tagValue === 'Product Wise' && (
-                  <>
-                    <Card>
-                      <IndexTable
-                        headings={[
-                          { title: 'Image' },
-                          {
-                            title: (
-                              <ButtonGroup>
-                                <Button onClick={() => handleSort('title')} variant="tertiary">
-                                  Title
-                                </Button>
-                                <Button onClick={() => handleSort('title')} variant="tertiary">
-                                  <Icon source={SelectIcon} />
-                                </Button>
-                              </ButtonGroup>
-                            )
-                          },
-                          {
-                            title: (
-                              <ButtonGroup>
-                                <Button onClick={() => handleSort('status')} variant="tertiary">
-                                  Status
-                                </Button>
+            <BlockStack gap="500">
+              <Layout>
+                <Layout.Section>
+                  {tagValue === 'Product Wise' && (
+                    <>
+                      <Card>
+                        <IndexTable
+                          headings={[
+                            { title: 'Image' },
+                            {
+                              title: (
+                                <ButtonGroup>
+                                  <Button onClick={() => handleSort('title')} variant="tertiary">
+                                    Title
+                                  </Button>
+                                  <Button onClick={() => handleSort('title')} variant="tertiary">
+                                    <Icon source={SelectIcon} />
+                                  </Button>
+                                </ButtonGroup>
+                              )
+                            },
+                            {
+                              title: (
+                                <ButtonGroup>
+                                  <Button onClick={() => handleSort('status')} variant="tertiary">
+                                    Status
+                                  </Button>
 
-                              </ButtonGroup>
-                            )
-                          },
-                          {
-                            title: (
-                              <ButtonGroup>
-                                <Button onClick={() => handleSort('totalInventory')} variant="tertiary">
-                                  Quantity
-                                </Button>
-                                <Button icon={SelectIcon} onClick={() => handleSort('totalInventory')} variant="tertiary" size="micro" />
-                              </ButtonGroup>
-                            )
-                          },
-                          {
-                            title: (
-                              <ButtonGroup>
-                                <Button onClick={() => handleSort('priceRangeV2')} variant="tertiary">
-                                  Price ({loaderData?.currencyCode})
-                                </Button>
-                                <Button icon={SelectIcon} onClick={() => handleSort('priceRangeV2')} variant="tertiary" size="micro" />
-                              </ButtonGroup>
-                            )
-                          },
-                          { title: 'Min Limit' },
-                          { title: 'Max Limit' }
-                        ]}
-                        itemCount={allProductsData.length}
-                        selectable={false}
-                      >
-                        {sortedProductFilteredRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage).map((product, index) => (
-                          <>
+                                </ButtonGroup>
+                              )
+                            },
+                            {
+                              title: (
+                                <ButtonGroup>
+                                  <Button onClick={() => handleSort('totalInventory')} variant="tertiary">
+                                    Quantity
+                                  </Button>
+                                  <Button icon={SelectIcon} onClick={() => handleSort('totalInventory')} variant="tertiary" size="micro" />
+                                </ButtonGroup>
+                              )
+                            },
+                            {
+                              title: (
+                                <ButtonGroup>
+                                  <Button onClick={() => handleSort('priceRangeV2')} variant="tertiary">
+                                    Price ({loaderData?.currencyCode})
+                                  </Button>
+                                  <Button icon={SelectIcon} onClick={() => handleSort('priceRangeV2')} variant="tertiary" size="micro" />
+                                </ButtonGroup>
+                              )
+                            },
+                            { title: 'Min Limit' },
+                            { title: 'Max Limit' }
+                          ]}
+                          itemCount={allProductsData.length}
+                          selectable={false}
+                        >
+                          {sortedProductFilteredRows.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage).map((product, index) => (
+                            <>
+                              <IndexTable.Row key={index}>
+                                <IndexTable.Cell>
+                                  <Button
+                                    url={`shopify:admin/products/${product.node.id.match(/\d+$/)[0]}`}
+                                    target="_blank"
+                                    variant="tertiary"
+                                  >
+                                    <Thumbnail
+                                      source={product.node.images.edges[0]?.node?.url || ImageIcon}
+                                      alt="Product"
+                                    />
+                                  </Button>
+                                </IndexTable.Cell>
+                                <IndexTable.Cell>
+                                  <Button
+                                    url={`shopify:admin/products/${product.node.id.match(/\d+$/)[0]}`}
+                                    target="_blank"
+                                    variant="tertiary"
+                                  >
+                                    <div id='underLine'>
+                                      {product.node.title}
+                                    </div>
+                                  </Button>
+                                </IndexTable.Cell>
+                                <IndexTable.Cell>
+                                  <Badge tone={product.node?.status === 'ACTIVE' ? 'success' : 'info'}>
+                                    {product.node?.status}
+                                  </Badge>
+                                </IndexTable.Cell>
+                                <IndexTable.Cell>
+                                  <div style={{ textAlign: 'center' }}>
+                                    {product.node.totalInventory}
+                                  </div>
+                                </IndexTable.Cell>
+                                <IndexTable.Cell>
+                                  <div style={{ textAlign: 'center' }}>
+                                    {product.node.priceRangeV2?.maxVariantPrice?.amount}
+                                  </div>
+                                </IndexTable.Cell>
+                                <IndexTable.Cell>
+                                  <FormLayout>
+                                    <TextField
+                                      value={getProductQuantityLimit(product.node.id, 'min')}
+                                      label="Product Min Limit"
+                                      type="number"
+                                      onChange={(value) => { handleQuantityLimit(value, product.node.id, 'min') }}
+                                    />
+                                    {isBlock && (<span className='red'>You can only set {freePlanlimiters.products} products as part of free plan</span>)}
+                                  </FormLayout>
+                                </IndexTable.Cell>
+                                <IndexTable.Cell>
+                                  <FormLayout>
+                                    <TextField
+                                      value={getProductQuantityLimit(product.node.id, 'max')}
+                                      label="Product Max Limit"
+                                      type="number"
+                                      onChange={(value) => { handleQuantityLimit(value, product.node.id, 'max') }}
+                                    />
+                                  </FormLayout>
+                                </IndexTable.Cell>
+                              </IndexTable.Row>
+                              {product?.node.variants?.edges.length > 1 && (
+                                product.node.variants.edges.map((variant, index) => (
+                                  <IndexTable.Row key={index}>
+                                    <div style={{ paddingLeft: "3rem" }}>
+                                      <IndexTable.Cell >
+                                        <Thumbnail
+                                          source={variant?.node?.image?.url || ImageIcon}
+                                          alt="Product"
+                                        />
+                                      </IndexTable.Cell>
+                                    </div>
+                                    <IndexTable.Cell>{variant.node.title}</IndexTable.Cell>
+                                    <IndexTable.Cell>
+                                      <Badge tone={product.node?.status === 'ACTIVE' ? 'success' : 'info'}>
+                                        {product.node?.status}
+                                      </Badge>
+                                    </IndexTable.Cell>
+                                    <IndexTable.Cell>
+                                      <div style={{ textAlign: 'center' }}>
+                                        {variant.node.inventoryQuantity}
+                                      </div>
+                                    </IndexTable.Cell>
+                                    <IndexTable.Cell>
+                                      <div style={{ textAlign: 'center' }}>
+                                        {variant.node.price}
+                                      </div>
+                                    </IndexTable.Cell>
+                                    <IndexTable.Cell>
+                                      <FormLayout>
+                                        <TextField
+                                          value={getVariantQunatity(variant.node.id, 'min')}
+                                          label="Variant Min Limit"
+                                          type="number"
+                                          onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'min') }}
+                                        />
+                                      </FormLayout>
+                                    </IndexTable.Cell>
+                                    <IndexTable.Cell>
+                                      <FormLayout>
+                                        <TextField
+                                          value={getVariantQunatity(variant.node.id, 'max')}
+                                          label="Variant Max Limit"
+                                          type="number"
+                                          onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'max') }}
+                                        />
+                                      </FormLayout>
+                                    </IndexTable.Cell>
+                                  </IndexTable.Row>
+                                ))
+                              )}
+                            </>
+                          ))}
+                        </IndexTable>
+                        {/* Pagination component*/}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                          <Button icon={ChevronLeftIcon} accessibilityLabel="Previous Page" disabled={currentPage === 1} onClick={handlePreviousPage} />
+                          <span style={{ padding: '0.5rem', margin: '0.5rem' }}> Page {currentPage}</span>
+                          <Button icon={ChevronRightIcon} accessibilityLabel="Next Page" disabled={currentPage === totalPages} onClick={handleNextPage} />
+                        </div>
+                      </Card>
+
+                      <br />
+                      <br />
+
+                      <Card>
+                        <TextField
+                          label="Error Message for Product Minimum limit"
+                          value={errorMessages.productMinErrMsg}
+                          onChange={(value) => { handleErrorMessages("productMinErrMsg", value) }}
+                          placeholder="You can't select less than {productMin} for {productName} ."
+                          helpText="use {productMin} to include minimum limit and {productName} to include product name"
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
+                          label="Error Message for Product Maximum limit"
+                          value={errorMessages.productMaxErrMsg}
+                          onChange={(value) => { handleErrorMessages("productMaxErrMsg", value) }}
+                          placeholder="Quantity limit reached, you can't select more than {productMax} for {productName}."
+                          helpText="use {productMax} to include maximum limit and {productName} to include product name"
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
+                          label="Error Message for Product Variant Minimum limit"
+                          value={errorMessages.variantMinErrMsg}
+                          onChange={(value) => { handleErrorMessages("variantMinErrMsg", value) }}
+                          placeholder="You can't select less than {productVariantMin} for this product variant {productName}."
+                          helpText="use {productVariantMin} to include minimum limit and {productName} to include product name"
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
+                          label="Error Message for Product Variant Maximum limit"
+                          value={errorMessages.variantMaxErrMsg}
+                          onChange={(value) => { handleErrorMessages("variantMaxErrMsg", value) }}
+                          placeholder="Quantity limit reached, you can't select more than {productVariantMax} for {productName}."
+                          helpText="use {productVariantMax} to include maximum limit and {productName} to include product name"
+                          autoComplete="off"
+                        />
+                        <br />
+                      </Card>
+
+                    </>
+                  )}
+
+                  {tagValue === 'Category Wise' && (
+                    <>
+                      <Card>
+                        <IndexTable
+                          headings={[
+                            {
+                              title: (
+                                <ButtonGroup>
+                                  <Button onClick={() => handleSort('categoryName')} variant="tertiary">
+                                    Category Name
+                                  </Button>
+                                  <Button onClick={() => handleSort('categoryName')} variant="tertiary">
+                                    <Icon source={SelectIcon} />
+                                  </Button>
+                                </ButtonGroup>
+                              )
+                            },
+                            {
+                              title: (
+                                <ButtonGroup>
+                                  <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
+                                    Quantity Available
+                                  </Button>
+                                  <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
+                                    <Icon source={SelectIcon} />
+                                  </Button>
+                                </ButtonGroup>
+                              )
+                            },
+                            { title: 'Min Limit' },
+                            { title: 'Max Limit' },
+                          ]}
+                          itemCount={categoriesData.length}
+                          selectable={false}
+                        >
+                          {sortedCategoryFilteredRows.map((category, index) => (
                             <IndexTable.Row key={index}>
                               <IndexTable.Cell>
-                                <Button
-                                  url={`shopify:admin/products/${product.node.id.match(/\d+$/)[0]}`}
-                                  target="_blank"
-                                  variant="tertiary"
-                                >
-                                  <Thumbnail
-                                    source={product.node.images.edges[0]?.node?.url || ImageIcon}
-                                    alt="Product"
-                                  />
-                                </Button>
+                                {category['categoryName']}
                               </IndexTable.Cell>
                               <IndexTable.Cell>
-                                <Button
-                                  url={`shopify:admin/products/${product.node.id.match(/\d+$/)[0]}`}
-                                  target="_blank"
-                                  variant="tertiary"
-                                >
-                                  <div id='underLine'>
-                                    {product.node.title}
-                                  </div>
-                                </Button>
-                              </IndexTable.Cell>
-                              <IndexTable.Cell>
-                                <Badge tone={product.node?.status === 'ACTIVE' ? 'success' : 'info'}>
-                                  {product.node?.status}
-                                </Badge>
-                              </IndexTable.Cell>
-                              <IndexTable.Cell>
-                                <div style={{ textAlign: 'center' }}>
-                                  {product.node.totalInventory}
-                                </div>
-                              </IndexTable.Cell>
-                              <IndexTable.Cell>
-                                <div style={{ textAlign: 'center' }}>
-                                  {product.node.priceRangeV2?.maxVariantPrice?.amount}
-                                </div>
+                                {category['quantityLimit']}
                               </IndexTable.Cell>
                               <IndexTable.Cell>
                                 <FormLayout>
                                   <TextField
-                                    value={getProductQuantityLimit(product.node.id, 'min')}
-                                    label="Product Min Limit"
+                                    value={getCategoryQuantityLimit(category['categoryName'], 'min')}
+                                    label="Category Min Limit"
                                     type="number"
-                                    onChange={(value) => { handleQuantityLimit(value, product.node.id, 'min') }}
+                                    onChange={(value) => { handleQuantityLimit(value, category['categoryName'], 'min') }}
                                   />
-                                  {isBlock && (<span className='red'>You can only set {freePlanlimiters.products} products as part of free plan</span>)}
+                                  {isBlock && (<span className='red'>You can only set {freePlanlimiters.categories} categories as part of free plan</span>)}
                                 </FormLayout>
                               </IndexTable.Cell>
                               <IndexTable.Cell>
                                 <FormLayout>
                                   <TextField
-                                    value={getProductQuantityLimit(product.node.id, 'max')}
-                                    label="Product Max Limit"
+                                    value={getCategoryQuantityLimit(category['categoryName'], 'max')}
+                                    label="Category Max Limit"
                                     type="number"
-                                    onChange={(value) => { handleQuantityLimit(value, product.node.id, 'max') }}
+                                    onChange={(value) => { handleQuantityLimit(value, category['categoryName'], 'max') }}
                                   />
                                 </FormLayout>
                               </IndexTable.Cell>
                             </IndexTable.Row>
-                            {product?.node.variants?.edges.length > 1 && (
-                              product.node.variants.edges.map((variant, index) => (
-                                <IndexTable.Row key={index}>
-                                  <div style={{ paddingLeft: "3rem" }}>
-                                    <IndexTable.Cell >
-                                      <Thumbnail
-                                        source={variant?.node?.image?.url || ImageIcon}
-                                        alt="Product"
-                                      />
-                                    </IndexTable.Cell>
-                                  </div>
-                                  <IndexTable.Cell>{variant.node.title}</IndexTable.Cell>
-                                  <IndexTable.Cell>
-                                    <Badge tone={product.node?.status === 'ACTIVE' ? 'success' : 'info'}>
-                                      {product.node?.status}
-                                    </Badge>
-                                  </IndexTable.Cell>
-                                  <IndexTable.Cell>
-                                    <div style={{ textAlign: 'center' }}>
-                                      {variant.node.inventoryQuantity}
-                                    </div>
-                                  </IndexTable.Cell>
-                                  <IndexTable.Cell>
-                                    <div style={{ textAlign: 'center' }}>
-                                      {variant.node.price}
-                                    </div>
-                                  </IndexTable.Cell>
-                                  <IndexTable.Cell>
-                                    <FormLayout>
-                                      <TextField
-                                        value={getVariantQunatity(variant.node.id, 'min')}
-                                        label="Variant Min Limit"
-                                        type="number"
-                                        onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'min') }}
-                                      />
-                                    </FormLayout>
-                                  </IndexTable.Cell>
-                                  <IndexTable.Cell>
-                                    <FormLayout>
-                                      <TextField
-                                        value={getVariantQunatity(variant.node.id, 'max')}
-                                        label="Variant Max Limit"
-                                        type="number"
-                                        onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'max') }}
-                                      />
-                                    </FormLayout>
-                                  </IndexTable.Cell>
-                                </IndexTable.Row>
-                              ))
-                            )}
-                          </>
-                        ))}
-                      </IndexTable>
-                      {/* Pagination component*/}
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                        <Button icon={ChevronLeftIcon} accessibilityLabel="Previous Page" disabled={currentPage === 1} onClick={handlePreviousPage} />
-                        <span style={{ padding: '0.5rem', margin: '0.5rem' }}> Page {currentPage}</span>
-                        <Button icon={ChevronRightIcon} accessibilityLabel="Next Page" disabled={currentPage === totalPages} onClick={handleNextPage} />
-                      </div>
-                    </Card>
-
-                    <br />
-                    <br />
-
-                    <Card>
-                      <TextField
-                        label="Error Message for Product Minimum limit"
-                        value={errorMessages.productMinErrMsg}
-                        onChange={(value) => { handleErrorMessages("productMinErrMsg", value) }}
-                        placeholder="You can't select less than {productMin} for {productName} ."
-                        helpText="use {productMin} to include minimum limit and {productName} to include product name"
-                        autoComplete="off"
-                      />
+                          ))}
+                        </IndexTable>
+                      </Card>
                       <br />
-                      <TextField
-                        label="Error Message for Product Maximum limit"
-                        value={errorMessages.productMaxErrMsg}
-                        onChange={(value) => { handleErrorMessages("productMaxErrMsg", value) }}
-                        placeholder="Quantity limit reached, you can't select more than {productMax} for {productName}."
-                        helpText="use {productMax} to include maximum limit and {productName} to include product name"
-                        autoComplete="off"
-                      />
                       <br />
-                      <TextField
-                        label="Error Message for Product Variant Minimum limit"
-                        value={errorMessages.variantMinErrMsg}
-                        onChange={(value) => { handleErrorMessages("variantMinErrMsg", value) }}
-                        placeholder="You can't select less than {productVariantMin} for this product variant {productName}."
-                        helpText="use {productVariantMin} to include minimum limit and {productName} to include product name"
-                        autoComplete="off"
-                      />
-                      <br />
-                      <TextField
-                        label="Error Message for Product Variant Maximum limit"
-                        value={errorMessages.variantMaxErrMsg}
-                        onChange={(value) => { handleErrorMessages("variantMaxErrMsg", value) }}
-                        placeholder="Quantity limit reached, you can't select more than {productVariantMax} for {productName}."
-                        helpText="use {productVariantMax} to include maximum limit and {productName} to include product name"
-                        autoComplete="off"
-                      />
-                      <br />
-                    </Card>
 
-                  </>
-                )}
+                      <Card>
+                        <TextField
+                          label="Error Message for Category Minimum limit"
+                          value={errorMessages.categoryMinErrMsg}
+                          onChange={(value) => { handleErrorMessages("categoryMinErrMsg", value) }}
+                          placeholder="You have to select minimun {categoryMin} products from the category {categoryName}."
+                          helpText="use {categoryMin} to include minimum limit and {categoryName} to include name"
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
+                          label="Error Message for Category Maximum limit"
+                          value={errorMessages.categoryMaxErrMsg}
+                          onChange={(value) => { handleErrorMessages("categoryMaxErrMsg", value) }}
+                          placeholder="Can't select more than {categoryMax} products from the category {categoryName}"
+                          helpText="use {categoryMax} to include maximum limit and {categoryName} to include name"
+                          autoComplete="off"
+                        />
+                        <br />
+                      </Card>
+                    </>
+                  )}
 
-                {tagValue === 'Category Wise' && (
-                  <>
-                    <Card>
-                      <IndexTable
-                        headings={[
-                          {
-                            title: (
-                              <ButtonGroup>
-                                <Button onClick={() => handleSort('categoryName')} variant="tertiary">
-                                  Category Name
-                                </Button>
-                                <Button onClick={() => handleSort('categoryName')} variant="tertiary">
-                                  <Icon source={SelectIcon} />
-                                </Button>
-                              </ButtonGroup>
-                            )
-                          },
-                          {
-                            title: (
-                              <ButtonGroup>
-                                <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
-                                  Quantity Available
-                                </Button>
-                                <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
-                                  <Icon source={SelectIcon} />
-                                </Button>
-                              </ButtonGroup>
-                            )
-                          },
-                          { title: 'Min Limit' },
-                          { title: 'Max Limit' },
-                        ]}
-                        itemCount={categoriesData.length}
-                        selectable={false}
-                      >
-                        {sortedCategoryFilteredRows.map((category, index) => (
-                          <IndexTable.Row key={index}>
+                  {tagValue === 'Collection Wise' && (
+                    <>
+                      <Card>
+                        <IndexTable
+                          headings={[
+                            {
+                              title: (
+                                <ButtonGroup>
+                                  <Button onClick={() => handleSort('title')} variant="tertiary">
+                                    Collection Name
+                                  </Button>
+                                  <Button onClick={() => handleSort('title')} variant="tertiary">
+                                    <Icon source={SelectIcon} />
+                                  </Button>
+                                </ButtonGroup>
+                              )
+                            },
+                            {
+                              title: (
+                                <ButtonGroup>
+                                  <Button onClick={() => handleSort('count')} variant="tertiary">
+                                    Quantity Available
+                                  </Button>
+                                  <Button onClick={() => handleSort('count')} variant="tertiary">
+                                    <Icon source={SelectIcon} />
+                                  </Button>
+                                </ButtonGroup>
+                              )
+                            },
+                            { title: 'Min Limit' },
+                            { title: 'Max Limit' },
+                          ]}
+                          itemCount={allCollectionsData.length}
+                          selectable={false}
+                        >
+                          {sortedCollectionFilteredRows.map((collection, index) => (
+                            <IndexTable.Row key={index}>
+                              <IndexTable.Cell>
+                                {collection?.node?.title}
+                              </IndexTable.Cell>
+                              <IndexTable.Cell>
+                                {collection?.node?.productsCount?.count}
+                              </IndexTable.Cell>
+                              <IndexTable.Cell>
+                                <FormLayout>
+                                  <TextField
+                                    value={getCollectionQuantityLimit(collection?.node?.title, 'min')}
+                                    label="Collection Min Limit"
+                                    type="number"
+                                    onChange={(value) => { handleQuantityLimit(value, collection?.node?.title, 'min') }}
+                                  />
+                                  {isBlock && (<span className='red'>You can only set {freePlanlimiters.collections} collections as part of free plan</span>)}
+                                </FormLayout>
+                              </IndexTable.Cell>
+                              <IndexTable.Cell>
+                                <FormLayout>
+                                  <TextField
+                                    value={getCollectionQuantityLimit(collection?.node?.title, 'max')}
+                                    label="Collection Max Limit"
+                                    type="number"
+                                    onChange={(value) => { handleQuantityLimit(value, collection?.node?.title, 'max') }}
+                                  />
+                                </FormLayout>
+                              </IndexTable.Cell>
+                            </IndexTable.Row>
+                          ))}
+                        </IndexTable>
+                      </Card>
+                      <br />
+                      <br />
+
+                      <Card>
+                        <TextField
+                          label="Error Message for Collection Minimum limit"
+                          value={errorMessages.collectionMinErrMsg}
+                          onChange={(value) => { handleErrorMessages("collectionMinErrMsg", value) }}
+                          placeholder="You have to select minimun {collectionMin} products from the collection {collectionName}."
+                          helpText="use {collectionMin} to include minimum limit and {collectionName} to include name"
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
+                          label="Error Message for Collection Maximum limit"
+                          value={errorMessages.collectionMaxErrMsg}
+                          onChange={(value) => { handleErrorMessages("collectionMaxErrMsg", value) }}
+                          placeholder="Can't select more than {collectionMax} products from the collection {collectionName}"
+                          helpText="use {collectionMax} to include maximum limit and {collectionName} to include name"
+                          autoComplete="off"
+                        />
+                        <br />
+                      </Card>
+                    </>
+                  )}
+
+                  {tagValue === 'Store Wise' && (
+                    <>
+                      <Card>
+                        <IndexTable
+                          headings={[
+                            { title: 'Store Name' },
+                            { title: 'Total Products' },
+                            { title: 'Min Limit' },
+                            { title: 'Max Limit' }
+                          ]}
+                          itemCount={1}
+                          selectable={false}
+                        >
+
+                          <IndexTable.Row>
                             <IndexTable.Cell>
-                              {category['categoryName']}
+                              {shopName}
                             </IndexTable.Cell>
                             <IndexTable.Cell>
-                              {category['quantityLimit']}
+                              {shopLimit}
                             </IndexTable.Cell>
                             <IndexTable.Cell>
                               <FormLayout>
                                 <TextField
-                                  value={getCategoryQuantityLimit(category['categoryName'], 'min')}
-                                  label="Category Min Limit"
+                                  value={getStoreQuantityLimit(loaderData.shopId, "min")}
+                                  label="Store Min Limit"
                                   type="number"
-                                  onChange={(value) => { handleQuantityLimit(value, category['categoryName'], 'min') }}
+                                  onChange={(value) => { handleQuantityLimit(value, loaderData.shopId, "min") }}
                                 />
-                                {isBlock && (<span className='red'>You can only set {freePlanlimiters.categories} categories as part of free plan</span>)}
                               </FormLayout>
                             </IndexTable.Cell>
                             <IndexTable.Cell>
                               <FormLayout>
                                 <TextField
-                                  value={getCategoryQuantityLimit(category['categoryName'], 'max')}
-                                  label="Category Max Limit"
+                                  value={getStoreQuantityLimit(loaderData.shopId, "max")}
+                                  label="Store Max Limit"
                                   type="number"
-                                  onChange={(value) => { handleQuantityLimit(value, category['categoryName'], 'max') }}
+                                  onChange={(value) => { handleQuantityLimit(value, loaderData.shopId, "max") }}
                                 />
                               </FormLayout>
                             </IndexTable.Cell>
                           </IndexTable.Row>
-                        ))}
-                      </IndexTable>
-                    </Card>
-                    <br />
-                    <br />
+                        </IndexTable>
+                      </Card>
 
-                    <Card>
-                      <TextField
-                        label="Error Message for Category Minimum limit"
-                        value={errorMessages.categoryMinErrMsg}
-                        onChange={(value) => { handleErrorMessages("categoryMinErrMsg", value) }}
-                        placeholder="You have to select minimun {categoryMin} products from the category {categoryName}."
-                        helpText="use {categoryMin} to include minimum limit and {categoryName} to include name"
-                        autoComplete="off"
-                      />
                       <br />
-                      <TextField
-                        label="Error Message for Category Maximum limit"
-                        value={errorMessages.categoryMaxErrMsg}
-                        onChange={(value) => { handleErrorMessages("categoryMaxErrMsg", value) }}
-                        placeholder="Can't select more than {categoryMax} products from the category {categoryName}"
-                        helpText="use {categoryMax} to include maximum limit and {categoryName} to include name"
-                        autoComplete="off"
-                      />
                       <br />
-                    </Card>
-                  </>
-                )}
 
-                {tagValue === 'Collection Wise' && (
-                  <>
-                    <Card>
-                      <IndexTable
-                        headings={[
-                          {
-                            title: (
-                              <ButtonGroup>
-                                <Button onClick={() => handleSort('title')} variant="tertiary">
-                                  Collection Name
-                                </Button>
-                                <Button onClick={() => handleSort('title')} variant="tertiary">
-                                  <Icon source={SelectIcon} />
-                                </Button>
-                              </ButtonGroup>
-                            )
-                          },
-                          {
-                            title: (
-                              <ButtonGroup>
-                                <Button onClick={() => handleSort('count')} variant="tertiary">
-                                  Quantity Available
-                                </Button>
-                                <Button onClick={() => handleSort('count')} variant="tertiary">
-                                  <Icon source={SelectIcon} />
-                                </Button>
-                              </ButtonGroup>
-                            )
-                          },
-                          { title: 'Min Limit' },
-                          { title: 'Max Limit' },
-                        ]}
-                        itemCount={allCollectionsData.length}
-                        selectable={false}
-                      >
-                        {sortedCollectionFilteredRows.map((collection, index) => (
-                          <IndexTable.Row key={index}>
+                      <Card>
+                        <TextField
+                          label="Error Message for Store Minimum limit"
+                          value={errorMessages.shopMinErrMsg}
+                          onChange={(value) => { handleErrorMessages("shopMinErrMsg", value) }}
+                          placeholder="Minmum {shopMin} products are required for checkout"
+                          helpText="use {shopMin} to include minimum limit"
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
+                          label="Error Message for Store Maximum limit"
+                          value={errorMessages.shopMaxErrMsg}
+                          onChange={(value) => { handleErrorMessages("shopMaxErrMsg", value) }}
+                          placeholder="Cart exceeds {shopMax} number of products. please remove some items"
+                          helpText="use {shopMax} to include maximum limit"
+                          autoComplete="off"
+                        />
+                        <br />
+                      </Card>
+                    </>
+                  )}
+
+                  {tagValue === 'General' && (
+                    <>
+                      <Card>
+                        <IndexTable
+                          headings={[
+                            { title: 'Type Name' },
+                            { title: 'Min Limit' },
+                            { title: 'Max Limit' },
+                          ]}
+                          itemCount={2}
+                          selectable={false}
+                        >
+                          <IndexTable.Row>
                             <IndexTable.Cell>
-                              {collection?.node?.title}
-                            </IndexTable.Cell>
-                            <IndexTable.Cell>
-                              {collection?.node?.productsCount?.count}
+                              Total Cart Price ({generalLimiters?.currencyCode})
                             </IndexTable.Cell>
                             <IndexTable.Cell>
                               <FormLayout>
                                 <TextField
-                                  value={getCollectionQuantityLimit(collection?.node?.title, 'min')}
-                                  label="Collection Min Limit"
+                                  value={generalLimiters?.priceMin}
+                                  label="Price Min Limit"
                                   type="number"
-                                  onChange={(value) => { handleQuantityLimit(value, collection?.node?.title, 'min') }}
+                                  onChange={(value) => { handleGeneralLimiters("priceMin", value) }}
                                 />
-                                {isBlock && (<span className='red'>You can only set {freePlanlimiters.collections} collections as part of free plan</span>)}
                               </FormLayout>
                             </IndexTable.Cell>
                             <IndexTable.Cell>
                               <FormLayout>
                                 <TextField
-                                  value={getCollectionQuantityLimit(collection?.node?.title, 'max')}
-                                  label="Collection Max Limit"
+                                  value={generalLimiters?.priceMax}
+                                  label="Price Max Limit"
                                   type="number"
-                                  onChange={(value) => { handleQuantityLimit(value, collection?.node?.title, 'max') }}
+                                  onChange={(value) => { handleGeneralLimiters("priceMax", value) }}
                                 />
                               </FormLayout>
                             </IndexTable.Cell>
                           </IndexTable.Row>
-                        ))}
-                      </IndexTable>
-                    </Card>
-                    <br />
-                    <br />
-
-                    <Card>
-                      <TextField
-                        label="Error Message for Collection Minimum limit"
-                        value={errorMessages.collectionMinErrMsg}
-                        onChange={(value) => { handleErrorMessages("collectionMinErrMsg", value) }}
-                        placeholder="You have to select minimun {collectionMin} products from the collection {collectionName}."
-                        helpText="use {collectionMin} to include minimum limit and {collectionName} to include name"
-                        autoComplete="off"
-                      />
-                      <br />
-                      <TextField
-                        label="Error Message for Collection Maximum limit"
-                        value={errorMessages.collectionMaxErrMsg}
-                        onChange={(value) => { handleErrorMessages("collectionMaxErrMsg", value) }}
-                        placeholder="Can't select more than {collectionMax} products from the collection {collectionName}"
-                        helpText="use {collectionMax} to include maximum limit and {collectionName} to include name"
-                        autoComplete="off"
-                      />
-                      <br />
-                    </Card>
-                  </>
-                )}
-
-                {tagValue === 'Store Wise' && (
-                  <>
-                    <Card>
-                      <IndexTable
-                        headings={[
-                          { title: 'Store Name' },
-                          { title: 'Total Products' },
-                          { title: 'Min Limit' },
-                          { title: 'Max Limit' }
-                        ]}
-                        itemCount={1}
-                        selectable={false}
-                      >
-
-                        <IndexTable.Row>
-                          <IndexTable.Cell>
-                            {shopName}
-                          </IndexTable.Cell>
-                          <IndexTable.Cell>
-                            {shopLimit}
-                          </IndexTable.Cell>
-                          <IndexTable.Cell>
-                            <FormLayout>
-                              <TextField
-                                value={getStoreQuantityLimit(loaderData.shopId, "min")}
-                                label="Store Min Limit"
-                                type="number"
-                                onChange={(value) => { handleQuantityLimit(value, loaderData.shopId, "min") }}
-                              />
-                            </FormLayout>
-                          </IndexTable.Cell>
-                          <IndexTable.Cell>
-                            <FormLayout>
-                              <TextField
-                                value={getStoreQuantityLimit(loaderData.shopId, "max")}
-                                label="Store Max Limit"
-                                type="number"
-                                onChange={(value) => { handleQuantityLimit(value, loaderData.shopId, "max") }}
-                              />
-                            </FormLayout>
-                          </IndexTable.Cell>
-                        </IndexTable.Row>
-                      </IndexTable>
-                    </Card>
-
-                    <br />
-                    <br />
-
-                    <Card>
-                      <TextField
-                        label="Error Message for Store Minimum limit"
-                        value={errorMessages.shopMinErrMsg}
-                        onChange={(value) => { handleErrorMessages("shopMinErrMsg", value) }}
-                        placeholder="Minmum {shopMin} products are required for checkout"
-                        helpText="use {shopMin} to include minimum limit"
-                        autoComplete="off"
-                      />
-                      <br />
-                      <TextField
-                        label="Error Message for Store Maximum limit"
-                        value={errorMessages.shopMaxErrMsg}
-                        onChange={(value) => { handleErrorMessages("shopMaxErrMsg", value) }}
-                        placeholder="Cart exceeds {shopMax} number of products. please remove some items"
-                        helpText="use {shopMax} to include maximum limit"
-                        autoComplete="off"
-                      />
-                      <br />
-                    </Card>
-                  </>
-                )}
-
-                {tagValue === 'General' && (
-                  <>
-                    <Card>
-                      <IndexTable
-                        headings={[
-                          { title: 'Type Name' },
-                          { title: 'Min Limit' },
-                          { title: 'Max Limit' },
-                        ]}
-                        itemCount={2}
-                        selectable={false}
-                      >
-                        <IndexTable.Row>
-                          <IndexTable.Cell>
-                            Total Cart Price ({generalLimiters?.currencyCode})
-                          </IndexTable.Cell>
-                          <IndexTable.Cell>
-                            <FormLayout>
-                              <TextField
-                                value={generalLimiters?.priceMin}
-                                label="Price Min Limit"
-                                type="number"
-                                onChange={(value) => { handleGeneralLimiters("priceMin", value) }}
-                              />
-                            </FormLayout>
-                          </IndexTable.Cell>
-                          <IndexTable.Cell>
-                            <FormLayout>
-                              <TextField
-                                value={generalLimiters?.priceMax}
-                                label="Price Max Limit"
-                                type="number"
-                                onChange={(value) => { handleGeneralLimiters("priceMax", value) }}
-                              />
-                            </FormLayout>
-                          </IndexTable.Cell>
-                        </IndexTable.Row>
-                        <IndexTable.Row>
-                          <IndexTable.Cell>
-                            Total Cart Weight ({generalLimiters?.weightUnit})
-                          </IndexTable.Cell>
-                          <IndexTable.Cell>
-                            <FormLayout>
-                              <TextField
-                                value={generalLimiters?.weightMin}
-                                label="Weight Min Limit"
-                                type="number"
-                                onChange={(value) => { handleGeneralLimiters("weightMin", value) }}
-                              />
-                            </FormLayout>
-                          </IndexTable.Cell>
-                          <IndexTable.Cell>
-                            <FormLayout>
-                              <TextField
-                                value={generalLimiters?.weightMax}
-                                label="Weight Max Limit"
-                                type="number"
-                                onChange={(value) => { handleGeneralLimiters("weightMax", value) }}
-                              />
-                            </FormLayout>
-                          </IndexTable.Cell>
-                        </IndexTable.Row>
-                      </IndexTable>
-                    </Card>
-
-                    <br />
-                    <br />
-
-                    <Card>
-                      <TextField
-                        label="Error Message for Price Minimum limit"
-                        value={errorMessages.priceMinErrMsg}
-                        onChange={(value) => { handleErrorMessages("priceMinErrMsg", value) }}
-                        placeholder="Minmum amount {priceMin} {currencyCode} is required for checkout"
-                        helpText="use {priceMin} to include minimum price, {currencyCode} to include currency code."
-                        autoComplete="off"
-                      />
-                      <br />
-                      <TextField
-                        label="Error Message for Price Maximum limit"
-                        value={errorMessages.priceMaxErrMsg}
-                        onChange={(value) => { handleErrorMessages("priceMaxErrMsg", value) }}
-                        placeholder="Cart exceeds amount {priceMax} {currencyCode} please remove some items"
-                        helpText="use {priceMax} to include maximum price, {currencyCode} to include currency code."
-                        autoComplete="off"
-                      />
-                      <br />
-                      <TextField
-                        label="Error Message for Weight Minimum limit"
-                        value={errorMessages.weightMinErrMsg}
-                        onChange={(value) => { handleErrorMessages("weightMinErrMsg", value) }}
-                        placeholder="Minmum weight {weightMin} {weightUnit} is required for checkout"
-                        helpText="use {weightMin} to include minimum weight, {weightUnit} to include unit."
-                        autoComplete="off"
-                      />
-                      <br />
-                      <TextField
-                        label="Error Message for Weight Maximum limit"
-                        value={errorMessages.weightMaxErrMsg}
-                        onChange={(value) => { handleErrorMessages("weightMaxErrMsg", value) }}
-                        placeholder="Cart exceeds weight {weightMax} {weightUnit} please remove some items"
-                        helpText="use {weightMax} to include maximum weight, {weightUnit} to include unit."
-                        autoComplete="off"
-                      />
-                      <br />
-                    </Card>
-                  </>
-                )}
-
-                {tagValue === 'Vendor Wise' && (
-                  <>
-                    <Card>
-                      <IndexTable
-                        headings={[
-                          {
-                            title: (
-                              <ButtonGroup>
-                                <Button onClick={() => handleSort('vendorName')} variant="tertiary">
-                                  Vendor Name
-                                </Button>
-                                <Button onClick={() => handleSort('vendorName')} variant="tertiary">
-                                  <Icon source={SelectIcon} />
-                                </Button>
-                              </ButtonGroup>
-                            )
-                          },
-                          {
-                            title: (
-                              <ButtonGroup>
-                                <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
-                                  Quantity Available
-                                </Button>
-                                <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
-                                  <Icon source={SelectIcon} />
-                                </Button>
-                              </ButtonGroup>
-                            )
-                          },
-                          { title: 'Min Limit' },
-                          { title: 'Max Limit' },
-                        ]}
-                        itemCount={vendorsData.length}
-                        selectable={false}
-                      >
-                        {sortedVendorFilteredRows.map((vendor, index) => (
-                          <IndexTable.Row key={index}>
+                          <IndexTable.Row>
                             <IndexTable.Cell>
-                              {vendor['vendorName']}
-                            </IndexTable.Cell>
-                            <IndexTable.Cell>
-                              {vendor['quantityLimit']}
+                              Total Cart Weight ({generalLimiters?.weightUnit})
                             </IndexTable.Cell>
                             <IndexTable.Cell>
                               <FormLayout>
                                 <TextField
-                                  value={getVendorQuantityLimit(vendor['vendorName'], 'min')}
-                                  label="Vendor Min Limit"
+                                  value={generalLimiters?.weightMin}
+                                  label="Weight Min Limit"
                                   type="number"
-                                  onChange={(value) => { handleQuantityLimit(value, vendor['vendorName'], 'min') }}
+                                  onChange={(value) => { handleGeneralLimiters("weightMin", value) }}
                                 />
-                                {isBlock && (<span className='red'>You can only set {freePlanlimiters.vendors} vendors as part of free plan</span>)}
                               </FormLayout>
                             </IndexTable.Cell>
                             <IndexTable.Cell>
                               <FormLayout>
                                 <TextField
-                                  value={getVendorQuantityLimit(vendor['vendorName'], 'max')}
-                                  label="Vendor Max Limit"
+                                  value={generalLimiters?.weightMax}
+                                  label="Weight Max Limit"
                                   type="number"
-                                  onChange={(value) => { handleQuantityLimit(value, vendor['vendorName'], 'max') }}
+                                  onChange={(value) => { handleGeneralLimiters("weightMax", value) }}
                                 />
                               </FormLayout>
                             </IndexTable.Cell>
                           </IndexTable.Row>
-                        ))}
-                      </IndexTable>
-                    </Card>
-                    <br />
-                    <br />
+                        </IndexTable>
+                      </Card>
 
-                    <Card>
-                      <TextField
-                        label="Error Message for Vendor Minimum limit"
-                        value={errorMessages.vendorMinErrMsg}
-                        onChange={(value) => { handleErrorMessages("vendorMinErrMsg", value) }}
-                        placeholder="You have to select minimun {vendorMin} products from the vendor {vendorName}."
-                        helpText="use {vendorMin} to include minimum limit and {vendorName} to include name"
-                        autoComplete="off"
-                      />
                       <br />
-                      <TextField
-                        label="Error Message for vendor Maximum limit"
-                        value={errorMessages.vendorMaxErrMsg}
-                        onChange={(value) => { handleErrorMessages("vendorMaxErrMsg", value) }}
-                        placeholder="Can't select more than {vendorMax} products from the vendor {vendorName}"
-                        helpText="use {vendorMax} to include maximum limit and {vendorName} to include name"
-                        autoComplete="off"
-                      />
                       <br />
-                    </Card>
-                  </>
-                )}
-              </Layout.Section>
-            </Layout>
-          </BlockStack>
+
+                      <Card>
+                        <TextField
+                          label="Error Message for Price Minimum limit"
+                          value={errorMessages.priceMinErrMsg}
+                          onChange={(value) => { handleErrorMessages("priceMinErrMsg", value) }}
+                          placeholder="Minmum amount {priceMin} {currencyCode} is required for checkout"
+                          helpText="use {priceMin} to include minimum price, {currencyCode} to include currency code."
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
+                          label="Error Message for Price Maximum limit"
+                          value={errorMessages.priceMaxErrMsg}
+                          onChange={(value) => { handleErrorMessages("priceMaxErrMsg", value) }}
+                          placeholder="Cart exceeds amount {priceMax} {currencyCode} please remove some items"
+                          helpText="use {priceMax} to include maximum price, {currencyCode} to include currency code."
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
+                          label="Error Message for Weight Minimum limit"
+                          value={errorMessages.weightMinErrMsg}
+                          onChange={(value) => { handleErrorMessages("weightMinErrMsg", value) }}
+                          placeholder="Minmum weight {weightMin} {weightUnit} is required for checkout"
+                          helpText="use {weightMin} to include minimum weight, {weightUnit} to include unit."
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
+                          label="Error Message for Weight Maximum limit"
+                          value={errorMessages.weightMaxErrMsg}
+                          onChange={(value) => { handleErrorMessages("weightMaxErrMsg", value) }}
+                          placeholder="Cart exceeds weight {weightMax} {weightUnit} please remove some items"
+                          helpText="use {weightMax} to include maximum weight, {weightUnit} to include unit."
+                          autoComplete="off"
+                        />
+                        <br />
+                      </Card>
+                    </>
+                  )}
+
+                  {tagValue === 'Vendor Wise' && (
+                    <>
+                      <Card>
+                        <IndexTable
+                          headings={[
+                            {
+                              title: (
+                                <ButtonGroup>
+                                  <Button onClick={() => handleSort('vendorName')} variant="tertiary">
+                                    Vendor Name
+                                  </Button>
+                                  <Button onClick={() => handleSort('vendorName')} variant="tertiary">
+                                    <Icon source={SelectIcon} />
+                                  </Button>
+                                </ButtonGroup>
+                              )
+                            },
+                            {
+                              title: (
+                                <ButtonGroup>
+                                  <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
+                                    Quantity Available
+                                  </Button>
+                                  <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
+                                    <Icon source={SelectIcon} />
+                                  </Button>
+                                </ButtonGroup>
+                              )
+                            },
+                            { title: 'Min Limit' },
+                            { title: 'Max Limit' },
+                          ]}
+                          itemCount={vendorsData.length}
+                          selectable={false}
+                        >
+                          {sortedVendorFilteredRows.map((vendor, index) => (
+                            <IndexTable.Row key={index}>
+                              <IndexTable.Cell>
+                                {vendor['vendorName']}
+                              </IndexTable.Cell>
+                              <IndexTable.Cell>
+                                {vendor['quantityLimit']}
+                              </IndexTable.Cell>
+                              <IndexTable.Cell>
+                                <FormLayout>
+                                  <TextField
+                                    value={getVendorQuantityLimit(vendor['vendorName'], 'min')}
+                                    label="Vendor Min Limit"
+                                    type="number"
+                                    onChange={(value) => { handleQuantityLimit(value, vendor['vendorName'], 'min') }}
+                                  />
+                                  {isBlock && (<span className='red'>You can only set {freePlanlimiters.vendors} vendors as part of free plan</span>)}
+                                </FormLayout>
+                              </IndexTable.Cell>
+                              <IndexTable.Cell>
+                                <FormLayout>
+                                  <TextField
+                                    value={getVendorQuantityLimit(vendor['vendorName'], 'max')}
+                                    label="Vendor Max Limit"
+                                    type="number"
+                                    onChange={(value) => { handleQuantityLimit(value, vendor['vendorName'], 'max') }}
+                                  />
+                                </FormLayout>
+                              </IndexTable.Cell>
+                            </IndexTable.Row>
+                          ))}
+                        </IndexTable>
+                      </Card>
+                      <br />
+                      <br />
+
+                      <Card>
+                        <TextField
+                          label="Error Message for Vendor Minimum limit"
+                          value={errorMessages.vendorMinErrMsg}
+                          onChange={(value) => { handleErrorMessages("vendorMinErrMsg", value) }}
+                          placeholder="You have to select minimun {vendorMin} products from the vendor {vendorName}."
+                          helpText="use {vendorMin} to include minimum limit and {vendorName} to include name"
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
+                          label="Error Message for vendor Maximum limit"
+                          value={errorMessages.vendorMaxErrMsg}
+                          onChange={(value) => { handleErrorMessages("vendorMaxErrMsg", value) }}
+                          placeholder="Can't select more than {vendorMax} products from the vendor {vendorName}"
+                          helpText="use {vendorMax} to include maximum limit and {vendorName} to include name"
+                          autoComplete="off"
+                        />
+                        <br />
+                      </Card>
+                    </>
+                  )}
+                </Layout.Section>
+              </Layout>
+            </BlockStack>
+          </div>
         </Page>
       )}
     </>
