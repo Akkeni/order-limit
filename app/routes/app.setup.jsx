@@ -45,20 +45,28 @@ export default function SetUp() {
     return (
         <Page>
             <ui-title-bar title="Setup" />
-            <InlineStack gap="400">
-                <Link url='/app' onClick={() => setIsLoading(true)}>Home</Link>
-                <Link url='/app/help' onClick={() => setIsLoading(true)}>Help</Link>
-                <Link url='/app/pricing' onClick={() => setIsLoading(true)}>Plan</Link>
-            </InlineStack>
+            <div className='container'>
+                <div className='row'>
+                    <div className='col pL-1'>
+                        <InlineStack gap="400">
+                            <Link url='/app' onClick={() => setIsLoading(true)}>Home</Link>
+                            <Link url='/app/help' onClick={() => setIsLoading(true)}>Help</Link>
+                            <Link url='/app/pricing' onClick={() => setIsLoading(true)}>Plan</Link>
+                        </InlineStack>
+                    </div>
+                </div>
+            </div>
 
             <br />
             <br />
             <div className='container'>
                 <div className='row'>
-                    <div className='col'>
-                        <Text variant="headingLg" as="h5">
+                    <div className='col pL-1'>
+                        <Text variant="headingLg" as="h5" className="pL-1">
                             Steps to follow to set up the app after installation
                         </Text>
+                    </div>
+                    <div className='col'>
                         <ul>
                             <li>
                                 <strong>
@@ -69,13 +77,13 @@ export default function SetUp() {
                                         <b>Step 1: </b> Go to settings and click on Checkout, scroll down to the bottom and click on 'Add rule'.
                                     </dt>
                                     <dd>
-                                        <img src="https://i.postimg.cc/y6DR29wm/cart-Extension1.png" alt="Cart Extension 1" style={{ height: '450px', margin: '10px' }} />
+                                        <img src="https://i.postimg.cc/y6DR29wm/cart-Extension1.png" alt="Cart Extension 1" className='responsive-image' />
                                     </dd>
                                     <dt>
                                         <b>Step 2: </b> Click on order-limit-validation. Then click on 'save', and click on 'Turn on' to activate the validation.
                                     </dt>
                                     <dd>
-                                        <img src="https://i.postimg.cc/L6f18S4h/cart-Extension2.png" alt="Cart Extension 2" style={{ height: '450px', margin: '10px' }} />
+                                        <img src="https://i.postimg.cc/L6f18S4h/cart-Extension2.png" alt="Cart Extension 2" className='responsive-image' />
                                     </dd>
                                 </dl>
                             </li>

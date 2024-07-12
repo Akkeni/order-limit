@@ -55,10 +55,7 @@ export const action = async ({ request }) => {
         //await deleteNonPlanData(admin.graphql);
       }
       break;
-
-    case "CARTS_UPDATE":
-      break;
-
+      
     case "CUSTOMERS_DATA_REQUEST":
     case "CUSTOMERS_REDACT":
     case "SHOP_REDACT":
