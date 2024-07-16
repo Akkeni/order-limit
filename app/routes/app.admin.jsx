@@ -231,7 +231,7 @@ export default function Admin() {
     }
     return (
         <Page>
-            <ui-title-bar title="Admin Login" />
+            {admin ? <ui-title-bar title="Set Free Plan Limiters" /> : <ui-title-bar title="Admin Login" />}
             <div>
 
                 {error && (
@@ -279,47 +279,57 @@ export default function Admin() {
 
 
                 {admin && (
-                    <Card>
-                        <BlockStack>
-                            <FormLayout>
-                                <InlineStack gap="200">
-                                    <TextField
-                                        value={limiters.products}
-                                        label="Products"
-                                        type="number"
-                                        onChange={(value) => { handleLimiters(value, 'products') }}
-                                        requiredIndicator
-                                    />
-                                    <TextField
-                                        value={limiters.categories}
-                                        label="Categories"
-                                        type="number"
-                                        onChange={(value) => { handleLimiters(value, 'categories') }}
-                                        requiredIndicator
-                                    />
-                                    <TextField
-                                        value={limiters.collections}
-                                        label="Collections"
-                                        type="number"
-                                        onChange={(value) => { handleLimiters(value, 'collections') }}
-                                        requiredIndicator
-                                    />
-                                    <TextField
-                                        value={limiters.vendors}
-                                        label="Vendors"
-                                        type="number"
-                                        onChange={(value) => { handleLimiters(value, 'vendors') }}
-                                        requiredIndicator
-                                    />
-                                </InlineStack>
-                                <div style={{ float: 'right' }}>
-                                    <InlineStack inlineAlignment="end" gap="none">
-                                        <Button variant="primary" onClick={handleSave}>Save</Button>
+                    <>
+                        <Banner
+                            tone="info"
+                        >
+                            Use these customizable fields to determine the specific allowances for the free plan. 
+                            You can set limits on the number of products, categories, collections, and vendors available within this plan.
+                            For instance, you might decide to allow up to 50 Products, 5 Categories, 3 Collections, and 2 Vendors for users on the free tier.
+                        </Banner>
+                        <br />
+                        <Card>
+                            <BlockStack>
+                                <FormLayout>
+                                    <InlineStack gap="200">
+                                        <TextField
+                                            value={limiters.products}
+                                            label="Products"
+                                            type="number"
+                                            onChange={(value) => { handleLimiters(value, 'products') }}
+                                            requiredIndicator
+                                        />
+                                        <TextField
+                                            value={limiters.categories}
+                                            label="Categories"
+                                            type="number"
+                                            onChange={(value) => { handleLimiters(value, 'categories') }}
+                                            requiredIndicator
+                                        />
+                                        <TextField
+                                            value={limiters.collections}
+                                            label="Collections"
+                                            type="number"
+                                            onChange={(value) => { handleLimiters(value, 'collections') }}
+                                            requiredIndicator
+                                        />
+                                        <TextField
+                                            value={limiters.vendors}
+                                            label="Vendors"
+                                            type="number"
+                                            onChange={(value) => { handleLimiters(value, 'vendors') }}
+                                            requiredIndicator
+                                        />
                                     </InlineStack>
-                                </div>
-                            </FormLayout>
-                        </BlockStack>
-                    </Card>
+                                    <div style={{ float: 'right' }}>
+                                        <InlineStack inlineAlignment="end" gap="none">
+                                            <Button variant="primary" onClick={handleSave}>Save</Button>
+                                        </InlineStack>
+                                    </div>
+                                </FormLayout>
+                            </BlockStack>
+                        </Card>
+                    </>
                 )}
             </div>
         </Page>
