@@ -90,6 +90,36 @@ export default function SetUp() {
                             <br />
                         </ul>
                     </div>
+                    <div className='col'>
+                        <ul>
+                            <li>
+                                <strong>
+                                    Block Extension: You can set min/max limits to product, category, vendor, and collection from their respective details pages.
+                                </strong>
+                                <dl>
+                                    <dt>
+                                        <b>Step 1: </b> Go to any product detail page and click on '+ App block'.
+                                    </dt>
+                                    <dd>
+                                        <img src="https://i.postimg.cc/WbMFtvC0/Block-Extension1.png" alt="Block Extension 1" className='responsive-image' />
+                                    </dd>
+                                    <dt>
+                                        <b>Step 2: </b> Click on limiter-display-block to add app block. Now you can add and update product, category, vedor min/max limits.
+                                    </dt>
+                                    <dd>
+                                        <img src="https://i.postimg.cc/bwgZHRzJ/Block-Extension2.png" alt="Block Extension 2" className='responsive-image' />
+                                    </dd>
+                                    <dt>
+                                        <b>Step 3: </b> Now add app block on Collection details page. By using this block, You can add and update min/max limits to collection.
+                                    </dt>
+                                    <dd>
+                                        <img src="https://i.postimg.cc/mrrtdFDS/Collection-Block-Extension1.png" alt="Block Extension 2" className='responsive-image' />
+                                    </dd>
+                                </dl>
+                            </li>
+                            <br />
+                        </ul>
+                    </div>
                 </div>
             </div>
 
