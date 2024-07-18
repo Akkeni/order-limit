@@ -827,7 +827,7 @@ export default function Index() {
   const shopify = useAppBridge();
   const [searchValue, setSearchValue] = useState('');
   const [success, setSuccess] = useState(false);
-  const [tagValue, setTagValue] = useState((plan != "paidPlan") ? 'Vendor Wise' : 'Store Wise');
+  const [tagValue, setTagValue] = useState((plan != "paidPlan") ? 'Product Wise' : 'General');
   const [quantityLimit, setQuantityLimit] = useState([]);
   const [variantQuantityLimits, setVariantQuantityLimits] = useState({});
 
@@ -837,6 +837,7 @@ export default function Index() {
   const [sortDirection, setSortDirection] = useState('ascending');
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [previousPage, setPreviousPage] = useState(1);
   const recordsPerPage = 4;
 
   const [errorMessages, setErrorMessages] = useState({
@@ -878,7 +879,7 @@ export default function Index() {
 
   const collectionIds = [];
 
-  const tagOptions = (plan != "paidPlan") ? ['Vendor Wise', 'Collection Wise', 'Category Wise', 'Product Wise'] : ['Store Wise', 'General', 'Vendor Wise', 'Collection Wise', 'Category Wise', 'Product Wise']
+  const tagOptions = (plan != "paidPlan") ? ['Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise'] : ['General', 'Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise', 'Store Wise']
 
   const existingLimiters = loaderData?.existingLimiters ? loaderData.existingLimiters : [];
   const [freePlanlimiters, setFreePlanLimiters] = useState({
@@ -909,8 +910,16 @@ export default function Index() {
   }, [actionData]);
 
 
-
-
+  useEffect(() => {
+    if (searchValue !== '' && currentPage !== 1) {
+      setPreviousPage(currentPage);
+    }
+    if (searchValue == '') {
+      setCurrentPage(previousPage);
+    } else {
+      setCurrentPage(1);
+    }
+  }, [searchValue]);
 
   // Filter rows based on search value
   const filteredCategoryRows = categoriesData.filter(row =>
