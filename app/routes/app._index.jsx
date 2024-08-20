@@ -1454,7 +1454,7 @@ export default function Index() {
     }
     return true;
   };
-
+  // console.log('count ', countOfTotalProductsWithLimits);
   const handleQuantityLimit = async (value, id, range = '') => {
     if (Number(value) < 0) {
       return;
@@ -1876,7 +1876,7 @@ export default function Index() {
       {!showConfirmation && (
 
         <Page fullWidth={true}>
-          <ui-title-bar title="Order Limit"></ui-title-bar>
+          <ui-title-bar title="CartControl: Order Limit"></ui-title-bar>
 
           <div className='pL-1'>
 
