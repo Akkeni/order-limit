@@ -15,6 +15,7 @@ import {
     Link,
     Tooltip,
     ButtonGroup,
+    Icon
 } from "@shopify/polaris";
 import { json } from "@remix-run/node";
 import { useLoaderData, useNavigate, useActionData, useSubmit } from "@remix-run/react";
@@ -22,13 +23,23 @@ import { authenticate, MONTHLY_PLAN, ANNUAL_PLAN } from "../shopify.server";
 import { createPlanNameMetafield } from '../models/Subscription.server';
 import '../resources/style.css';
 import {
-    CheckCircleIcon
+    CheckCircleIcon,
+    InfoIcon
 } from '@shopify/polaris-icons'
 import { useState, useEffect, useCallback } from "react";
 
 export async function loader({ request }) {
     const { admin, billing } = await authenticate.admin(request);
 
+    const monthlyPlanAmount = process.env.MONTHLY_PLAN_AMOUNT;
+    const annualPlanAmount = process.env.ANNUAL_PLAN_AMOUNT;
+    const discountPercentage = process.env.DISCOUNT_PERCENT;
+    const freePlanLimiters ={
+        freePlanProductLimit: process.env.FREE_PLAN_PRODUCT_LIMIT,
+        freePlanCategoryLimit: process.env.FREE_PLAN_CATEGORY_LIMIT,
+        freePlanCollectionLimit: process.env.FREE_PLAN_COLLECTION_LIMIT,
+        freePlanVendorLimit: process.env.FREE_PLAN_VENDOR_LIMIT,
+    }
     let expire = 'true';
     let currentDateStr = new Date();
     let endDateStr = '';
@@ -47,7 +58,7 @@ export async function loader({ request }) {
 
         // If the shop has an active subscription, log and return the details
         const subscription = billingCheck.appSubscriptions[0];
-        return json({ billing, plan: subscription, expire, endDateStr });
+        return json({ billing, plan: subscription, expire, endDateStr, monthlyPlanAmount, annualPlanAmount, discountPercentage, freePlanLimiters });
 
     } catch (error) {
         // If the shop does not have an active plan, return an empty plan object
@@ -94,7 +105,7 @@ export async function loader({ request }) {
             } else {
                 expire = "true";
             }
-            return json({ billing, plan: { name: "Free Subscription" }, expire, endDateStr });
+            return json({ billing, plan: { name: "Free Subscription" }, expire, endDateStr, monthlyPlanAmount, annualPlanAmount, discountPercentage, freePlanLimiters });
         }
         // If there is another error, rethrow it
         throw error;
@@ -110,66 +121,99 @@ export async function action({ request }) {
     });
 }
 
-let planData = [
-    {
-        title: "Free",
-        description: "Free plan",
-        price: "0",
-        action: "Subscribe",
-        name: "Free Subscription",
-        url: "/app",
-        features: [
-            "Product Wise Limit",
-            "Category Wise Limit",
-            "Collection Wise Limit",
-            "Vendor Wise Limit",
-        ]
-    },
-    {
-        title: "Monthly",
-        description: "Monthly plan",
-        price: "5",
-        action: "Subscribe",
-        name: "Monthly Subscription",
-        url: "/app/subscribe/monthly",
-        features: [
-            "General limits price, weight",
-            "Product Wise Limit",
-            "Category Wise Limit",
-            "Collection Wise Limit",
-            "Vendor Wise Limit",
-            "Store Wise Limit",
-        ]
-    },
-    {
-        title: "Annual",
-        description: "Annual plan",
-        price: "50",
-        name: "Annual Subscription",
-        action: "Subscribe",
-        url: "/app/subscribe/annualy",
-        features: [
-            "General limits price, weight",
-            "Product Wise Limit",
-            "Category Wise Limit",
-            "Collection Wise Limit",
-            "Vendor Wise Limit",
-            "Store Wise Limit",
-        ]
-    },
-]
+
 
 export default function PricingPage() {
-    const { plan } = useLoaderData();
+    const { plan, monthlyPlanAmount, annualPlanAmount, discountPercentage } = useLoaderData();
     const loaderData = useLoaderData();
     const actionData = useActionData();
     const submit = useSubmit();
+    const freePlanLimiters = loaderData?.freePlanLimiters;
     const expire = loaderData?.expire;
     const endDate = loaderData?.endDateStr ? loaderData?.endDateStr : '';
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [activeButtonIndex, setActiveButtonIndex] = useState(plan.name != "Free Subscription" ? plan.name : "Annual Subscription");
+    const infoIcon = (
+        <Icon source={InfoIcon} tone="subdued"  className="icon small-icon"  />
+    );
+
+    let planData = [
+        {
+            title: "Free",
+            description: "Free plan",
+            price: "0",
+            action: "Subscribe",
+            name: "Free Subscription",
+            url: "/app",
+            features: [
+                <>
+                    
+                    <span className="text-with-icon">Product Wise Limit
+                        <Tooltip content={`You are allowed to set limits for up to ${freePlanLimiters.freePlanProductLimit} products`}>
+                            {infoIcon}
+                        </Tooltip>
+                    </span>
+                    
+                </>,
+                <>
+                    <span className="text-with-icon">Category Wise Limit
+                        <Tooltip content={`You are allowed to set limits for up to ${freePlanLimiters.freePlanCategoryLimit} categories`}>
+                            {infoIcon}
+                        </Tooltip>
+                    </span>
+                </>,
+                // Include the infoIcon as a separate item in the array
+                <>
+                    <span className="text-with-icon">Collection Wise Limit
+                        <Tooltip content={`You are allowed to set limits for up to ${freePlanLimiters.freePlanCollectionLimit} collections`}>
+                            {infoIcon}
+                        </Tooltip>
+                    </span>
+                </>,
+                <>
+                    <span className="text-with-icon">Vendor Wise Limit
+                        <Tooltip content={`You are allowed to set limits for up to ${freePlanLimiters.freePlanVendorLimit} vendors`}>
+                            {infoIcon}
+                        </Tooltip>
+                    </span>
+                </>,
+            ]
+        },
+        {
+            title: "Monthly",
+            description: "Monthly plan",
+            price: `${monthlyPlanAmount}`,
+            action: "Subscribe",
+            name: "Monthly Subscription",
+            url: "/app/subscribe/monthly",
+            features: [
+                "General limits price, weight",
+                "Product Wise Limit",
+                "Category Wise Limit",
+                "Collection Wise Limit",
+                "Vendor Wise Limit",
+                "Store Wise Limit",
+            ]
+        },
+        {
+            title: "Annual",
+            description: "Annual plan",
+            price: `${annualPlanAmount}`,
+            name: "Annual Subscription",
+            action: "Subscribe",
+            url: "/app/subscribe/annualy",
+            features: [
+                "General limits price, weight",
+                "Product Wise Limit",
+                "Category Wise Limit",
+                "Collection Wise Limit",
+                "Vendor Wise Limit",
+                "Store Wise Limit",
+            ]
+        },
+    ]
 
     const handleButtonClick = useCallback(
         (index) => {
@@ -338,7 +382,7 @@ export default function PricingPage() {
                                                     {plan_item.price === "0" ? "" : "$" + plan_item.price}
                                                 </Text>
                                                 {(plan_item.name === "Annual Subscription") &&
-                                                    <Text as="span" tone="success">With discount 16.67%</Text>
+                                                    <Text as="span" tone="success">With discount { discountPercentage }%</Text>
                                                 }
                                             </Box>
 
@@ -354,6 +398,7 @@ export default function PricingPage() {
                                                             {
                                                                 icon: CheckCircleIcon,
                                                                 description: feature,
+                                                                
                                                             },
                                                         ]}
                                                     />

@@ -25,14 +25,14 @@ const shopify = shopifyApp({
   restResources,
   billing: {
     [MONTHLY_PLAN]: {
-      amount: 5,
+      amount: Number(process.env.MONTHLY_PLAN_AMOUNT),
       currencyCode: "USD",
       interval: BillingInterval.Every30Days,
       trialDays: Number(process.env.TRIAL_DAYS),
       replacementBehavior: "APPLY_ON_NEXT_BILLING_CYCLE",
     },
     [ANNUAL_PLAN]: {
-      amount: 50,
+      amount: Number(process.env.ANNUAL_PLAN_AMOUNT),
       currencyCode: "USD",
       interval: BillingInterval.Annual,
       trialDays: Number(process.env.TRIAL_DAYS),
