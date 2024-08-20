@@ -2214,7 +2214,7 @@ export default function Index() {
                               title: (
                                 <ButtonGroup>
                                   <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
-                                    Quantity Available
+                                    Products Available
                                   </Button>
                                   <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
                                     <Icon source={SelectIcon} />
@@ -2308,7 +2308,7 @@ export default function Index() {
                               title: (
                                 <ButtonGroup>
                                   <Button onClick={() => handleSort('count')} variant="tertiary">
-                                    Quantity Available
+                                    Products Available
                                   </Button>
                                   <Button onClick={() => handleSort('count')} variant="tertiary">
                                     <Icon source={SelectIcon} />
@@ -2582,7 +2582,7 @@ export default function Index() {
                               title: (
                                 <ButtonGroup>
                                   <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
-                                    Quantity Available
+                                    Products Available
                                   </Button>
                                   <Button onClick={() => handleSort('quantityLimit')} variant="tertiary">
                                     <Icon source={SelectIcon} />
