@@ -282,6 +282,144 @@ async function makeGraphQLQuery(query, variables) {
   return await res.json();
 }
 
+function getAllProductsInCategory(categoryName, allProductsData) {
+  let quantityLimit = 0;
+  let obj = {};
+  for (const edge of allProductsData) {
+    const productCategory = edge.node.category ? edge.node.category.name : null;
+    // If the product category matches the current category, increment the count
+    if (productCategory === categoryName) {
+      quantityLimit++;
+    }
+  }
+  obj['categoryName'] = categoryName;
+  obj['quantityLimit'] = quantityLimit;
+  return quantityLimit;
+}
+
+function getAllProductsInVendor(vendorName, allProductsData) {
+        let quantityLimit = 0;
+        let name = vendorName;
+        let obj = {};
+        for (const edge of allProductsData) {
+          const productVendor = edge.node?.vendor ? edge.node?.vendor : null;
+          // If the product vendor matches the current vendor, increment the count
+          if (productVendor === name) {
+            quantityLimit++;
+          }
+        }
+        obj['vendorName'] = name;
+        obj['quantityLimit'] = quantityLimit;
+        return quantityLimit;
+}
+
+function getAllProductsInCollection(collectionName, allCollectionsData) {
+
+  const countOfProducts = allCollectionsData.find((item) => item.node?.title === collectionName)?.node?.productsCount?.count;
+  return countOfProducts;
+}
+
+export async function getExistingProductLimits(productId) {
+  let totalProductsCount = 0;
+
+  let productLimitCounts = {};
+  let vendorCounts = {};
+  let categoryCounts = {};
+  let collectionCounts = {};
+
+  const collectionData  = await makeGraphQLQuery (`query AllCollections {
+    collections(first: 250) {
+      edges {
+        node {
+          id
+          title
+          productsCount {
+            count
+          }
+        }
+      }
+    }
+  }`, {});
+
+  const productData = await getLimiters(productId);
+
+  const currentCategoryName = productData?.data?.product?.category?.name;
+  const currentVendorName = productData?.data?.product?.vendor;
+
+  const allCollectionsData = collectionData?.data?.collections?.edges;
+  const allProductsData = await getAllProductsData();
+
+  const currentProductsInCategory = getAllProductsInCategory(currentCategoryName, allProductsData);
+  const currentProductsInVendor = getAllProductsInVendor(currentVendorName, allProductsData);
+
+  allProductsData.forEach(item => {
+    const node = item.node;
+
+    if (node.productLimitField && node.productLimitField.value) {
+      const productLimitValues = node.productLimitField.value.split(',');
+      const productLimits = productLimitValues.slice(0, 2).map(Number);
+      const vendorName = productLimitValues[2];
+      const vendorLimits = productLimitValues.slice(3, 5).map(Number);
+      const productName = productLimitValues[5];
+
+      if (productLimits.some(value => value !== 0)) {
+        if (!productLimitCounts[productName]) {
+          productLimitCounts[productName] = 0;
+          totalProductsCount = totalProductsCount + 1;
+        }
+        productLimitCounts[productName]++;
+      }
+
+      if (vendorLimits.some(value => value !== 0)) {
+        if (!vendorCounts[vendorName]) {
+          vendorCounts[vendorName] = 0;
+          totalProductsCount = totalProductsCount + getAllProductsInVendor(vendorName, allProductsData);
+        }
+        vendorCounts[vendorName]++;
+      }
+    }
+
+    if (node.categoryLimitField && node.categoryLimitField.value) {
+      const categoryValues = node.categoryLimitField.value.split(',');
+      const categoryName = categoryValues[0].trim();
+      const categoryLimits = categoryValues.slice(1).map(Number);
+
+      if (categoryLimits.some(value => value !== 0)) {
+        if (!categoryCounts[categoryName]) {
+          categoryCounts[categoryName] = 0;
+          totalProductsCount = totalProductsCount + getAllProductsInCategory(categoryName, allProductsData);
+        }
+        categoryCounts[categoryName]++;
+      }
+    }
+
+    if (node.collectionLimitField && node.collectionLimitField.value) {
+      const collectionValues = node.collectionLimitField.value.split(',');
+      const collectionName = collectionValues[0].trim();
+      const collectionLimits = collectionValues.slice(1).map(Number);
+
+      if (collectionLimits.some(value => value !== 0)) {
+        if (!collectionCounts[collectionName]) {
+          collectionCounts[collectionName] = 0;
+          totalProductsCount = totalProductsCount +  getAllProductsInCollection(collectionName, allCollectionsData);
+        }
+        collectionCounts[collectionName]++;
+      }
+    }
+  });
+
+  const productCount = totalProductsCount + 1;
+  const categoryCount = totalProductsCount + currentProductsInCategory;
+  const vendorCount = totalProductsCount + currentProductsInVendor;
+
+return {
+    productCount,
+    vendorCount,
+    categoryCount
+  };
+}
+
+
 export async function getExistingLimits() {
   const allProductsData = await getAllProductsData();
 
@@ -356,6 +494,10 @@ async function getAllProductsData() {
                     id
                     value
                   }
+                  collectionLimitField: metafield(namespace: "collectionLimit", key: "collectionLimit") {
+                    id
+                    value
+                  }
                 }    
             }
         }
@@ -384,6 +526,10 @@ async function getAllProductsData() {
                     value
                   }
                   categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+                    id
+                    value
+                  }
+                  collectionLimitField: metafield(namespace: "collectionLimit", key: "collectionLimit") {
                     id
                     value
                   }

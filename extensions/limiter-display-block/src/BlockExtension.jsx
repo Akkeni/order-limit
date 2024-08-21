@@ -13,7 +13,7 @@ import {
   Button,
 } from '@shopify/ui-extensions-react/admin';
 import { useEffect, useMemo, useState } from "react";
-import { getLimiters, getPlan, updateLimiters, getExistingLimits } from "./utils";
+import { getLimiters, getPlan, updateLimiters, getExistingLimits, getExistingProductLimits } from "./utils";
 
 
 // The target used here must match the target used in the extension's toml file (./shopify.extension.toml)
@@ -44,9 +44,6 @@ function App() {
 
   const freePlanLimiters = {
     products: 0,
-    categories: 0,
-    collections: 0,
-    vendors: 0,
   };
 
   const [loading, setLoading] = useState(true);
@@ -64,9 +61,6 @@ function App() {
 
       if (allPlanDetails.plan === false) {
         freePlanLimiters.products = existingLimiters.find((item) => item.typeName == 'products')?.value || 0;
-        freePlanLimiters.categories = existingLimiters.find((item) => item.typeName == 'categories')?.value || 0;
-        freePlanLimiters.collections = existingLimiters.find((item) => item.typeName == 'collections')?.value || 0;
-        freePlanLimiters.vendors = existingLimiters.find((item) => item.typeName == 'vendors')?.value || 0;
       }
       setLimiters(prevState => ({
         ...prevState,
@@ -76,26 +70,28 @@ function App() {
       if (!allPlanDetails.plan) {
 
         const {
-          productLimitCounts,
-          vendorCounts,
-          categoryCounts
-        } = await getExistingLimits();
+          productCount,
+          vendorCount,
+          categoryCount
+        } = await getExistingProductLimits(productId);
 
-        if (Number(freePlanLimiters.products) > Object.keys(productLimitCounts).length && Number(freePlanLimiters.products) > 0) {
+        console.log("existing " + productCount + vendorCount + categoryCount);
+
+        if (Number(freePlanLimiters.products) >= productCount && Number(freePlanLimiters.products) > 0) {
           setIsAllow(prevState => ({
             ...prevState,
             product: true
           }));
         }
 
-        if (Number(freePlanLimiters.categories) > Object.keys(categoryCounts).length && Number(freePlanLimiters.categories) > 0) {
+        if (Number(freePlanLimiters.products) >= categoryCount && Number(freePlanLimiters.products) > 0) {
           setIsAllow(prevState => ({
             ...prevState,
             category: true
           }));
         }
 
-        if (Number(freePlanLimiters.vendors) > Object.keys(vendorCounts).length && Number(freePlanLimiters.vendors) > 0) {
+        if (Number(freePlanLimiters.products) >= vendorCount && Number(freePlanLimiters.products) > 0) {
           setIsAllow(prevState => ({
             ...prevState,
             vendor: true
@@ -200,7 +196,7 @@ function App() {
       {!loading && (
         <BlockStack gap>
 
-          {isAllow.product ? (
+          {(isAllow.product || limiters?.productMin > 0 || limiters?.productMax > 0) ? (
             <Box>
               <InlineStack gap>
                 <NumberField
@@ -219,13 +215,13 @@ function App() {
             </Box>
           ) : (
             <Text>
-              You used allowed product wise limits. To continue please select a plan or set existing limits to 0.
+              You used allowed product limits. To continue please select a plan or set existing limits to 0.
             </Text>
           )}
 
           <Divider />
 
-          {isAllow.vendor ? (
+          {(isAllow.vendor || limiters?.vendorMin > 0 || limiters?.vendorMax > 0) ? (
             <Box>
               <BlockStack blockGap='small'>
                 <Heading size="6">
@@ -252,11 +248,11 @@ function App() {
             </Box>
           ) : (
             <Text>
-              You used allowed vendor wise limits. To continue please select a plan or set existing limits to 0.
+              You used allowed product limits. To continue please select a plan or set existing limits to 0.
             </Text>
           )}
 
-          {isAllow.category ? (
+          {(isAllow.category || limiters?.categoryMin > 0 || limiters?.categoryMax > 0) ? (
             <>
               {limiters?.categoryName && (
                 <>
@@ -292,7 +288,7 @@ function App() {
             <>
               <Divider />
               <Text>
-                You used allowed category wise limits. To continue please select a plan or set existing limits to 0.
+                You used allowed Product limits. To continue please select a plan or set existing limits to 0.
               </Text>
             </>
           )}
