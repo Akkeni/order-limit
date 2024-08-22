@@ -56,11 +56,13 @@ function App() {
         if (freePlanLimiters) {
 
           const existingProductsLimit = await getExistingProductLimits(collectionId);
-          console.log('existing ', existingProductsLimit);
+          
           if (Number(freePlanLimiters.products) >= existingProductsLimit && Number(freePlanLimiters.products) > 0) {
             setIsAllow(true);
           }
         }
+
+        
 
         if (collectionData.plan) {
           setIsAllow(true);

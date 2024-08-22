@@ -95,14 +95,16 @@ export async function getLimiters(collectionId) {
 
   for (const edge of allProductsData) {
     const collectionData = await getCollection(collectionId, edge?.node?.id);
-
+    
     if (collectionData?.data?.collection?.hasProduct) {
       limiters['collectionName'] = collectionData?.data?.collection?.title;
       if (edge?.node?.collectionLimitField?.value) {
         const [collectionName, collectionMin, collectionMax] = edge?.node?.collectionLimitField?.value.split(',');
-        limiters['collectionMin'] = collectionMin;
-        limiters['collectionMax'] = collectionMax;
-        break;
+        if(collectionName === collectionData?.data?.collection?.title) {
+          limiters['collectionMin'] = collectionMin;
+          limiters['collectionMax'] = collectionMax;
+          break;
+        }
       }
     }
   }
@@ -159,7 +161,6 @@ function getAllProductsInVendor(vendorName, allProductsData) {
         }
         obj['vendorName'] = name;
         obj['quantityLimit'] = quantityLimit;
-        vendorsData.push(obj);
         return quantityLimit;
 }
 

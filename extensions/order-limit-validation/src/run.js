@@ -37,6 +37,12 @@ export function run(input) {
     generalLimiters = JSON.parse(input.shop.generalLimitersField.value);
   }
 
+  const currentLocale = (input.localization.language.isoCode).toLowerCase();
+  const selectedLocale = (errorMessagesFieldValue?.locale || '').toLowerCase();
+
+
+
+
   if (input.buyerJourney.step !== "CART_INTERACTION") {
 
     const checkPriceLimit = () => {
@@ -54,17 +60,17 @@ export function run(input) {
         } else {
           if (totalAmount < Number(generalLimiters?.priceMin) && Number(generalLimiters?.priceMin) > 0) {
             errors.push({
-              localizedMessage: errorMessagesFieldValue?.priceMinErrMsg
+              localizedMessage: errorMessagesFieldValue?.priceMinErrMsg && currentLocale === selectedLocale
                 ? errorMessagesFieldValue.priceMinErrMsg.replace("{priceMin}", generalLimiters?.priceMin).replace("{currencyCode}", appliedCurrencyCode)
-                : `Minimum amount ${generalLimiters?.priceMin} ${appliedCurrencyCode} is required for checkout`,
+                : `Minimum amount ${generalLimiters?.priceMin} ${appliedCurrencyCode} is required for checkout.`,
               target: "cart",
             });
             return true;
           } else if (totalAmount > Number(generalLimiters?.priceMax) && Number(generalLimiters?.priceMax) > 0) {
             errors.push({
-              localizedMessage: errorMessagesFieldValue?.priceMaxErrMsg
+              localizedMessage: errorMessagesFieldValue?.priceMaxErrMsg && currentLocale === selectedLocale
                 ? errorMessagesFieldValue.priceMaxErrMsg.replace("{priceMax}", generalLimiters?.priceMax).replace("{currencyCode}", appliedCurrencyCode)
-                : `Cart exceeds amount ${generalLimiters?.priceMax} ${appliedCurrencyCode} please remove some items`,
+                : `Cart exceeds amount ${generalLimiters?.priceMax} ${appliedCurrencyCode} please remove some items.`,
               target: "cart",
             });
             return true;
@@ -136,17 +142,17 @@ export function run(input) {
 
         if (Number(generalLimiters?.weightMin) > totalWeight && Number(generalLimiters?.weightMin) > 0) {
           errors.push({
-            localizedMessage: errorMessagesFieldValue?.weightMinErrMsg
+            localizedMessage: errorMessagesFieldValue?.weightMinErrMsg && currentLocale === selectedLocale
               ? errorMessagesFieldValue.weightMinErrMsg.replace("{weightMin}", generalLimiters?.weightMin).replace("{weightUnit}", generalLimiters?.weightUnit.toLowerCase())
-              : `Minimum weight ${generalLimiters?.weightMin} ${generalLimiters?.weightUnit.toLowerCase()} is required for checkout`,
+              : `Minimum weight ${generalLimiters?.weightMin} ${generalLimiters?.weightUnit.toLowerCase()} is required for checkout.`,
             target: "cart",
           });
           return true;
         } else if (totalWeight > Number(generalLimiters?.weightMax) && Number(generalLimiters?.weightMax) > 0) {
           errors.push({
-            localizedMessage: errorMessagesFieldValue?.weightMaxErrMsg
+            localizedMessage: errorMessagesFieldValue?.weightMaxErrMsg && currentLocale === selectedLocale
               ? errorMessagesFieldValue.weightMaxErrMsg.replace("{weightMax}", generalLimiters?.weightMax).replace("{weightUnit}", generalLimiters?.weightUnit.toLowerCase())
-              : `Cart exceeds weight ${generalLimiters?.weightMax} ${generalLimiters?.weightUnit.toLowerCase()} please remove some items`,
+              : `Cart exceeds weight ${generalLimiters?.weightMax} ${generalLimiters?.weightUnit.toLowerCase()} please remove some items.`,
             target: "cart",
           });
           return true;
@@ -224,16 +230,16 @@ export function run(input) {
 
           if (checkMaxLimit(quantity, productVariantMax)) {
             errors.push({
-              localizedMessage: errorMessagesFieldValue?.variantMaxErrMsg
+              localizedMessage: errorMessagesFieldValue?.variantMaxErrMsg && currentLocale === selectedLocale
                 ? errorMessagesFieldValue.variantMaxErrMsg.replace("{productVariantMax}", productVariantMax).replace(" {productName}", productName)
                 : `Quantity limit reached, you can't select more than ${productVariantMax}.`,
               target: "cart",
             });
           } else if (checkMinLimit(quantity, productVariantMin)) {
             errors.push({
-              localizedMessage: errorMessagesFieldValue?.variantMinErrMsg
+              localizedMessage: errorMessagesFieldValue?.variantMinErrMsg && currentLocale === selectedLocale
                 ? errorMessagesFieldValue.variantMinErrMsg.replace("{productVariantMin}", productVariantMin).replace(" {productName}", productName)
-                : `You can't select less than ${productVariantMin} for this product variant`,
+                : `You can't select less than ${productVariantMin} for this product variant.`,
               target: "cart",
             });
           }
@@ -249,14 +255,14 @@ export function run(input) {
 
             if (checkMaxLimit(quantity, productMax)) {
               errors.push({
-                localizedMessage: errorMessagesFieldValue?.productMaxErrMsg
+                localizedMessage: errorMessagesFieldValue?.productMaxErrMsg && currentLocale === selectedLocale
                   ? errorMessagesFieldValue.productMaxErrMsg.replace("{productMax}", productMax).replace("{productName}", productName)
                   : `Quantity limit reached, you can't select more than ${productMax} for ${productName}.`,
                 target: "cart",
               });
             } else if (checkMinLimit(quantity, productMin)) {
               errors.push({
-                localizedMessage: errorMessagesFieldValue?.productMinErrMsg
+                localizedMessage: errorMessagesFieldValue?.productMinErrMsg && currentLocale === selectedLocale
                   ? errorMessagesFieldValue.productMinErrMsg.replace("{productMin}", productMin).replace("{productName}", productName)
                   : `You can't select less than ${productMin} for ${productName}.`,
                 target: "cart",
@@ -286,14 +292,14 @@ export function run(input) {
 
               if (checkMaxLimit(Number(categoryQuantities.get(categoryName)), Number(categoryMax))) {
                 errors.push({
-                  localizedMessage: errorMessagesFieldValue?.categoryMaxErrMsg
+                  localizedMessage: errorMessagesFieldValue?.categoryMaxErrMsg && currentLocale === selectedLocale
                     ? errorMessagesFieldValue.categoryMaxErrMsg.replace("{categoryMax}", categoryMax).replace("{categoryName}", categoryName)
                     : `Can't select more than ${categoryMax} products from the category "${categoryName}".`,
                   target: "cart",
                 });
               } else if (checkMinLimit(Number(categoryQuantities.get(categoryName)), Number(categoryMin))) {
                 errors.push({
-                  localizedMessage: errorMessagesFieldValue?.categoryMinErrMsg
+                  localizedMessage: errorMessagesFieldValue?.categoryMinErrMsg && currentLocale === selectedLocale
                     ? errorMessagesFieldValue.categoryMinErrMsg.replace("{categoryMin}", categoryMin).replace("{categoryName}", categoryName)
                     : `You have to select minimun ${categoryMin} products from the category "${categoryName}".`,
                   target: "cart",
@@ -324,14 +330,14 @@ export function run(input) {
 
               if (checkMaxLimit(Number(collectionQuantities.get(collectionName)), Number(collectionMax))) {
                 errors.push({
-                  localizedMessage: errorMessagesFieldValue?.collectionMaxErrMsg
+                  localizedMessage: errorMessagesFieldValue?.collectionMaxErrMsg && currentLocale === selectedLocale
                     ? errorMessagesFieldValue.collectionMaxErrMsg.replace("{collectionMax}", collectionMax).replace("{collectionName}", collectionName)
                     : `Can't select more than ${collectionMax} products from the collection "${collectionName}".`,
                   target: "cart",
                 });
               } else if (checkMinLimit(Number(collectionQuantities.get(collectionName)), Number(collectionMin))) {
                 errors.push({
-                  localizedMessage: errorMessagesFieldValue?.collectionMinErrMsg
+                  localizedMessage: errorMessagesFieldValue?.collectionMinErrMsg && currentLocale === selectedLocale
                     ? errorMessagesFieldValue.collectionMinErrMsg.replace("{collectionMin}", collectionMin).replace("{collectionName}", collectionName)
                     : `You have to select minimun ${collectionMin} products from the collection "${collectionName}".`,
                   target: "cart",
@@ -362,14 +368,14 @@ export function run(input) {
 
               if (checkMaxLimit(Number(vendorQuantities.get(vendorName)), vendorMax)) {
                 errors.push({
-                  localizedMessage: errorMessagesFieldValue?.vendorMaxErrMsg
+                  localizedMessage: errorMessagesFieldValue?.vendorMaxErrMsg && currentLocale === selectedLocale
                     ? errorMessagesFieldValue.vendorMaxErrMsg.replace("{vendorMax}", vendorMax).replace("{vendorName}", vendorName)
                     : `Can't select more than ${vendorMax} products from the vendor "${vendorName}".`,
                   target: "cart",
                 });
               } else if (checkMinLimit(Number(vendorQuantities.get(vendorName)), vendorMin)) {
                 errors.push({
-                  localizedMessage: errorMessagesFieldValue?.vendorMinErrMsg
+                  localizedMessage: errorMessagesFieldValue?.vendorMinErrMsg && currentLocale === selectedLocale
                     ? errorMessagesFieldValue.vendorMinErrMsg.replace("{vendorMin}", vendorMin).replace("{vendorName}", vendorName)
                     : `You have to select minimun ${vendorMin} products from the vendor "${vendorName}".`,
                   target: "cart",
@@ -391,16 +397,16 @@ export function run(input) {
 
         if (checkMaxLimit(totalQuantity, storeMax)) {
           errors.push({
-            localizedMessage: errorMessagesFieldValue?.shopMaxErrMsg
+            localizedMessage: errorMessagesFieldValue?.shopMaxErrMsg && currentLocale === selectedLocale
               ? errorMessagesFieldValue.shopMaxErrMsg.replace("{shopMax}", storeMax)
-              : `Cart exceeds ${storeMax} products. Please remove some items`,
+              : `Cart exceeds ${storeMax} products. Please remove some items.`,
             target: "cart",
           });
         } else if (checkMinLimit(totalQuantity, storeMin)) {
           errors.push({
-            localizedMessage: errorMessagesFieldValue?.shopMinErrMsg
+            localizedMessage: errorMessagesFieldValue?.shopMinErrMsg && currentLocale === selectedLocale
               ? errorMessagesFieldValue.shopMinErrMsg.replace("{shopMin}", storeMin)
-              : `Minmum ${storeMin} products are required for checkout`,
+              : `Minmum ${storeMin} products are required for checkout.`,
             target: "cart",
           });
         }

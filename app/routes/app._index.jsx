@@ -23,12 +23,13 @@ import {
   Spinner,
   Banner,
   Badge,
+  Tooltip,
 } from '@shopify/polaris';
 import { json, redirect } from '@remix-run/node';
 import { useState, useCallback, useEffect } from 'react';
 import { PageActions } from '@shopify/polaris';
 import { useNavigate, useSubmit, useLoaderData, useActionData } from '@remix-run/react';
-import { ImageIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, MenuVerticalIcon, TargetFilledIcon } from '@shopify/polaris-icons';
+import { ImageIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, MenuVerticalIcon, InfoIcon } from '@shopify/polaris-icons';
 import { authenticate } from '../shopify.server';
 import db from '../db.server';
 import React from 'react';
@@ -158,6 +159,16 @@ export async function loader({ request }) {
 
     const collectionData = await collectionResponse.json();
     const allCollectionsData = collectionData?.data?.collections?.edges;
+
+    const getLocaleResponse = await admin.graphql(`{
+      availableLocales {
+        isoCode
+        name
+      }
+    }`);
+
+    const getLocaleData = await getLocaleResponse.json();
+    const availableLocales = getLocaleData.data?.availableLocales;
 
     const response = await admin.graphql(
       `{
@@ -351,6 +362,7 @@ export async function loader({ request }) {
       existingGeneralLimiters,
       plan,
       existingLimiters,
+      availableLocales,
     });
 
 
@@ -813,6 +825,8 @@ export default function Index() {
 
   const plan = loaderData?.plan;
 
+  const availableLocales = loaderData?.availableLocales;
+
   let existingErrMsgs = {};
   let existingGeneralLimiters = {};
 
@@ -861,6 +875,7 @@ export default function Index() {
     vendorMaxErrMsg: existingErrMsgs.vendorMaxErrMsg || '',
     extensionMsg: existingErrMsgs?.extensionMsg || 'Cart Extension',
     plan: loaderData?.plan,
+    locale: existingErrMsgs?.locale || 'en',
   });
 
   const [generalLimiters, setGeneralLimiters] = useState({
@@ -881,7 +896,11 @@ export default function Index() {
 
   const collectionIds = [];
 
-  const tagOptions = (plan != "paidPlan") ? ['Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise'] : ['General', 'Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise', 'Store Wise']
+  const tagOptions = (plan != "paidPlan") ? ['Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise'] : ['General', 'Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise', 'Store Wise'];
+  const localeOptions = availableLocales.map((locale) => ({
+    label: locale.name,
+    value: locale.isoCode,
+  }));
 
   const existingLimiters = loaderData?.existingLimiters ? loaderData.existingLimiters : [];
   const [freePlanlimiters, setFreePlanLimiters] = useState({
@@ -895,6 +914,8 @@ export default function Index() {
   const [countOfTotalProductsWithLimits, setCountOfTotalProductsWithLimits] = useState(0);
   const [countOfExistingTotalProductsWithLimits, setCountOfExistingTotalProductsWithLimits] = useState(0);
   const [errorState, setErrorState] = useState({});
+
+  const [selectedLocale, setSelectedLocale] = useState(existingErrMsgs?.locale || 'en');
 
   //abscent of categories in the store
   if (!(categoriesData)) {
@@ -1109,6 +1130,15 @@ export default function Index() {
     [],
   );
 
+  const handleLocaleChange = (value) => {
+    let name = "locale";
+    setErrorMessages(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+    setSelectedLocale(value);
+  };
+
   const activator = (
     <Button onClick={togglePopoverActive} icon={MenuVerticalIcon} variant='plain' tone='base' />
   );
@@ -1215,8 +1245,8 @@ export default function Index() {
     setCategoryCounts(updatedCategoryCounts);
     setCollectionCounts(updatedCollectionCounts);
   
-    console.log('count exist in useEffect ', countOfExistingTotalProductsWithLimits);
-    console.log('count total in useEffect ', countOfTotalProductsWithLimits);
+    // console.log('count exist in useEffect ', countOfExistingTotalProductsWithLimits);
+    // console.log('count total in useEffect ', countOfTotalProductsWithLimits);
   
   }, [loaderData]);
   
@@ -1240,11 +1270,6 @@ export default function Index() {
     setVendorCounts(updatedVendorCounts);
     setCategoryCounts(updatedCategoryCounts);
     setCollectionCounts(updatedCollectionCounts);
-
-    console.log('count exist in useeffect ', countOfExistingTotalProductsWithLimits);
-    console.log('count total in useeffect ', countOfTotalProductsWithLimits);
-
-
 
   }, [loaderData]);
 
@@ -1298,12 +1323,6 @@ export default function Index() {
   
   const checkAvailableLimits = async (id, value, range) => {
     if (plan != "paidPlan") {
-      // const {
-      //   productLimitCounts,
-      //   vendorCounts,
-      //   categoryCounts,
-      //   collectionCounts
-      // } = countExistingLimits();
 
       let limitExceeded = false;
       
@@ -1320,16 +1339,14 @@ export default function Index() {
       });
       switch (tagValue) {
         case 'Product Wise':
+          const checkTotal = countOfTotalProductsWithLimits + 1;
+          const title = allProductsData.find((item) => item.node.id === id)?.node?.title;
           if (!id.includes('ProductVariant')) {
-
-            const title = allProductsData.find((item) => item.node.id === id)?.node?.title;
-            const checkTotal = countOfTotalProductsWithLimits + 1;
-
             if (!(title in productLimitCounts)) {
               if (!exists) {
                 if ( checkTotal <= freePlanlimiters.products ) {
                   limitExceeded = false;
-                  //handleCount("productCount");
+                  
                   handleCountOfTotalProductsWithLimits(1);
                 } else {
                   limitExceeded = true;
@@ -1355,7 +1372,7 @@ export default function Index() {
               if (reseted) {
                 if (checkTotal <= freePlanlimiters.products) {
                   limitExceeded = false;
-                  //handleCount("productCount");
+                  
                   handleCountOfTotalProductsWithLimits(1);
                 } else {
                   limitExceeded = true;
@@ -1366,7 +1383,20 @@ export default function Index() {
             }
 
           } else {
-            if (!(checkTotal <= freePlanlimiters.products)) {
+            let productId = '';
+            for (const item of allProductsData) {
+              const variants = item.node.variants.edges;
+              for (const variant of variants) {
+                if (variant.node.id === id) {
+                  productId = item.node.id;
+                }
+              }
+            };
+            const max = getQuantityLimit(productId, 'max');
+            const min = getQuantityLimit(productId, 'min');
+            if(Number(max) > 0 || Number(min) > 0) {
+              limitExceeded = false;
+            } else {
               limitExceeded = true;
             }
           }
@@ -1378,7 +1408,7 @@ export default function Index() {
             if (!exists) {
               if ( checkCategoryTotal <= freePlanlimiters.products ) {
                 limitExceeded = false;
-                //handleCount("categoryCount");
+                
                 handleCountOfTotalProductsWithLimits(countOfProductsInCategory);
               } else {
                 limitExceeded = true;
@@ -1403,7 +1433,7 @@ export default function Index() {
             if (reseted) {
               if ( checkCategoryTotal <= freePlanlimiters.products ) {
                 limitExceeded = false;
-                //handleCount("categoryCount");
+                
                 handleCountOfTotalProductsWithLimits(countOfProductsInCategory);
               } else {
                 limitExceeded = true;
@@ -1422,7 +1452,7 @@ export default function Index() {
             if (!exists) {
               if ( checkCollectionTotal <= freePlanlimiters.products ) {
                 limitExceeded = false;
-                //handleCount("collectionCount");
+                
                 handleCountOfTotalProductsWithLimits(countOfProductsInCollection);
               } else {
                 limitExceeded = true;
@@ -1447,7 +1477,7 @@ export default function Index() {
             if (reseted) {
               if ( checkCollectionTotal <= freePlanlimiters.products ) {
                 limitExceeded = false;
-                //handleCount("collectionCount");
+                
                 handleCountOfTotalProductsWithLimits(countOfProductsInCollection);
               } else {
                 limitExceeded = true;
@@ -1465,7 +1495,7 @@ export default function Index() {
             if (!exists) {
               if ( checkVendorTotal <= freePlanlimiters.products ) {
                 limitExceeded = false;
-                //handleCount("vendorCount");
+                
                 handleCountOfTotalProductsWithLimits(countOfProductsInVendor);
               } else {
                 limitExceeded = true;
@@ -1490,7 +1520,7 @@ export default function Index() {
             if (reseted) {
               if ( checkVendorTotal <= freePlanlimiters.products ) {
                 limitExceeded = false;
-                //handleCount("vendorCount");
+                
                 handleCountOfTotalProductsWithLimits(countOfProductsInVendor);
               } else {
                 limitExceeded = true;
@@ -1515,8 +1545,8 @@ export default function Index() {
     return true;
   };
 
-  console.log('count total', countOfTotalProductsWithLimits);
-  console.log('count existing', countOfExistingTotalProductsWithLimits);
+  // console.log('count total', countOfTotalProductsWithLimits);
+  // console.log('count existing', countOfExistingTotalProductsWithLimits);
 
   const handleQuantityLimit = async (value, id, range = '') => {
     let limitValue = '';
@@ -1533,7 +1563,6 @@ export default function Index() {
       return;
     }
 
-    // const { productLimitCounts, vendorCounts, categoryCounts, collectionCounts, allow } = await checkAvailableLimits(id, limitValue, range);
     
     if (value == '' || Number(value) == 0) {
       
@@ -1557,7 +1586,7 @@ export default function Index() {
         return false;
       });
       if (exists) {
-        //handleCountDec();
+        
         if (tagValue === 'Category Wise') {
           const countOfProducts = categoriesData.find((item) => item.categoryName === id)?.quantityLimit;
           handleCountOfTotalProductsWithLimits(countOfProducts, false);
@@ -1581,34 +1610,49 @@ export default function Index() {
           if (range === 'min') {
             const max = getQuantityLimit(id, 'max');
             if (Number(max) == 0) {
-              //handleCountDec();
+
+              if(tagValue === 'Category Wise') {
+                const countOfProducts = categoriesData.find((item) => item.categoryName === id)?.quantityLimit;
+                handleCountOfTotalProductsWithLimits(countOfProducts, false);
+              } else if (tagValue === 'Collection Wise') {
+                const countOfProducts = allCollectionsData.find((item) => item.node?.title === id)?.node?.productsCount?.count;
+                handleCountOfTotalProductsWithLimits(countOfProducts, false);
+              } else if (tagValue === 'Vendor Wise') {
+                const countOfProducts = vendorsData.find((item) => item.vendorName === id)?.quantityLimit;
+                handleCountOfTotalProductsWithLimits(countOfProducts, false);
+              } else if (tagValue === 'Product Wise' && !id.includes('ProductVariant')) {
+                handleCountOfTotalProductsWithLimits(1, false);
+              }
+
               console.log();
             }
           } else {
             const min = getQuantityLimit(id, 'min');
             if (Number(min) == 0) {
-              //handleCountDec();
+
+              if(tagValue === 'Category Wise') {
+                const countOfProducts = categoriesData.find((item) => item.categoryName === id)?.quantityLimit;
+                handleCountOfTotalProductsWithLimits(countOfProducts, false);
+              } else if (tagValue === 'Collection Wise') {
+                const countOfProducts = allCollectionsData.find((item) => item.node?.title === id)?.node?.productsCount?.count;
+                handleCountOfTotalProductsWithLimits(countOfProducts, false);
+              } else if (tagValue === 'Vendor Wise') {
+                const countOfProducts = vendorsData.find((item) => item.vendorName === id)?.quantityLimit;
+                handleCountOfTotalProductsWithLimits(countOfProducts, false);
+              } else if (tagValue === 'Product Wise' && !id.includes('ProductVariant')) {
+                handleCountOfTotalProductsWithLimits(1, false);
+              }
+
               console.log();
             }
           }
 
-          if(tagValue === 'Category Wise') {
-            const countOfProducts = categoriesData.find((item) => item.categoryName === id)?.quantityLimit;
-            handleCountOfTotalProductsWithLimits(countOfProducts, false);
-          } else if (tagValue === 'Collection Wise') {
-            const countOfProducts = allCollectionsData.find((item) => item.node?.title === id)?.node?.productsCount?.count;
-            handleCountOfTotalProductsWithLimits(countOfProducts, false);
-          } else if (tagValue === 'Vendor Wise') {
-            const countOfProducts = vendorsData.find((item) => item.vendorName === id)?.quantityLimit;
-            handleCountOfTotalProductsWithLimits(countOfProducts, false);
-          } else if (tagValue === 'Product Wise' && !id.includes('ProductVariant')) {
-            handleCountOfTotalProductsWithLimits(1, false);
-          }
+          
         }
       }
     }
 
-    setIsBlock(false);
+    // setIsBlock(false);
   
     setErrorState({});
 
@@ -1616,7 +1660,7 @@ export default function Index() {
     if (Number(value) > 0) {
       const allow = await checkAvailableLimits(id, limitValue, range);
       if (!allow) {
-        setIsBlock(true);
+        // setIsBlock(true);
         // Set the error state for the specific field
         setErrorState(prevState => {
           // Create a new state object with all keys set to false
@@ -1997,15 +2041,15 @@ export default function Index() {
                     </FormLayout>
                   </div>
                   {/*<div style={{ paddingLeft: '0.5rem' }}>
-                  <FormLayout>
-                    <Select
-                      label="Use extension"
-                      options={['Both', 'Cart Extension', 'Checkout Extension']}
-                      value={errorMessages?.extensionMsg}
-                      onChange={handleExtensionChange}
-                    />
-                  </FormLayout>
-                </div>*/}
+                    <FormLayout>
+                      <Select
+                        label="Use extension"
+                        options={['Both', 'Cart Extension', 'Checkout Extension']}
+                        value={errorMessages?.extensionMsg}
+                        onChange={handleExtensionChange}
+                      />
+                    </FormLayout>
+                  </div>*/}
                   {(tagValue !== 'General' && tagValue !== 'Store Wise') && (
                     <div style={{ paddingLeft: '0.5rem' }}>
                       <TextField
@@ -2237,12 +2281,37 @@ export default function Index() {
                       <br />
                       <br />
 
+                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+                        <div>
+                          <InlineStack gap="500">
+                            <div style={{ paddingLeft: '0.5rem' }}>
+                            <div style={{ display: 'flex' }}>
+                                <label >Select Language</label>
+                                <Tooltip content={"Select a language and enter the message(place holders should be in English). If the browsing language differs, English will be used by default."}>                          
+                                  <Button icon={InfoIcon} variant="plain"/>
+                                </Tooltip>
+                              </div>
+                            <FormLayout>
+                              <Select
+                                labelHidden
+                                options={localeOptions}
+                                value={selectedLocale}
+                                onChange={handleLocaleChange}
+                              />
+                            </FormLayout>
+                            </div>
+                          </InlineStack>
+                        </div>
+                      </div>
+                      
+                      <br/>
+                      
                       <Card>
                         <TextField
                           label="Error Message for Product Minimum limit"
                           value={errorMessages.productMinErrMsg}
                           onChange={(value) => { handleErrorMessages("productMinErrMsg", value) }}
-                          placeholder="You can't select less than {productMin} for {productName} ."
+                          placeholder="You can't select less than {productMin} for {productName}."
                           helpText="use {productMin} to include minimum limit and {productName} to include product name"
                           autoComplete="off"
                         />
@@ -2352,6 +2421,31 @@ export default function Index() {
                       <br />
                       <br />
 
+                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+                        <div>
+                          <InlineStack gap="500">
+                            <div style={{ paddingLeft: '0.5rem' }}>
+                            <div style={{ display: 'flex' }}>
+                                <label >Select Language</label>
+                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>                          
+                                  <Button icon={InfoIcon} variant="plain"/>
+                                </Tooltip>
+                              </div>
+                            <FormLayout>
+                              <Select
+                                labelHidden
+                                options={localeOptions}
+                                value={selectedLocale}
+                                onChange={handleLocaleChange}
+                              />
+                            </FormLayout>
+                            </div>
+                          </InlineStack>
+                        </div>
+                      </div>
+                      
+                      <br/>
+
                       <Card>
                         <TextField
                           label="Error Message for Category Minimum limit"
@@ -2366,7 +2460,7 @@ export default function Index() {
                           label="Error Message for Category Maximum limit"
                           value={errorMessages.categoryMaxErrMsg}
                           onChange={(value) => { handleErrorMessages("categoryMaxErrMsg", value) }}
-                          placeholder="Can't select more than {categoryMax} products from the category {categoryName}"
+                          placeholder="Can't select more than {categoryMax} products from the category {categoryName}."
                           helpText="use {categoryMax} to include maximum limit and {categoryName} to include name"
                           autoComplete="off"
                         />
@@ -2448,6 +2542,31 @@ export default function Index() {
                       </Card>
                       <br />
                       <br />
+                      
+                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+                        <div>
+                          <InlineStack gap="500">
+                            <div style={{ paddingLeft: '0.5rem' }}>
+                            <div style={{ display: 'flex' }}>
+                                <label >Select Language</label>
+                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>                          
+                                  <Button icon={InfoIcon} variant="plain"/>
+                                </Tooltip>
+                              </div>
+                            <FormLayout>
+                              <Select
+                                labelHidden
+                                options={localeOptions}
+                                value={selectedLocale}
+                                onChange={handleLocaleChange}
+                              />
+                            </FormLayout>
+                            </div>
+                          </InlineStack>
+                        </div>
+                      </div>
+                      
+                      <br/>
 
                       <Card>
                         <TextField
@@ -2463,7 +2582,7 @@ export default function Index() {
                           label="Error Message for Collection Maximum limit"
                           value={errorMessages.collectionMaxErrMsg}
                           onChange={(value) => { handleErrorMessages("collectionMaxErrMsg", value) }}
-                          placeholder="Can't select more than {collectionMax} products from the collection {collectionName}"
+                          placeholder="Can't select more than {collectionMax} products from the collection {collectionName}."
                           helpText="use {collectionMax} to include maximum limit and {collectionName} to include name"
                           autoComplete="off"
                         />
@@ -2519,6 +2638,31 @@ export default function Index() {
 
                       <br />
                       <br />
+                      
+                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+                        <div>
+                          <InlineStack gap="500">
+                            <div style={{ paddingLeft: '0.5rem' }}>
+                            <div style={{ display: 'flex' }}>
+                                <label >Select Language</label>
+                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>                          
+                                  <Button icon={InfoIcon} variant="plain"/>
+                                </Tooltip>
+                              </div>
+                            <FormLayout>
+                              <Select
+                                labelHidden
+                                options={localeOptions}
+                                value={selectedLocale}
+                                onChange={handleLocaleChange}
+                              />
+                            </FormLayout>
+                            </div>
+                          </InlineStack>
+                        </div>
+                      </div>
+                      
+                      <br/>
 
                       <Card>
                         <TextField
@@ -2534,7 +2678,7 @@ export default function Index() {
                           label="Error Message for Store Maximum limit"
                           value={errorMessages.shopMaxErrMsg}
                           onChange={(value) => { handleErrorMessages("shopMaxErrMsg", value) }}
-                          placeholder="Cart exceeds {shopMax} number of products. please remove some items"
+                          placeholder="Cart exceeds {shopMax} number of products. please remove some items."
                           helpText="use {shopMax} to include maximum limit"
                           autoComplete="off"
                         />
@@ -2610,13 +2754,38 @@ export default function Index() {
 
                       <br />
                       <br />
+                      
+                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+                        <div>
+                          <InlineStack gap="500">
+                            <div style={{ paddingLeft: '0.5rem' }}>
+                            <div style={{ display: 'flex' }}>
+                                <label >Select Language</label>
+                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>                          
+                                  <Button icon={InfoIcon} variant="plain"/>
+                                </Tooltip>
+                              </div>
+                            <FormLayout>
+                              <Select
+                                labelHidden
+                                options={localeOptions}
+                                value={selectedLocale}
+                                onChange={handleLocaleChange}
+                              />
+                            </FormLayout>
+                            </div>
+                          </InlineStack>
+                        </div>
+                      </div>
+                      
+                      <br/>
 
                       <Card>
                         <TextField
                           label="Error Message for Price Minimum limit"
                           value={errorMessages.priceMinErrMsg}
                           onChange={(value) => { handleErrorMessages("priceMinErrMsg", value) }}
-                          placeholder="Minmum amount {priceMin} {currencyCode} is required for checkout"
+                          placeholder="Minmum amount {priceMin} {currencyCode} is required for checkout."
                           helpText="use {priceMin} to include minimum price, {currencyCode} to include currency code."
                           autoComplete="off"
                         />
@@ -2625,7 +2794,7 @@ export default function Index() {
                           label="Error Message for Price Maximum limit"
                           value={errorMessages.priceMaxErrMsg}
                           onChange={(value) => { handleErrorMessages("priceMaxErrMsg", value) }}
-                          placeholder="Cart exceeds amount {priceMax} {currencyCode} please remove some items"
+                          placeholder="Cart exceeds amount {priceMax} {currencyCode} please remove some items."
                           helpText="use {priceMax} to include maximum price, {currencyCode} to include currency code."
                           autoComplete="off"
                         />
@@ -2634,7 +2803,7 @@ export default function Index() {
                           label="Error Message for Weight Minimum limit"
                           value={errorMessages.weightMinErrMsg}
                           onChange={(value) => { handleErrorMessages("weightMinErrMsg", value) }}
-                          placeholder="Minmum weight {weightMin} {weightUnit} is required for checkout"
+                          placeholder="Minmum weight {weightMin} {weightUnit} is required for checkout."
                           helpText="use {weightMin} to include minimum weight, {weightUnit} to include unit."
                           autoComplete="off"
                         />
@@ -2643,7 +2812,7 @@ export default function Index() {
                           label="Error Message for Weight Maximum limit"
                           value={errorMessages.weightMaxErrMsg}
                           onChange={(value) => { handleErrorMessages("weightMaxErrMsg", value) }}
-                          placeholder="Cart exceeds weight {weightMax} {weightUnit} please remove some items"
+                          placeholder="Cart exceeds weight {weightMax} {weightUnit} please remove some items."
                           helpText="use {weightMax} to include maximum weight, {weightUnit} to include unit."
                           autoComplete="off"
                         />
@@ -2724,6 +2893,30 @@ export default function Index() {
                       </Card>
                       <br />
                       <br />
+                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+                        <div>
+                          <InlineStack gap="500">
+                            <div style={{ paddingLeft: '0.5rem' }}>
+                            <div style={{ display: 'flex' }}>
+                                <label >Select Language</label>
+                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>                          
+                                  <Button icon={InfoIcon} variant="plain"/>
+                                </Tooltip>
+                              </div>
+                            <FormLayout>
+                              <Select
+                                labelHidden
+                                options={localeOptions}
+                                value={selectedLocale}
+                                onChange={handleLocaleChange}
+                              />
+                            </FormLayout>
+                            </div>
+                          </InlineStack>
+                        </div>
+                      </div>
+                      
+                      <br/>
 
                       <Card>
                         <TextField
@@ -2739,7 +2932,7 @@ export default function Index() {
                           label="Error Message for vendor Maximum limit"
                           value={errorMessages.vendorMaxErrMsg}
                           onChange={(value) => { handleErrorMessages("vendorMaxErrMsg", value) }}
-                          placeholder="Can't select more than {vendorMax} products from the vendor {vendorName}"
+                          placeholder="Can't select more than {vendorMax} products from the vendor {vendorName}."
                           helpText="use {vendorMax} to include maximum limit and {vendorName} to include name"
                           autoComplete="off"
                         />

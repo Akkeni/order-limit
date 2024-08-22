@@ -52,4 +52,9 @@ query RunInput {
   buyerJourney {
     step
   }
+  localization {
+    language {
+      isoCode
+    }
+  }
 }

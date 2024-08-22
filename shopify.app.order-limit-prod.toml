@@ -1,8 +1,8 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "39c03c0ba0965aba6f40b779e1eb966f"
-name = "Order Limit"
-handle = "order-limit-20"
+name = "CartControl: Order Limit"
+handle = "cartcontrol-order-limit"
 application_url = "https://order-limit-lcxo.onrender.com/"
 embedded = true
 
@@ -13,7 +13,7 @@ include_config_on_deploy = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_orders,read_products,read_publications,write_products"
+scopes = "read_products,read_publications,write_products"
 
 [auth]
 redirect_urls = [

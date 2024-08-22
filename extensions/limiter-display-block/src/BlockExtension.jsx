@@ -75,7 +75,7 @@ function App() {
           categoryCount
         } = await getExistingProductLimits(productId);
 
-        console.log("existing " + productCount + vendorCount + categoryCount);
+       
 
         if (Number(freePlanLimiters.products) >= productCount && Number(freePlanLimiters.products) > 0) {
           setIsAllow(prevState => ({
