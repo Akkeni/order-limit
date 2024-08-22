@@ -151,34 +151,15 @@ export default function PricingPage() {
                 <>
                     
                     <span className="text-with-icon">Product Wise Limit
-                        <Tooltip content={`You are allowed to set limits for up to ${freePlanLimiters.freePlanProductLimit} products`}>
+                        <Tooltip content={`You can set limits for up to ${freePlanLimiters.freePlanProductLimit} products across all categories, collections, and vendors.`}>
                             {infoIcon}
                         </Tooltip>
                     </span>
                     
                 </>,
-                <>
-                    <span className="text-with-icon">Category Wise Limit
-                        <Tooltip content={`You are allowed to set limits for up to ${freePlanLimiters.freePlanCategoryLimit} categories`}>
-                            {infoIcon}
-                        </Tooltip>
-                    </span>
-                </>,
-                // Include the infoIcon as a separate item in the array
-                <>
-                    <span className="text-with-icon">Collection Wise Limit
-                        <Tooltip content={`You are allowed to set limits for up to ${freePlanLimiters.freePlanCollectionLimit} collections`}>
-                            {infoIcon}
-                        </Tooltip>
-                    </span>
-                </>,
-                <>
-                    <span className="text-with-icon">Vendor Wise Limit
-                        <Tooltip content={`You are allowed to set limits for up to ${freePlanLimiters.freePlanVendorLimit} vendors`}>
-                            {infoIcon}
-                        </Tooltip>
-                    </span>
-                </>,
+                "Category Wise Limit",
+                "Collection Wise Limit",
+                "Vendor Wise Limit",
             ]
         },
         {
