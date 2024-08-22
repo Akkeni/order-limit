@@ -36,9 +36,6 @@ export async function loader({ request }) {
     const discountPercentage = process.env.DISCOUNT_PERCENT;
     const freePlanLimiters ={
         freePlanProductLimit: process.env.FREE_PLAN_PRODUCT_LIMIT,
-        freePlanCategoryLimit: process.env.FREE_PLAN_CATEGORY_LIMIT,
-        freePlanCollectionLimit: process.env.FREE_PLAN_COLLECTION_LIMIT,
-        freePlanVendorLimit: process.env.FREE_PLAN_VENDOR_LIMIT,
     }
     let expire = 'true';
     let currentDateStr = new Date();
