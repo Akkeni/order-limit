@@ -2013,18 +2013,28 @@ export default function Index() {
     console.log('field in getSku ', field);
     
     const skuLimit = skuLimitRows.find((item) => item.id === id);
-    const existingSkuLimits = generalLimiters?.skuLimiters || [];
-    const sku = existingSkuLimits.find((item) => item.id === id);
-
-    console.log('sku field value in getSku ', sku[field]);
-
+    
+    
     if(skuLimit) {
-      return Number(skuLimit[field]);
-    } else if (sku) {
-      return Number(sku[field]);
+      if(Number(skuLimit[field]) > 0) {
+        return Number(skuLimit[field]);
+      } else {
+        return 0;
+      }
     } else {
-      return 0;
-    }
+      const existingSkuLimits = generalLimiters?.skuLimiters || [];
+      const sku = existingSkuLimits.find((item) => item.id === id); 
+      console.log('sku field value in getSku ', sku[field]);
+      if (sku) {
+        if(Number(sku[field]) > 0) {
+          return Number(sku[field]);
+        } else {
+          return 0;
+        }
+      } else {
+        return 0;
+      }
+    } 
     //return sku ? Number(sku[field]) : 0;
   };
 
