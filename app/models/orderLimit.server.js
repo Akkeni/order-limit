@@ -14,6 +14,7 @@ export async function getAllProductsData(graphql) {
                 edges {
                   node {
                     id
+                    sku
                     image {
                       url
                     }
@@ -30,15 +31,15 @@ export async function getAllProductsData(graphql) {
               category {
                 name
               }
-                totalInventory
-                productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
-                        id
-                        value
-                    }
-        		productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
-                    id
+              totalInventory
+              productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+                id
+                value
+              }
+        		  productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
+                id
           			value
-        		}
+        		  }
               categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
                 id
                 value
@@ -47,14 +48,14 @@ export async function getAllProductsData(graphql) {
                 id
                 value
               }
-                categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
-                    id
-                    value
-                }
-                collectionLimitField: metafield(namespace: "collectionLimit", key: "collectionLimit") {
-                  id
-                  value
-                }
+              categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
+                id
+                value
+              }
+              collectionLimitField: metafield(namespace: "collectionLimit", key: "collectionLimit") {
+                id
+                value
+              }
         			priceRangeV2 {
         				maxVariantPrice {
             				amount
@@ -62,14 +63,14 @@ export async function getAllProductsData(graphql) {
         				minVariantPrice {
            				 amount
         				}
-                    }
-                images(first: 1) {
-                    edges {
-                        node {
-                            url
-                        }
-                    }
+              }
+              images(first: 1) {
+                edges {
+                  node {
+                    url
+                  }
                 }
+              }
             }
           }
         }
@@ -96,6 +97,7 @@ export async function getAllProductsData(graphql) {
                     edges {
                       node {
                         id
+                        sku
                         image {
                           url
                         }

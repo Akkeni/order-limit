@@ -25,6 +25,8 @@ export function run(input) {
   let isCollectionLimitSet = false;
   let isVendorLimitSet = false;
   let isStoreLimitSet = false;
+  let isSkuLimitSet = false;
+  let skuLimiters = [];
 
 
   let errorMessagesFieldValue = {};
@@ -35,6 +37,7 @@ export function run(input) {
   let generalLimiters = {};
   if (input.shop.generalLimitersField) {
     generalLimiters = JSON.parse(input.shop.generalLimitersField.value);
+    skuLimiters = generalLimiters?.skuLimiters;
   }
 
   const currentLocale = (input.localization.language.isoCode).toLowerCase();
@@ -245,7 +248,48 @@ export function run(input) {
           }
         }
 
-        if (!isVariantLimitSet) {
+        if(!isVariantLimitSet) {
+          if(merchandise.__typename === "ProductVariant") {
+            const sku = merchandise?.sku;
+            const { product } = merchandise;
+            const productName = product?.title;
+            if(sku) {
+              const isSkuExist = skuLimiters.find((item) => item.id === sku);
+              if(Number(isSkuExist.multiple) > 0 || Number(isSkuExist.min) > 0 || Number(isSkuExist.max) > 0) {
+                isSkuLimitSet = true;
+              }
+              if(isSkuExist) {
+                if(Number(isSkuExist.multiple) > 0) {
+                  if(quantity % Number(isSkuExist.multiple) !=0 ) {
+                    errors.push({
+                      localizedMessage: errorMessagesFieldValue?.skuMultipleErrMsg && currentLocale === selectedLocale
+                        ? errorMessagesFieldValue.skuMultipleErrMsg.replace("{skuMultiple}", isSkuExist.multiple).replace("{productName}", productName)
+                        : `You can only select multiple of ${isSkuExist.multiple} for ${productName}.`,
+                      target: "cart",
+                    });
+                  }
+                } else if (checkMaxLimit(quantity, Number(isSkuExist.max))) {
+                  errors.push({
+                    localizedMessage: errorMessagesFieldValue?.skuMaxErrMsg && currentLocale === selectedLocale
+                      ? errorMessagesFieldValue.skuMaxErrMsg.replace("{skuMax}", Number(isSkuExist.max)).replace(" {productName}", productName)
+                      : `Quantity limit reached, you can't select more than ${Number(isSkuExist.max)}.`,
+                    target: "cart",
+                  });
+                } else if (checkMinLimit(quantity, Number(isSkuExist.min))) {
+                  errors.push({
+                    localizedMessage: errorMessagesFieldValue?.skuMinErrMsg && currentLocale === selectedLocale
+                      ? errorMessagesFieldValue.skuMinErrMsg.replace("{skuMin}", Number(isSkuExist.min)).replace(" {productName}", productName)
+                      : `You can't select less than ${Number(isSkuExist.min)} for this product variant.`,
+                    target: "cart",
+                  });
+                }
+
+              }
+            }
+          }
+        }
+
+        if (!isVariantLimitSet && !isSkuLimitSet) {
           if (product.productLimitField) {
             const [productMin, productMax, vendorName, vendorMin, vendorMax, productName] = product.productLimitField.value.split(',');
 
@@ -274,7 +318,7 @@ export function run(input) {
     }
 
     //to check category limit
-    if (!isProductLimitSet && !isVariantLimitSet) {
+    if (!isProductLimitSet && !isVariantLimitSet && !isSkuLimitSet) {
       for (const line of input.cart.lines) {
         const { merchandise } = line;
 
@@ -312,7 +356,7 @@ export function run(input) {
     }
 
     //to check collection limit
-    if (!isCategoryLimitSet && !isProductLimitSet && !isVariantLimitSet) {
+    if (!isCategoryLimitSet && !isProductLimitSet && !isVariantLimitSet && !isSkuLimitSet) {
       for (const line of input.cart.lines) {
         const { merchandise } = line;
 
@@ -349,7 +393,7 @@ export function run(input) {
       }
     }
 
-    if (!isCollectionLimitSet && !isCategoryLimitSet && !isProductLimitSet && !isVariantLimitSet) {
+    if (!isCollectionLimitSet && !isCategoryLimitSet && !isProductLimitSet && !isVariantLimitSet && !isSkuLimitSet) {
       for (const line of input.cart.lines) {
         const { merchandise } = line;
 
@@ -388,7 +432,7 @@ export function run(input) {
       }
     }
 
-    if (!isVendorLimitSet && !isCollectionLimitSet && !isCategoryLimitSet && !isProductLimitSet && !isVariantLimitSet) {
+    if (!isVendorLimitSet && !isCollectionLimitSet && !isCategoryLimitSet && !isProductLimitSet && !isVariantLimitSet && !isSkuLimitSet) {
       if (input.shop.storeLimitField) {
         const storeLimit = input.shop.storeLimitField.value;
         const [storeMin, storeMax] = storeLimit.split(',').map(Number);

@@ -873,6 +873,8 @@ export default function Index() {
     collectionMaxErrMsg: existingErrMsgs.collectionMaxErrMsg || '',
     vendorMinErrMsg: existingErrMsgs.vendorMinErrMsg || '',
     vendorMaxErrMsg: existingErrMsgs.vendorMaxErrMsg || '',
+    skuMinErrMsg: existingErrMsgs.skuMinErrMsg || '',
+    skuMaxErrMsg: existingErrMsgs.skuMaxErrMsg || '',
     extensionMsg: existingErrMsgs?.extensionMsg || 'Cart Extension',
     plan: loaderData?.plan,
     locale: existingErrMsgs?.locale || 'en',
@@ -887,6 +889,7 @@ export default function Index() {
     weightUnit: existingGeneralLimiters.weightUnit || loaderData?.weightUnit,
     shopMin: existingGeneralLimiters.shopMin || '',
     shopMax: existingGeneralLimiters.shopMax || '',
+    skuLimiters: existingGeneralLimiters.skuLimiters || [],
   });
 
 
@@ -896,7 +899,7 @@ export default function Index() {
 
   const collectionIds = [];
 
-  const tagOptions = (plan != "paidPlan") ? ['Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise'] : ['General', 'Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise', 'Store Wise'];
+  const tagOptions = (plan != "paidPlan") ? ['Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise'] : ['General', 'Product Wise', 'SKU Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise', 'Store Wise'];
   const localeOptions = availableLocales.map((locale) => ({
     label: locale.name,
     value: locale.isoCode,
@@ -916,6 +919,8 @@ export default function Index() {
   const [errorState, setErrorState] = useState({});
 
   const [selectedLocale, setSelectedLocale] = useState(existingErrMsgs?.locale || 'en');
+
+  const [skuLimitRows, setSkuLimitRows] = useState(existingGeneralLimiters?.skuLimiters || []);
 
   //abscent of categories in the store
   if (!(categoriesData)) {
@@ -1111,6 +1116,58 @@ export default function Index() {
       [name]: value
     }));
   }
+
+  // const handleSkuLimiters = (value, id, range = '') => {
+  //   const obj = {};
+  //   const name = 'sku';
+  //   obj['id'] = id === 'id' ? value : id;
+  //   obj['min'] = range === 'min' ? value : getSkuQuantityLimit(obj['id'], 'min');
+  //   obj['max'] = range === 'max' ? value : getSkuQuantityLimit(obj['id'], 'max');
+  //   obj['multiple'] = range === 'multiple' ? value : getSkuQuantityLimit(obj['id'], 'multiple');
+  //   let existingObjects = generalLimiters.skuLimiters;
+  //   existingObjects.concat(obj);
+  //   setGeneralLimiters(prevState => ({
+  //     ...prevState,
+  //     [name]: existingObjects
+  //   }));
+  // }
+
+  // Function to handle changes in SKU limit fields
+  const handleSkuLimiters = (value, id, field = '') => {
+    console.log('value ', value);
+    console.log('id ', id);
+    console.log('field ', field);
+    setSkuLimitRows((prevRows) => {
+        const existingIndex = prevRows.findIndex((sku) => sku.id === id);
+
+        if (existingIndex !== -1) {
+            // If the SKU with the given id exists, update the corresponding field
+            const updatedRows = [...prevRows];
+            updatedRows[existingIndex] = {
+                ...updatedRows[existingIndex],
+                [field]: value
+            };
+            return updatedRows;
+        } else {
+            // If the SKU with the given id does not exist, create a new SKU object
+            return [
+                ...prevRows,
+                {
+                    id: id,
+                    [field]: value // Only set the field that is being changed
+                }
+            ];
+        }
+    });
+
+    console.log('skuLimitRows ', skuLimitRows);
+    console.log('generalLimiters ', generalLimiters);
+
+    setGeneralLimiters((prevState) => ({
+      ...prevState,
+      skuLimiters: skuLimitRows,
+    }));
+  };
 
   const handleExtensionChange = (value) => {
     let name = "extensionMsg";
@@ -1450,9 +1507,9 @@ export default function Index() {
           const checkCollectionTotal = countOfTotalProductsWithLimits + countOfProductsInCollection;
           if (!(id in collectionCounts)) {
             if (!exists) {
-              if ( checkCollectionTotal <= freePlanlimiters.products ) {
+              if (checkCollectionTotal <= freePlanlimiters.products) {
                 limitExceeded = false;
-                
+
                 handleCountOfTotalProductsWithLimits(countOfProductsInCollection);
               } else {
                 limitExceeded = true;
@@ -1475,9 +1532,9 @@ export default function Index() {
             });
 
             if (reseted) {
-              if ( checkCollectionTotal <= freePlanlimiters.products ) {
+              if (checkCollectionTotal <= freePlanlimiters.products) {
                 limitExceeded = false;
-                
+
                 handleCountOfTotalProductsWithLimits(countOfProductsInCollection);
               } else {
                 limitExceeded = true;
@@ -1493,9 +1550,9 @@ export default function Index() {
           const checkVendorTotal = countOfTotalProductsWithLimits + countOfProductsInVendor;
           if (!(id in vendorCounts)) {
             if (!exists) {
-              if ( checkVendorTotal <= freePlanlimiters.products ) {
+              if (checkVendorTotal <= freePlanlimiters.products) {
                 limitExceeded = false;
-                
+
                 handleCountOfTotalProductsWithLimits(countOfProductsInVendor);
               } else {
                 limitExceeded = true;
@@ -1518,9 +1575,9 @@ export default function Index() {
             });
 
             if (reseted) {
-              if ( checkVendorTotal <= freePlanlimiters.products ) {
+              if (checkVendorTotal <= freePlanlimiters.products) {
                 limitExceeded = false;
-                
+
                 handleCountOfTotalProductsWithLimits(countOfProductsInVendor);
               } else {
                 limitExceeded = true;
@@ -1538,10 +1595,10 @@ export default function Index() {
       if (limitExceeded) {
         return false;
       }
-  
+
       return true;
     }
-  
+
     return true;
   };
 
@@ -1550,7 +1607,7 @@ export default function Index() {
 
   const handleQuantityLimit = async (value, id, range = '') => {
     let limitValue = '';
-    
+
     if (range === 'min') {
       const max = getQuantityLimit(id, 'max');
       limitValue = `${value},${max}`;
@@ -1563,9 +1620,9 @@ export default function Index() {
       return;
     }
 
-    
+
     if (value == '' || Number(value) == 0) {
-      
+
       const exists = quantityLimit.some(item => {
         if (item.id === id) {
           const [value1, value2] = item.value.split(',').map(Number);
@@ -1586,7 +1643,7 @@ export default function Index() {
         return false;
       });
       if (exists) {
-        
+
         if (tagValue === 'Category Wise') {
           const countOfProducts = categoriesData.find((item) => item.categoryName === id)?.quantityLimit;
           handleCountOfTotalProductsWithLimits(countOfProducts, false);
@@ -1600,18 +1657,18 @@ export default function Index() {
           handleCountOfTotalProductsWithLimits(1, false);
         }
       } else {
-        
+
         let title = id;
         if (tagValue === "Product Wise" && !id.includes('ProductVariant')) {
           title = allProductsData.find((item) => item.node.id === id)?.node?.title;
         }
         if ((title in productLimitCounts) || (title in categoryCounts) || (title in collectionCounts) || (title in vendorCounts)) {
-          
+
           if (range === 'min') {
             const max = getQuantityLimit(id, 'max');
             if (Number(max) == 0) {
 
-              if(tagValue === 'Category Wise') {
+              if (tagValue === 'Category Wise') {
                 const countOfProducts = categoriesData.find((item) => item.categoryName === id)?.quantityLimit;
                 handleCountOfTotalProductsWithLimits(countOfProducts, false);
               } else if (tagValue === 'Collection Wise') {
@@ -1630,7 +1687,7 @@ export default function Index() {
             const min = getQuantityLimit(id, 'min');
             if (Number(min) == 0) {
 
-              if(tagValue === 'Category Wise') {
+              if (tagValue === 'Category Wise') {
                 const countOfProducts = categoriesData.find((item) => item.categoryName === id)?.quantityLimit;
                 handleCountOfTotalProductsWithLimits(countOfProducts, false);
               } else if (tagValue === 'Collection Wise') {
@@ -1647,13 +1704,13 @@ export default function Index() {
             }
           }
 
-          
+
         }
       }
     }
 
     // setIsBlock(false);
-  
+
     setErrorState({});
 
 
@@ -1668,10 +1725,10 @@ export default function Index() {
             acc[key] = false;
             return acc;
           }, {});
-        
+
           // Set the specific field's error state
           newState[`${id}_${range}`] = error;
-        
+
           return newState;
         });
         return;
@@ -1950,6 +2007,35 @@ export default function Index() {
     }
   };
 
+  // Function to get SKU quantity limit
+  const getSkuQuantityLimit = (id, field = '') => {
+    console.log('id in getSku ', id);
+    console.log('field in getSku ', field);
+    
+    const skuLimit = skuLimitRows.find((item) => item.id === id);
+    const existingSkuLimits = generalLimiters?.skuLimiters || [];
+    const sku = existingSkuLimits.find((item) => item.id === id);
+
+    console.log('sku field value in getSku ', sku[field]);
+
+    if(skuLimit) {
+      return Number(skuLimit[field]);
+    } else if (sku) {
+      return Number(sku[field]);
+    } else {
+      return 0;
+    }
+    //return sku ? Number(sku[field]) : 0;
+  };
+
+  // Function to handle adding a new SKU limit row
+  // const handleAddSkuLimit = () => {
+  //   const newSku = { id: '', min: '', max: '', multiple: '' };
+  //   setSkuLimitRows([...skuLimitRows, newSku]);
+  // };
+
+  // console.log('allproductsdata ', allProductsData.find((item) => item.node.id === "gid://shopify/Product/8614183305468"));
+
   if (isSaving) {
     return (
       <div style={{
@@ -2202,7 +2288,7 @@ export default function Index() {
                                       onChange={(value) => { handleQuantityLimit(value, product.node.id, 'min') }}
                                       error={errorState[`${product.node.id}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
                                     />
-                                    
+
                                   </FormLayout>
                                 </IndexTable.Cell>
                                 <IndexTable.Cell>
@@ -2287,27 +2373,27 @@ export default function Index() {
                         <div>
                           <InlineStack gap="500">
                             <div style={{ paddingLeft: '0.5rem' }}>
-                            <div style={{ display: 'flex' }}>
+                              <div style={{ display: 'flex' }}>
                                 <label >Select Language</label>
-                                <Tooltip content={"Select a language and enter the message(place holders should be in English). If the browsing language differs, English will be used by default."}>                          
-                                  <Button icon={InfoIcon} variant="plain"/>
+                                <Tooltip content={"Select a language and enter the message(place holders should be in English). If the browsing language differs, English will be used by default."}>
+                                  <Button icon={InfoIcon} variant="plain" />
                                 </Tooltip>
                               </div>
-                            <FormLayout>
-                              <Select
-                                labelHidden
-                                options={localeOptions}
-                                value={selectedLocale}
-                                onChange={handleLocaleChange}
-                              />
-                            </FormLayout>
+                              <FormLayout>
+                                <Select
+                                  labelHidden
+                                  options={localeOptions}
+                                  value={selectedLocale}
+                                  onChange={handleLocaleChange}
+                                />
+                              </FormLayout>
                             </div>
                           </InlineStack>
                         </div>
                       </div>
-                      
-                      <br/>
-                      
+
+                      <br />
+
                       <Card>
                         <TextField
                           label="Error Message for Product Minimum limit"
@@ -2402,7 +2488,7 @@ export default function Index() {
                                     onChange={(value) => { handleQuantityLimit(value, category['categoryName'], 'min') }}
                                     error={errorState[`${category['categoryName']}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
                                   />
-                                  
+
                                 </FormLayout>
                               </IndexTable.Cell>
                               <IndexTable.Cell>
@@ -2427,26 +2513,26 @@ export default function Index() {
                         <div>
                           <InlineStack gap="500">
                             <div style={{ paddingLeft: '0.5rem' }}>
-                            <div style={{ display: 'flex' }}>
+                              <div style={{ display: 'flex' }}>
                                 <label >Select Language</label>
-                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>                          
-                                  <Button icon={InfoIcon} variant="plain"/>
+                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>
+                                  <Button icon={InfoIcon} variant="plain" />
                                 </Tooltip>
                               </div>
-                            <FormLayout>
-                              <Select
-                                labelHidden
-                                options={localeOptions}
-                                value={selectedLocale}
-                                onChange={handleLocaleChange}
-                              />
-                            </FormLayout>
+                              <FormLayout>
+                                <Select
+                                  labelHidden
+                                  options={localeOptions}
+                                  value={selectedLocale}
+                                  onChange={handleLocaleChange}
+                                />
+                              </FormLayout>
                             </div>
                           </InlineStack>
                         </div>
                       </div>
-                      
-                      <br/>
+
+                      <br />
 
                       <Card>
                         <TextField
@@ -2524,7 +2610,7 @@ export default function Index() {
                                     error={errorState[`${collection?.node?.title}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
 
                                   />
-                                  
+
                                 </FormLayout>
                               </IndexTable.Cell>
                               <IndexTable.Cell>
@@ -2544,31 +2630,31 @@ export default function Index() {
                       </Card>
                       <br />
                       <br />
-                      
+
                       <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
                         <div>
                           <InlineStack gap="500">
                             <div style={{ paddingLeft: '0.5rem' }}>
-                            <div style={{ display: 'flex' }}>
+                              <div style={{ display: 'flex' }}>
                                 <label >Select Language</label>
-                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>                          
-                                  <Button icon={InfoIcon} variant="plain"/>
+                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>
+                                  <Button icon={InfoIcon} variant="plain" />
                                 </Tooltip>
                               </div>
-                            <FormLayout>
-                              <Select
-                                labelHidden
-                                options={localeOptions}
-                                value={selectedLocale}
-                                onChange={handleLocaleChange}
-                              />
-                            </FormLayout>
+                              <FormLayout>
+                                <Select
+                                  labelHidden
+                                  options={localeOptions}
+                                  value={selectedLocale}
+                                  onChange={handleLocaleChange}
+                                />
+                              </FormLayout>
                             </div>
                           </InlineStack>
                         </div>
                       </div>
-                      
-                      <br/>
+
+                      <br />
 
                       <Card>
                         <TextField
@@ -2640,31 +2726,31 @@ export default function Index() {
 
                       <br />
                       <br />
-                      
+
                       <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
                         <div>
                           <InlineStack gap="500">
                             <div style={{ paddingLeft: '0.5rem' }}>
-                            <div style={{ display: 'flex' }}>
+                              <div style={{ display: 'flex' }}>
                                 <label >Select Language</label>
-                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>                          
-                                  <Button icon={InfoIcon} variant="plain"/>
+                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>
+                                  <Button icon={InfoIcon} variant="plain" />
                                 </Tooltip>
                               </div>
-                            <FormLayout>
-                              <Select
-                                labelHidden
-                                options={localeOptions}
-                                value={selectedLocale}
-                                onChange={handleLocaleChange}
-                              />
-                            </FormLayout>
+                              <FormLayout>
+                                <Select
+                                  labelHidden
+                                  options={localeOptions}
+                                  value={selectedLocale}
+                                  onChange={handleLocaleChange}
+                                />
+                              </FormLayout>
                             </div>
                           </InlineStack>
                         </div>
                       </div>
-                      
-                      <br/>
+
+                      <br />
 
                       <Card>
                         <TextField
@@ -2756,31 +2842,31 @@ export default function Index() {
 
                       <br />
                       <br />
-                      
+
                       <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
                         <div>
                           <InlineStack gap="500">
                             <div style={{ paddingLeft: '0.5rem' }}>
-                            <div style={{ display: 'flex' }}>
+                              <div style={{ display: 'flex' }}>
                                 <label >Select Language</label>
-                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>                          
-                                  <Button icon={InfoIcon} variant="plain"/>
+                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>
+                                  <Button icon={InfoIcon} variant="plain" />
                                 </Tooltip>
                               </div>
-                            <FormLayout>
-                              <Select
-                                labelHidden
-                                options={localeOptions}
-                                value={selectedLocale}
-                                onChange={handleLocaleChange}
-                              />
-                            </FormLayout>
+                              <FormLayout>
+                                <Select
+                                  labelHidden
+                                  options={localeOptions}
+                                  value={selectedLocale}
+                                  onChange={handleLocaleChange}
+                                />
+                              </FormLayout>
                             </div>
                           </InlineStack>
                         </div>
                       </div>
-                      
-                      <br/>
+
+                      <br />
 
                       <Card>
                         <TextField
@@ -2875,7 +2961,7 @@ export default function Index() {
                                     onChange={(value) => { handleQuantityLimit(value, vendor['vendorName'], 'min') }}
                                     error={errorState[`${vendor['vendorName']}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
                                   />
-                                  
+
                                 </FormLayout>
                               </IndexTable.Cell>
                               <IndexTable.Cell>
@@ -2899,26 +2985,26 @@ export default function Index() {
                         <div>
                           <InlineStack gap="500">
                             <div style={{ paddingLeft: '0.5rem' }}>
-                            <div style={{ display: 'flex' }}>
+                              <div style={{ display: 'flex' }}>
                                 <label >Select Language</label>
-                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>                          
-                                  <Button icon={InfoIcon} variant="plain"/>
+                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>
+                                  <Button icon={InfoIcon} variant="plain" />
                                 </Tooltip>
                               </div>
-                            <FormLayout>
-                              <Select
-                                labelHidden
-                                options={localeOptions}
-                                value={selectedLocale}
-                                onChange={handleLocaleChange}
-                              />
-                            </FormLayout>
+                              <FormLayout>
+                                <Select
+                                  labelHidden
+                                  options={localeOptions}
+                                  value={selectedLocale}
+                                  onChange={handleLocaleChange}
+                                />
+                              </FormLayout>
                             </div>
                           </InlineStack>
                         </div>
                       </div>
-                      
-                      <br/>
+
+                      <br />
 
                       <Card>
                         <TextField
@@ -2942,6 +3028,144 @@ export default function Index() {
                       </Card>
                     </>
                   )}
+
+                  {tagValue === 'SKU Wise' && (
+                    <>
+                      <Card>
+                        <IndexTable
+                          headings={[
+                            {
+                              title: 'SKU Id'
+                            },
+                            {
+                              title: 'Quantity Available'
+                            },
+                            {
+                              title: 'Min Limit'
+                            },
+                            {
+                              title: 'Max Limit'
+                            },
+                            {
+                              title: 'Multiple'
+                            }
+                          ]}
+                          itemCount={allProductsData.length}
+                          selectable={false}
+                        >
+                          {allProductsData.map((product, index) => (
+                            <>
+                              {product?.node.variants?.edges.length > 0 && (
+                                product.node.variants.edges.map((variant, index) => (
+                                  <>
+                                    {variant?.node?.sku != '' && (
+                                      <IndexTable.Row key={index}>
+                                        <IndexTable.Cell>{variant.node.sku}</IndexTable.Cell>
+                                        <IndexTable.Cell>
+                                          <div style={{ textAlign: 'center' }}>
+                                            {variant.node.inventoryQuantity}
+                                          </div>
+                                        </IndexTable.Cell>
+                                        <IndexTable.Cell>
+                                          <FormLayout>
+                                            <TextField
+                                              value={getSkuQuantityLimit(variant.node.sku, 'min')}
+                                              label="SKU Min Limit"
+                                              type="number"
+                                              onChange={(value) => handleSkuLimiters(value, variant.node.sku, 'min')}
+                                            />
+                                          </FormLayout>
+                                        </IndexTable.Cell>
+                                        <IndexTable.Cell>
+                                          <FormLayout>
+                                            <TextField
+                                              value={getSkuQuantityLimit(variant.node.sku, 'max')}
+                                              label="SKU Max Limit"
+                                              type="number"
+                                              onChange={(value) => handleSkuLimiters(value, variant.node.sku, 'max')}
+                                            />
+                                          </FormLayout>
+                                        </IndexTable.Cell>
+                                        <IndexTable.Cell>
+                                          <FormLayout>
+                                            <TextField
+                                              value={getSkuQuantityLimit(variant.node.sku, 'multiple')}
+                                              label="Multiple"
+                                              type="number"
+                                              onChange={(value) => handleSkuLimiters(value, variant.node.sku, 'multiple')}
+                                            />
+                                          </FormLayout>
+                                        </IndexTable.Cell>
+                                      </IndexTable.Row>
+                                    )}
+                                  </>
+                                ))
+                              )}
+                            </>
+                          ))}
+                        </IndexTable>
+                      </Card >
+
+                      <br />
+                      <br />
+
+                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+                        <div>
+                          <InlineStack gap="500">
+                            <div style={{ paddingLeft: '0.5rem' }}>
+                              <div style={{ display: 'flex' }}>
+                                <label >Select Language</label>
+                                <Tooltip content={"Select a language and enter the message. If the browsing language differs, English will be used by default"}>
+                                  <Button icon={InfoIcon} variant="plain" />
+                                </Tooltip>
+                              </div>
+                              <FormLayout>
+                                <Select
+                                  labelHidden
+                                  options={localeOptions}
+                                  value={selectedLocale}
+                                  onChange={handleLocaleChange}
+                                />
+                              </FormLayout>
+                            </div>
+                          </InlineStack>
+                        </div>
+                      </div>
+
+                      <br />
+
+                      <Card>
+                        <TextField
+                          label="Error Message for SKU Minimum limit"
+                          value={errorMessages.skuMinErrMsg}
+                          onChange={(value) => { handleErrorMessages("skuMinErrMsg", value) }}
+                          placeholder="You can't select less than {skumin} for this product {productName}."
+                          helpText="use {skuMin} to include minimum limit"
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
+                          label="Error Message for SKU Maximum limit"
+                          value={errorMessages.skuMaxErrMsg}
+                          onChange={(value) => { handleErrorMessages("skuMaxErrMsg", value) }}
+                          placeholder="Quantity limit reached, you can't select more than {skuMax} for {productName}."
+                          helpText="use {skuMax} to include maximum limit"
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
+                          label="Error Message for SKU Multiple limit"
+                          value={errorMessages.skuMaxErrMsg}
+                          onChange={(value) => { handleErrorMessages("skuMaxErrMsg", value) }}
+                          placeholder="You can only select multiple of {skumultiple} for {productName}."
+                          helpText="use {skuMultiple} to include multiple limit"
+                          autoComplete="off"
+                        />
+                        <br />
+                      </Card>
+                    </>
+                  )}
+
                 </Layout.Section>
               </Layout>
             </BlockStack>
