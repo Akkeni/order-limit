@@ -2251,6 +2251,7 @@ export default function Index() {
                                           label="Variant Min Limit"
                                           type="number"
                                           onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'min') }}
+                                          error={errorState[`${variant.node.id}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
                                         />
                                       </FormLayout>
                                     </IndexTable.Cell>
@@ -2261,6 +2262,7 @@ export default function Index() {
                                           label="Variant Max Limit"
                                           type="number"
                                           onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'max') }}
+                                          error={errorState[`${variant.node.id}_max`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
                                         />
                                       </FormLayout>
                                     </IndexTable.Cell>
