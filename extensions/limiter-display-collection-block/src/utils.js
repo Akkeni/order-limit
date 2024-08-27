@@ -1,6 +1,6 @@
 export async function updateCollectionLimit(productId, limiters) {
 
-  const collectionValue = limiters?.collectionName + ',' + limiters?.collectionMin + ',' + limiters?.collectionMax;
+  const collectionValue = limiters?.collectionName + ',' + limiters?.collectionMin + ',' + limiters?.collectionMax + ',' + limiters?.collectionMultiple;
 
   return await makeGraphQLQuery(
     `mutation SetMetafield($namespace: String!, $ownerId: ID!, $key: String!, $type: String!, $value: String!) {
@@ -99,10 +99,11 @@ export async function getLimiters(collectionId) {
     if (collectionData?.data?.collection?.hasProduct) {
       limiters['collectionName'] = collectionData?.data?.collection?.title;
       if (edge?.node?.collectionLimitField?.value) {
-        const [collectionName, collectionMin, collectionMax] = edge?.node?.collectionLimitField?.value.split(',');
+        const [collectionName, collectionMin, collectionMax, collectionMultiple] = edge?.node?.collectionLimitField?.value.split(',');
         if(collectionName === collectionData?.data?.collection?.title) {
           limiters['collectionMin'] = collectionMin;
           limiters['collectionMax'] = collectionMax;
+          limiters['collectionMultiple'] = collectionMultiple;
           break;
         }
       }

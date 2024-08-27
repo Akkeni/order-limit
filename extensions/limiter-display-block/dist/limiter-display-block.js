@@ -19517,19 +19517,19 @@
       var _a, _b;
       const productData = yield getLimiters(productId);
       const allProductsData = yield getAllProductsData();
-      const productValue = (limiters == null ? void 0 : limiters.productMin) + "," + (limiters == null ? void 0 : limiters.productMax) + "," + (limiters == null ? void 0 : limiters.vendorName) + "," + (limiters == null ? void 0 : limiters.vendorMin) + "," + (limiters == null ? void 0 : limiters.vendorMax) + "," + ((_b = (_a = productData == null ? void 0 : productData.data) == null ? void 0 : _a.product) == null ? void 0 : _b.title);
-      const categoryValue = (limiters == null ? void 0 : limiters.categoryName) + "," + (limiters == null ? void 0 : limiters.categoryMin) + "," + (limiters == null ? void 0 : limiters.categoryMax);
+      const productValue = (limiters == null ? void 0 : limiters.productMin) + "," + (limiters == null ? void 0 : limiters.productMax) + "," + (limiters == null ? void 0 : limiters.productMultiple) + "," + (limiters == null ? void 0 : limiters.vendorName) + "," + (limiters == null ? void 0 : limiters.vendorMin) + "," + (limiters == null ? void 0 : limiters.vendorMax) + "," + (limiters == null ? void 0 : limiters.vendorMultiple) + "," + ((_b = (_a = productData == null ? void 0 : productData.data) == null ? void 0 : _a.product) == null ? void 0 : _b.title);
+      const categoryValue = (limiters == null ? void 0 : limiters.categoryName) + "," + (limiters == null ? void 0 : limiters.categoryMin) + "," + (limiters == null ? void 0 : limiters.categoryMax) + "," + (limiters == null ? void 0 : limiters.categoryMultiple);
       if ((limiters == null ? void 0 : limiters.vendorName) && Number(limiters == null ? void 0 : limiters.vendorMax) >= 0 && Number((limiters == null ? void 0 : limiters.vendorMin) >= 0)) {
         let limiter = {
           id: limiters == null ? void 0 : limiters.vendorName,
-          value: `${limiters == null ? void 0 : limiters.vendorMin},${limiters == null ? void 0 : limiters.vendorMax}`
+          value: `${limiters == null ? void 0 : limiters.vendorMin},${limiters == null ? void 0 : limiters.vendorMax},${limiters == null ? void 0 : limiters.vendorMultiple}`
         };
         yield createVendorWiseLimiter(allProductsData, limiter);
       }
       if (categoryValue) {
         let limiter = {
           id: limiters == null ? void 0 : limiters.categoryName,
-          value: `${limiters == null ? void 0 : limiters.categoryMin},${limiters == null ? void 0 : limiters.categoryMax}`
+          value: `${limiters == null ? void 0 : limiters.categoryMin},${limiters == null ? void 0 : limiters.categoryMax},${limiters == null ? void 0 : limiters.categoryMultiple}`
         };
         yield createCategoryWiseLimiter(allProductsData, limiter);
       }
@@ -19595,8 +19595,8 @@
       try {
         for (const id of productIds) {
           let value = "";
-          let allValues = limiter.value.split(",").slice(3, 5);
-          let vendorValue = `${allValues[0]},${allValues[1]}`;
+          let allValues = limiter.value.split(",").slice(4, 7);
+          let vendorValue = `${allValues[0]},${allValues[1]},${allValues[2]}`;
           const productData = yield makeGraphQLQuery(
             `query Product($id: ID!) {
         product(id: $id) {
@@ -19611,10 +19611,10 @@
           const product = productData.data.product;
           const productLimitFieldValue = (_a = product == null ? void 0 : product.productLimitField) == null ? void 0 : _a.value;
           if (productLimitFieldValue) {
-            const [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(",");
-            value = `${productMin},${productMax},${limiter.id},${limiter.value},${product.title}`;
+            const [productMin, productMax, productMultiple, vendorName, vendorMin, vendorMultiple, vendorMax] = productLimitFieldValue.split(",");
+            value = `${productMin},${productMax},${productMultiple},${limiter.id},${limiter.value},${product.title}`;
           } else {
-            value = `0,0,${limiter.id},${limiter.value},${product.title}`;
+            value = `0,0,0,${limiter.id},${limiter.value},${product.title}`;
           }
           const variables = {
             input: {
@@ -19994,12 +19994,15 @@
     const [limiters, setLimiters] = (0, import_react17.useState)({
       productMin: 0,
       productMax: 0,
+      productMultiple: 0,
       vendorName: "",
       vendorMin: 0,
       vendorMax: 0,
+      vendorMultiple: 0,
       categoryName: "",
       categoryMin: 0,
       categoryMax: 0,
+      categoryMultiple: 0,
       plan: ""
     });
     const [isAllow, setIsAllow] = (0, import_react17.useState)({
@@ -20061,10 +20064,11 @@
               });
             });
             if ((_g = (_f = (_e = productData == null ? void 0 : productData.data) == null ? void 0 : _e.product) == null ? void 0 : _f.categoryLimitField) == null ? void 0 : _g.value) {
-              const [categoryName, categoryMin, categoryMax] = (_j = (_i = (_h = productData == null ? void 0 : productData.data) == null ? void 0 : _h.product) == null ? void 0 : _i.categoryLimitField) == null ? void 0 : _j.value.split(",");
+              const [categoryName, categoryMin, categoryMax, categoryMultiple] = (_j = (_i = (_h = productData == null ? void 0 : productData.data) == null ? void 0 : _h.product) == null ? void 0 : _i.categoryLimitField) == null ? void 0 : _j.value.split(",");
               setLimiters((prevState) => __spreadProps(__spreadValues({}, prevState), {
                 categoryMin: categoryMin ? Number(categoryMin) : 0,
-                categoryMax: categoryMax ? Number(categoryMax) : 0
+                categoryMax: categoryMax ? Number(categoryMax) : 0,
+                categoryMultiple: categoryMultiple ? Number(categoryMultiple) : 0
               }));
             }
           }
@@ -20076,20 +20080,22 @@
               });
             });
             if ((_o = (_n = (_m = productData == null ? void 0 : productData.data) == null ? void 0 : _m.product) == null ? void 0 : _n.metafield) == null ? void 0 : _o.value) {
-              const [productMin, productMax, vendorName, vendorMin, vendorMax] = (_r = (_q = (_p = productData == null ? void 0 : productData.data) == null ? void 0 : _p.product) == null ? void 0 : _q.metafield) == null ? void 0 : _r.value.split(",");
+              const [productMin, productMax, productMultiple, vendorName, vendorMin, vendorMax, vendorMultiple, productName] = (_r = (_q = (_p = productData == null ? void 0 : productData.data) == null ? void 0 : _p.product) == null ? void 0 : _q.metafield) == null ? void 0 : _r.value.split(",");
               if (isNaN(vendorName)) {
                 setLimiters((prevState) => __spreadProps(__spreadValues({}, prevState), {
                   ["vendorMin"]: vendorMin,
-                  ["vendorMax"]: vendorMax
+                  ["vendorMax"]: vendorMax,
+                  ["vendorMultiple"]: vendorMultiple
                 }));
               }
             }
           }
           if ((_u = (_t = (_s = productData == null ? void 0 : productData.data) == null ? void 0 : _s.product) == null ? void 0 : _t.metafield) == null ? void 0 : _u.value) {
-            const [productMin, productMax, vendorName, vendorMin, vendorMax] = (_x = (_w = (_v = productData == null ? void 0 : productData.data) == null ? void 0 : _v.product) == null ? void 0 : _w.metafield) == null ? void 0 : _x.value.split(",");
+            const [productMin, productMax, productMultiple, vendorName, vendorMin, vendorMax, vendorMultiple, productName] = (_x = (_w = (_v = productData == null ? void 0 : productData.data) == null ? void 0 : _v.product) == null ? void 0 : _w.metafield) == null ? void 0 : _x.value.split(",");
             setLimiters((prevState) => __spreadProps(__spreadValues({}, prevState), {
               ["productMin"]: productMin,
-              ["productMax"]: productMax
+              ["productMax"]: productMax,
+              ["productMultiple"]: productMultiple
             }));
           }
           setLoading(false);
@@ -20135,6 +20141,17 @@
                   handleLimiters(value, "productMax");
                 }
               }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              NumberField2,
+              {
+                value: limiters == null ? void 0 : limiters.productMultiple,
+                label: "Product Multiple Limit",
+                type: "number",
+                onChange: (value) => {
+                  handleLimiters(value, "productMultiple");
+                }
+              }
             )
           ] }) }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text2, { children: "You used allowed product limits. To continue please select a plan or set existing limits to 0." }),
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Divider2, {}),
@@ -20163,6 +20180,17 @@
                   type: "number",
                   onChange: (value) => {
                     handleLimiters(value, "vendorMax");
+                  }
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                NumberField2,
+                {
+                  value: limiters == null ? void 0 : limiters.vendorMultiple,
+                  label: "vendor Multiple Limit",
+                  type: "number",
+                  onChange: (value) => {
+                    handleLimiters(value, "vendorMultiple");
                   }
                 }
               )
@@ -20195,6 +20223,17 @@
                     type: "number",
                     onChange: (value) => {
                       handleLimiters(value, "categoryMax");
+                    }
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                  NumberField2,
+                  {
+                    value: limiters.categoryMultiple,
+                    label: "Category Multiple Limit",
+                    type: "number",
+                    onChange: (value) => {
+                      handleLimiters(value, "categoryMultiple");
                     }
                   }
                 )

@@ -460,8 +460,8 @@ export async function createVendorWiseLimiter(graphql, allProductsData, limiter)
 
   for (const id of productIds) {
     let value = '';
-    let allValues = limiter.value.split(',').slice(3, 5);
-    let vendorValue = `${allValues[0]},${allValues[1]}`;
+    let allValues = limiter.value.split(',').slice(4, 7);
+    let vendorValue = `${allValues[0]},${allValues[1]},${allValues[2]}`;
 
     const productResponse = await graphql(
       `{
@@ -481,12 +481,12 @@ export async function createVendorWiseLimiter(graphql, allProductsData, limiter)
     const productLimitFieldValue = product?.productLimitField?.value;
 
     if (productLimitFieldValue) {
-      const [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
+      const [productMin, productMax, productMultiple, vendorName, vendorMin, vendorMax, vendorMulitple, productName] = productLimitFieldValue.split(',');
 
-      value = `${productMin},${productMax},${limiter.id},${vendorValue},${product.title}`;
+      value = `${productMin},${productMax},${productMultiple},${limiter.id},${vendorValue},${product.title}`;
     } else {
       // If there is no previous metafield value, construct a new value
-      value = `0,0,${limiter.id},${vendorValue},${product.title}`;
+      value = `0,0,0,${limiter.id},${vendorValue},${product.title}`;
     }
 
     const variables = {

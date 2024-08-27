@@ -3,14 +3,14 @@ export async function updateLimiters(productId, limiters) {
   const productData = await getLimiters(productId);
   const allProductsData = await getAllProductsData();
 
-  const productValue = limiters?.productMin + ',' + limiters?.productMax + ',' + limiters?.vendorName + ',' + limiters?.vendorMin + ',' + limiters?.vendorMax + ',' + productData?.data?.product?.title;
-  const categoryValue = limiters?.categoryName + ',' + limiters?.categoryMin + ',' + limiters?.categoryMax;
+  const productValue = limiters?.productMin + ',' + limiters?.productMax + ',' + limiters?.productMultiple + ',' + limiters?.vendorName + ',' + limiters?.vendorMin + ',' + limiters?.vendorMax + ',' + limiters?.vendorMultiple + ',' + productData?.data?.product?.title;
+  const categoryValue = limiters?.categoryName + ',' + limiters?.categoryMin + ',' + limiters?.categoryMax + ',' + limiters?.categoryMultiple;
 
 
   if (limiters?.vendorName && Number(limiters?.vendorMax) >= 0 && Number(limiters?.vendorMin >= 0)) {
     let limiter = {
       id: limiters?.vendorName,
-      value: `${limiters?.vendorMin},${limiters?.vendorMax}`
+      value: `${limiters?.vendorMin},${limiters?.vendorMax},${limiters?.vendorMultiple}`
     };
     await createVendorWiseLimiter(allProductsData, limiter);
   }
@@ -18,7 +18,7 @@ export async function updateLimiters(productId, limiters) {
   if (categoryValue) {
     let limiter = {
       id: limiters?.categoryName,
-      value: `${limiters?.categoryMin},${limiters?.categoryMax}`
+      value: `${limiters?.categoryMin},${limiters?.categoryMax},${limiters?.categoryMultiple}`
     };
     await createCategoryWiseLimiter(allProductsData, limiter);
   }
@@ -90,8 +90,8 @@ export async function createVendorWiseLimiter(allProductsData, limiter) {
     
     for (const id of productIds) {
       let value = '';
-      let allValues = limiter.value.split(',').slice(3, 5);
-      let vendorValue = `${allValues[0]},${allValues[1]}`;
+      let allValues = limiter.value.split(',').slice(4, 7);
+      let vendorValue = `${allValues[0]},${allValues[1]},${allValues[2]}`;
 
       const productData = await makeGraphQLQuery(
         `query Product($id: ID!) {
@@ -112,12 +112,12 @@ export async function createVendorWiseLimiter(allProductsData, limiter) {
       const productLimitFieldValue = product?.productLimitField?.value;
 
       if (productLimitFieldValue) {
-        const [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
+        const [productMin, productMax, productMultiple, vendorName, vendorMin, vendorMultiple, vendorMax] = productLimitFieldValue.split(',');
 
-        value = `${productMin},${productMax},${limiter.id},${limiter.value},${product.title}`;
+        value = `${productMin},${productMax},${productMultiple},${limiter.id},${limiter.value},${product.title}`;
       } else {
         // If there is no previous metafield value, construct a new value
-        value = `0,0,${limiter.id},${limiter.value},${product.title}`;
+        value = `0,0,0,${limiter.id},${limiter.value},${product.title}`;
       }
 
       const variables = {

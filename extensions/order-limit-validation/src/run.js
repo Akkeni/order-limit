@@ -176,6 +176,14 @@ export function run(input) {
       return (Number(max) > 0 && quantity > Number(max));
     }
 
+    const checkMultipleLimit = (quantity, multiple) => {
+      if(multiple > 0) {
+        return (!(quantity % multiple == 0));  
+      } else {
+        return false;
+      }
+    }
+
     //accumulateQuantities 
     for (const line of input.cart.lines) {
       const { quantity, merchandise } = line;
@@ -205,7 +213,7 @@ export function run(input) {
 
         if (product.productLimitField) {
 
-          const [productMin, productMax, vendorName, vendorMin, vendorMax, productName] = product.productLimitField.value.split(',');
+          const vendorName = product.productLimitField.value.split(',')[3];
 
           if (vendorQuantities.has(vendorName)) {
             vendorQuantities.set(vendorName, vendorQuantities.get(vendorName) + quantity);
@@ -222,12 +230,13 @@ export function run(input) {
 
       if (merchandise.__typename === "ProductVariant") {
         const { product } = merchandise;
+        const productName = product?.title;
 
         if (merchandise.productVariantLimitField) {
-          const productName = product?.title;
-          const [productVariantMin, productVariantMax] = merchandise.productVariantLimitField.value.split(',').map(Number);
+          //const productName = product?.title;
+          const [productVariantMin, productVariantMax, productVariantMultiple] = merchandise.productVariantLimitField.value.split(',').map(Number);
 
-          if (productVariantMin > 0 || productVariantMax > 0) {
+          if (productVariantMin > 0 || productVariantMax > 0 || productVariantMultiple > 0) {
             isVariantLimitSet = true;
           }
 
@@ -235,14 +244,21 @@ export function run(input) {
             errors.push({
               localizedMessage: errorMessagesFieldValue?.variantMaxErrMsg && currentLocale === selectedLocale
                 ? errorMessagesFieldValue.variantMaxErrMsg.replace("{productVariantMax}", productVariantMax).replace(" {productName}", productName)
-                : `Quantity limit reached, you can't select more than ${productVariantMax}.`,
+                : `Quantity limit reached, you can't select more than ${productVariantMax} for this ${productName} variant.`,
               target: "cart",
             });
           } else if (checkMinLimit(quantity, productVariantMin)) {
             errors.push({
               localizedMessage: errorMessagesFieldValue?.variantMinErrMsg && currentLocale === selectedLocale
                 ? errorMessagesFieldValue.variantMinErrMsg.replace("{productVariantMin}", productVariantMin).replace(" {productName}", productName)
-                : `You can't select less than ${productVariantMin} for this product variant.`,
+                : `You can't select less than ${productVariantMin} for this ${productName} variant.`,
+              target: "cart",
+            });
+          } else if (checkMultipleLimit(quantity, productVariantMultiple)) {
+            errors.push({
+              localizedMessage: errorMessagesFieldValue?.variantMultipleErrMsg && currentLocale === selectedLocale
+                ? errorMessagesFieldValue.variantMultipleErrMsg.replace("{productVariantMultiple}", productVariantMultiple).replace(" {productName}", productName)
+                : `Quantity should be a multiple of ${productVariantMultiple} for this ${productName} variant.`,
               target: "cart",
             });
           }
@@ -251,8 +267,8 @@ export function run(input) {
         if(!isVariantLimitSet) {
           if(merchandise.__typename === "ProductVariant") {
             const sku = merchandise?.sku;
-            const { product } = merchandise;
-            const productName = product?.title;
+            // const { product } = merchandise;
+            // const productName = product?.title;
             if(sku) {
               const isSkuExist = skuLimiters.find((item) => item.id === sku);
               if(Number(isSkuExist.multiple) > 0 || Number(isSkuExist.min) > 0 || Number(isSkuExist.max) > 0) {
@@ -291,9 +307,10 @@ export function run(input) {
 
         if (!isVariantLimitSet && !isSkuLimitSet) {
           if (product.productLimitField) {
-            const [productMin, productMax, vendorName, vendorMin, vendorMax, productName] = product.productLimitField.value.split(',');
+            
+            const [productMin, productMax, productMultiple, vendorName, vendorMin, vendorMax, vendorMultiple] = product.productLimitField.value.split(',');
 
-            if (Number(productMin) > 0 || Number(productMax) > 0) {
+            if (Number(productMin) > 0 || Number(productMax) > 0 || Number(productMultiple) > 0) {
               isProductLimitSet = true;
             }
 
@@ -311,6 +328,13 @@ export function run(input) {
                   : `You can't select less than ${productMin} for ${productName}.`,
                 target: "cart",
               });
+            } else if (checkMultipleLimit(quantity, productMultiple)) {
+              errors.push({
+                localizedMessage: errorMessagesFieldValue?.productMultipleErrMsg && currentLocale === selectedLocale
+                  ? errorMessagesFieldValue.productMultipleErrMsg.replace("{productMultiple}", productMultiple).replace("{productName}", productName)
+                  : `Quantity should be a multiple of ${productMultiple} for ${productName}.`,
+                target: "cart",
+              });
             }
           }
         }
@@ -326,9 +350,9 @@ export function run(input) {
           const { product } = merchandise;
 
           if (product.categoryLimitField) {
-            const [categoryName, categoryMin, categoryMax] = product.categoryLimitField.value.split(',');
+            const [categoryName, categoryMin, categoryMax, categoryMultiple] = product.categoryLimitField.value.split(',');
 
-            if (Number(categoryMin) > 0 || Number(categoryMax) > 0) {
+            if (Number(categoryMin) > 0 || Number(categoryMax) > 0 || Number(categoryMultiple) > 0) {
               isCategoryLimitSet = true;
             }
 
@@ -348,6 +372,13 @@ export function run(input) {
                     : `You have to select minimun ${categoryMin} products from the category "${categoryName}".`,
                   target: "cart",
                 });
+              } else if (checkMultipleLimit(Number(categoryQuantities.get(categoryName)), Number(categoryMultiple))) {
+                errors.push({
+                  localizedMessage: errorMessagesFieldValue?.categoryMultipleErrMsg && currentLocale === selectedLocale
+                    ? errorMessagesFieldValue.categoryMultipleErrMsg.replace("{categoryMultiple}", categoryMultiple).replace("{categoryName}", categoryName)
+                    : `Quantity should be a multiple of ${categoryMultiple} for the category ${categoryName}.`,
+                  target: "cart",
+                });
               }
             }
           }
@@ -364,9 +395,9 @@ export function run(input) {
           const { product } = merchandise;
 
           if (product.collectionLimitField) {
-            const [collectionName, collectionMin, collectionMax] = product.collectionLimitField.value.split(',');
+            const [collectionName, collectionMin, collectionMax, collectionMultiple] = product.collectionLimitField.value.split(',');
 
-            if (Number(collectionMin) > 0 || Number(collectionMax) > 0) {
+            if (Number(collectionMin) > 0 || Number(collectionMax) > 0 || Number(collectionMultiple) > 0) {
               isCollectionLimitSet = true;
             }
 
@@ -386,6 +417,13 @@ export function run(input) {
                     : `You have to select minimun ${collectionMin} products from the collection "${collectionName}".`,
                   target: "cart",
                 });
+              } else if (checkMultipleLimit(Number(collectionQuantities.get(collectionName)), Number(collectionMultiple))) {
+                errors.push({
+                  localizedMessage: errorMessagesFieldValue?.collectionMultipleErrMsg && currentLocale === selectedLocale
+                    ? errorMessagesFieldValue.collectionMultipleErrMsg.replace("{collectionMultiple}", collectionMultiple).replace("{collectionName}", collectionName)
+                    : `Quantity should be a multiple of ${collectionMultiple} for the collection ${collectionName}.`,
+                  target: "cart",
+                });
               }
             }
           }
@@ -401,12 +439,12 @@ export function run(input) {
           const { product } = merchandise;
           // Check if product has vendor information
           if (product.productLimitField) {
-
-            const [productMin, productMax, vendorName, vendorMin, vendorMax, productName] = product.productLimitField.value.split(',');
-
+            const [productMin, productMax, productMultiple, vendorName, vendorMin, vendorMax, vendorMultiple, productName] = product.productLimitField.value.split(',');
+            console.log('vendor name ', vendorName);
+            console.log('vendor quantity ', vendorQuantities.get(vendorName));
             if (vendorName) {
 
-              if (Number(vendorMin) > 0 || Number(vendorMax) > 0) {
+              if (Number(vendorMin) > 0 || Number(vendorMax) > 0 || Number(vendorMultiple) > 0) {
                 isVendorLimitSet = true;
               }
 
@@ -422,6 +460,14 @@ export function run(input) {
                   localizedMessage: errorMessagesFieldValue?.vendorMinErrMsg && currentLocale === selectedLocale
                     ? errorMessagesFieldValue.vendorMinErrMsg.replace("{vendorMin}", vendorMin).replace("{vendorName}", vendorName)
                     : `You have to select minimun ${vendorMin} products from the vendor "${vendorName}".`,
+                  target: "cart",
+                });
+
+              } else if (checkMultipleLimit(Number(vendorQuantities.get(vendorName)), vendorMultiple)) {
+                errors.push({
+                  localizedMessage: errorMessagesFieldValue?.vendorMultipleErrMsg && currentLocale === selectedLocale
+                    ? errorMessagesFieldValue.vendorMultipleErrMsg.replace("{vendorMultiple}", vendorMultiple).replace("{vendorName}", vendorName)
+                    : `Quantity should be a multiple of ${vendorMultiple} for the vendor ${vendorName}.`,
                   target: "cart",
                 });
 

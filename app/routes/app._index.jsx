@@ -288,10 +288,10 @@ export async function loader({ request }) {
 
       if (node.productLimitField && node.productLimitField.value) {
         const productLimitValues = node.productLimitField.value.split(',');
-        const productLimits = productLimitValues.slice(0, 2).map(Number);
-        const vendorName = productLimitValues[2];
-        const vendorLimits = productLimitValues.slice(3, 5).map(Number);
-        const productName = productLimitValues[5];
+        const productLimits = productLimitValues.slice(0, 3).map(Number);
+        const vendorName = productLimitValues[3];
+        const vendorLimits = productLimitValues.slice(4, 7).map(Number);
+        const productName = productLimitValues[7];
 
         if (vendorLimits.some(value => value !== 0)) {
           if (!vendorLimiters.find((item) => item.id === vendorName)) {
@@ -644,10 +644,10 @@ async function handleProductWiseLimiter(admin, formData, limiter) {
     const productLimitFieldValue = productData?.data?.product?.productLimitField?.value;
 
     if (productLimitFieldValue) {
-      const [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
-      value = `${limiter.value},${vendorName},${vendorMin},${vendorMax},${productData?.data?.product?.title}`;
+      const [productMin, productMax, productMultiple, vendorName, vendorMin, vendorMax, vendorMultiple, productName] = productLimitFieldValue.split(',');
+      value = `${limiter.value},${vendorName},${vendorMin},${vendorMax},${vendorMultiple},${productData?.data?.product?.title}`;
     } else {
-      value = `${limiter.value},0,0,0,${productData?.data?.product?.title}`;
+      value = `${limiter.value},0,0,0,0,${productData?.data?.product?.title}`;
     }
 
     const variables = {
@@ -746,12 +746,12 @@ async function handleVendorWiseLimiter(admin, allProductsData, limiter) {
     const productLimitFieldValue = product?.productLimitField?.value;
 
     if (productLimitFieldValue) {
-      const [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
+      const [productMin, productMax, productMultiple, vendorName, vendorMin, vendorMax, vendorMultiple, productName] = productLimitFieldValue.split(',');
 
-      value = `${productMin},${productMax},${limiter.id},${limiter.value},${product.title}`;
+      value = `${productMin},${productMax},${productMultiple},${limiter.id},${limiter.value},${product.title}`;
     } else {
       // If there is no previous metafield value, construct a new value
-      value = `0,0,${limiter.id},${limiter.value},${product.title}`;
+      value = `0,0,0,${limiter.id},${limiter.value},${product.title}`;
     }
 
     const variables = {
@@ -865,16 +865,22 @@ export default function Index() {
     shopMaxErrMsg: existingErrMsgs.shopMaxErrMsg || '',
     productMinErrMsg: existingErrMsgs.productMinErrMsg || '',
     productMaxErrMsg: existingErrMsgs.productMaxErrMsg || '',
+    productMultipleErrMsg: existingErrMsgs.productMultipleErrMsg || '',
     variantMinErrMsg: existingErrMsgs.variantMinErrMsg || '',
     variantMaxErrMsg: existingErrMsgs.variantMaxErrMsg || '',
+    variantMultipleErrMsg: existingErrMsgs.variantMultipleErrMsg || '',
     categoryMinErrMsg: existingErrMsgs.categoryMinErrMsg || '',
     categoryMaxErrMsg: existingErrMsgs.categoryMaxErrMsg || '',
+    categoryMultipleErrMsg: existingErrMsgs.categoryMultipleErrMsg || '',
     collectionMinErrMsg: existingErrMsgs.collectionMinErrMsg || '',
     collectionMaxErrMsg: existingErrMsgs.collectionMaxErrMsg || '',
+    collectionMultipleErrMsg: existingErrMsgs.collectionMultipleErrMsg || '',
     vendorMinErrMsg: existingErrMsgs.vendorMinErrMsg || '',
     vendorMaxErrMsg: existingErrMsgs.vendorMaxErrMsg || '',
+    vendorMultipleErrMsg: existingErrMsgs.vendorMultipleErrMsg || '',
     skuMinErrMsg: existingErrMsgs.skuMinErrMsg || '',
     skuMaxErrMsg: existingErrMsgs.skuMaxErrMsg || '',
+    skuMultipleErrMsg: existingErrMsgs.skuMultipleErrMsg || '',
     extensionMsg: existingErrMsgs?.extensionMsg || 'Cart Extension',
     plan: loaderData?.plan,
     locale: existingErrMsgs?.locale || 'en',
@@ -920,7 +926,7 @@ export default function Index() {
 
   const [selectedLocale, setSelectedLocale] = useState(existingErrMsgs?.locale || 'en');
 
-  const [skuLimitRows, setSkuLimitRows] = useState(existingGeneralLimiters?.skuLimiters || []);
+  const [skuLimitRows, setSkuLimitRows] = useState(existingGeneralLimiters?.skuLimiters ? existingGeneralLimiters?.skuLimiters : []);
 
   //abscent of categories in the store
   if (!(categoriesData)) {
@@ -975,6 +981,12 @@ export default function Index() {
   const filteredCollectionRows = allCollectionsData.filter(collection =>
     collection.node.title.toLowerCase().includes(searchValue.toLowerCase()) ||
     (collection.node.productsCount?.count.toString().toLowerCase().includes(searchValue.toLowerCase()))
+  );
+
+  const fileteredSkuRows = allProductsData.filter((product) =>
+    product.node.variants.edges.some((variant) =>
+      variant?.node?.sku.toLowerCase().includes(searchValue.toLowerCase())
+    )
   );
 
   // Sort the filtered rows based on the current sort column and direction
@@ -1610,10 +1622,16 @@ export default function Index() {
 
     if (range === 'min') {
       const max = getQuantityLimit(id, 'max');
-      limitValue = `${value},${max}`;
+      const multiple = getQuantityLimit(id, 'multiple');
+      limitValue = `${value},${max},${multiple}`;
+    } else if (range === 'multiple') {
+      const max = getQuantityLimit(id, 'max');
+      const min = getQuantityLimit(id, 'min');
+      limitValue =`${min},${max},${value}`;
     } else {
       const min = getQuantityLimit(id, 'min');
-      limitValue = `${min},${value}`;
+      const multiple = getQuantityLimit(id, 'multiple');
+      limitValue = `${min},${value},${multiple}`;
     }
 
     if (Number(value) < 0) {
@@ -1622,94 +1640,8 @@ export default function Index() {
 
 
     if (value == '' || Number(value) == 0) {
-
-      const exists = quantityLimit.some(item => {
-        if (item.id === id) {
-          const [value1, value2] = item.value.split(',').map(Number);
-          if (range == 'min') {
-            if (value1 > 0 && value2 == 0) {
-              return true;
-            } else {
-              return false;
-            }
-          } else {
-            if (value2 > 0 && value1 == 0) {
-              return true;
-            } else {
-              return false;
-            }
-          }
-        }
-        return false;
-      });
-      if (exists) {
-
-        if (tagValue === 'Category Wise') {
-          const countOfProducts = categoriesData.find((item) => item.categoryName === id)?.quantityLimit;
-          handleCountOfTotalProductsWithLimits(countOfProducts, false);
-        } else if (tagValue === 'Collection Wise') {
-          const countOfProducts = allCollectionsData.find((item) => item.node?.title === id)?.node?.productsCount?.count;
-          handleCountOfTotalProductsWithLimits(countOfProducts, false);
-        } else if (tagValue === 'Vendor Wise') {
-          const countOfProducts = vendorsData.find((item) => item.vendorName === id)?.quantityLimit;
-          handleCountOfTotalProductsWithLimits(countOfProducts, false);
-        } else if (tagValue === 'Product Wise' && !id.includes('ProductVariant')) {
-          handleCountOfTotalProductsWithLimits(1, false);
-        }
-      } else {
-
-        let title = id;
-        if (tagValue === "Product Wise" && !id.includes('ProductVariant')) {
-          title = allProductsData.find((item) => item.node.id === id)?.node?.title;
-        }
-        if ((title in productLimitCounts) || (title in categoryCounts) || (title in collectionCounts) || (title in vendorCounts)) {
-
-          if (range === 'min') {
-            const max = getQuantityLimit(id, 'max');
-            if (Number(max) == 0) {
-
-              if (tagValue === 'Category Wise') {
-                const countOfProducts = categoriesData.find((item) => item.categoryName === id)?.quantityLimit;
-                handleCountOfTotalProductsWithLimits(countOfProducts, false);
-              } else if (tagValue === 'Collection Wise') {
-                const countOfProducts = allCollectionsData.find((item) => item.node?.title === id)?.node?.productsCount?.count;
-                handleCountOfTotalProductsWithLimits(countOfProducts, false);
-              } else if (tagValue === 'Vendor Wise') {
-                const countOfProducts = vendorsData.find((item) => item.vendorName === id)?.quantityLimit;
-                handleCountOfTotalProductsWithLimits(countOfProducts, false);
-              } else if (tagValue === 'Product Wise' && !id.includes('ProductVariant')) {
-                handleCountOfTotalProductsWithLimits(1, false);
-              }
-
-              console.log();
-            }
-          } else {
-            const min = getQuantityLimit(id, 'min');
-            if (Number(min) == 0) {
-
-              if (tagValue === 'Category Wise') {
-                const countOfProducts = categoriesData.find((item) => item.categoryName === id)?.quantityLimit;
-                handleCountOfTotalProductsWithLimits(countOfProducts, false);
-              } else if (tagValue === 'Collection Wise') {
-                const countOfProducts = allCollectionsData.find((item) => item.node?.title === id)?.node?.productsCount?.count;
-                handleCountOfTotalProductsWithLimits(countOfProducts, false);
-              } else if (tagValue === 'Vendor Wise') {
-                const countOfProducts = vendorsData.find((item) => item.vendorName === id)?.quantityLimit;
-                handleCountOfTotalProductsWithLimits(countOfProducts, false);
-              } else if (tagValue === 'Product Wise' && !id.includes('ProductVariant')) {
-                handleCountOfTotalProductsWithLimits(1, false);
-              }
-
-              console.log();
-            }
-          }
-
-
-        }
-      }
+      handleEmptyOrZeroValue(value, id, range);
     }
-
-    // setIsBlock(false);
 
     setErrorState({});
 
@@ -1717,8 +1649,6 @@ export default function Index() {
     if (Number(value) > 0) {
       const allow = await checkAvailableLimits(id, limitValue, range);
       if (!allow) {
-        // setIsBlock(true);
-        // Set the error state for the specific field
         setErrorState(prevState => {
           // Create a new state object with all keys set to false
           const newState = Object.keys(prevState).reduce((acc, key) => {
@@ -1760,7 +1690,7 @@ export default function Index() {
     if (tagValue === "Collection Wise") {
       return getCollectionQuantityLimit(id, type);
     } else if (id.includes("ProductVariant")) {
-      return getVariantQunatity(id, type);
+      return getVariantQuantity(id, type);
     } else if (id.includes("Product")) {
       return getProductQuantityLimit(id, type);
     } else if (id.includes('shop')) {
@@ -1772,6 +1702,77 @@ export default function Index() {
     }
   };
 
+  const handleEmptyOrZeroValue = (value, id, range) => {
+    const isValueEmptyOrZero = value === '' || Number(value) === 0;
+  
+    if (!isValueEmptyOrZero) return;
+  
+    const exists = quantityLimit.some(item => {
+      if (item.id !== id) return false;
+  
+      const [minValue, maxValue, multipleValue] = item.value.split(',').map(Number);
+  
+      const valueMap = {
+        min: minValue,
+        max: maxValue,
+        multiple: multipleValue,
+      };
+  
+      const selectedValue = valueMap[range];
+      const otherValues = Object.values(valueMap).filter((v) => v !== selectedValue);
+  
+      return selectedValue > 0 && otherValues.every(v => v === 0);
+    });
+  
+    if (exists) {
+      handleProductCount(tagValue, id, false);
+    } else {
+      let title = id;
+      if (tagValue === "Product Wise" && !id.includes('ProductVariant')) {
+        title = allProductsData.find(item => item.node.id === id)?.node?.title;
+      }
+  
+      const counts = { ...productLimitCounts, ...categoryCounts, ...collectionCounts, ...vendorCounts };
+      if (title in counts) {
+        const min = getQuantityLimit(id, 'min');
+        const max = getQuantityLimit(id, 'max');
+        const multiple = getQuantityLimit(id, 'multiple');
+  
+        const isValid = {
+          min: Number(max) === 0 && Number(multiple) === 0,
+          max: Number(min) === 0 && Number(multiple) === 0,
+          multiple: Number(min) === 0 && Number(max) === 0,
+        };
+  
+        if (isValid[range]) {
+          handleProductCount(tagValue, id, false);
+        }
+      }
+    }
+  };
+  
+  const handleProductCount = (tagValue, id, shouldIncrement) => {
+    let countOfProducts;
+    switch (tagValue) {
+      case 'Category Wise':
+        countOfProducts = categoriesData.find(item => item.categoryName === id)?.quantityLimit;
+        break;
+      case 'Collection Wise':
+        countOfProducts = allCollectionsData.find(item => item.node?.title === id)?.node?.productsCount?.count;
+        break;
+      case 'Vendor Wise':
+        countOfProducts = vendorsData.find(item => item.vendorName === id)?.quantityLimit;
+        break;
+      case 'Product Wise':
+        if (!id.includes('ProductVariant')) {
+          countOfProducts = 1;
+        }
+        break;
+      default:
+        countOfProducts = 0;
+    }
+    handleCountOfTotalProductsWithLimits(countOfProducts, shouldIncrement);
+  };
 
   const handleSaveProduct = () => {
     setIsSaving(true);
@@ -1807,8 +1808,10 @@ export default function Index() {
       const productLimitValue = productLimit.value;
       if (range === "min") {
         return productLimitValue.split(',')[0];
-      } else {
+      } else if (range === "max") {
         return productLimitValue.split(',')[1];
+      } else {
+        return productLimitValue.split(',')[2];
       }
     } else {
       const productLimitFieldValue = allProductsData.find(product => product.node.id === productId)?.node.productLimitField?.value;
@@ -1816,9 +1819,11 @@ export default function Index() {
       if (productLimitFieldValue) {
         if (range === "min") {
           return productLimitFieldValue.split(',')[0];
-        } else {
+        } else if (range == "max") {
           return productLimitFieldValue.split(',')[1];
-        } // Return the quantity limit from productLimitField if found and greater than 0
+        } else {
+          return productLimitFieldValue.split(',')[2];
+        }// Return the quantity limit from productLimitField if found and greater than 0
       } else {
         return 0; // Return 0 if no quantity limit found
       }
@@ -1841,7 +1846,7 @@ export default function Index() {
         if (productVariantLimitField?.value) {
           return productVariantLimitField?.value;
         } else {
-          return '0,0';
+          return '0,0,0';
         }
       }
     } catch (error) {
@@ -1849,13 +1854,15 @@ export default function Index() {
     }
   }
 
-  const getVariantQunatity = (id, range) => {
+  const getVariantQuantity = (id, range) => {
     const variantQuantityLimitValue = variantQuantityLimits[id];
     if (variantQuantityLimitValue) {
       if (range === "min") {
         return variantQuantityLimitValue.split(',')[0];
-      } else {
+      } else if (range === "max") {
         return variantQuantityLimitValue.split(',')[1];
+      } else {
+        return variantQuantityLimitValue.split(',')[2];
       }
     }
   }
@@ -1867,11 +1874,12 @@ export default function Index() {
       const categoryLimitValue = categoryLimit.value;
       if (range === "min") {
         return categoryLimitValue.split(',')[0];
-      } else {
+      } else if (range === "max") {
         return categoryLimitValue.split(',')[1];
+      } else {
+        return categoryLimitValue.split(',')[2];
       }
     } else {
-
       const categoryLimitFieldValue = loaderData?.allProductsData.find((item) =>
         item.node?.category?.name === name &&
         item.node?.categoryLimitField &&
@@ -1881,8 +1889,10 @@ export default function Index() {
       if (categoryLimitFieldValue) {
         if (range === "min") {
           return categoryLimitFieldValue.split(',')[1];
-        } else {
+        } else if (range === "max") {
           return categoryLimitFieldValue.split(',')[2];
+        } else {
+          return categoryLimitFieldValue.split(',')[3];
         }
       } else {
         return 0;
@@ -1896,8 +1906,10 @@ export default function Index() {
       const collectionLimitValue = collectionLimit.value;
       if (range === "min") {
         return collectionLimitValue.split(',')[0];
-      } else {
+      } else if (range === "max") {
         return collectionLimitValue.split(',')[1];
+      } else {
+        return collectionLimitValue.split(',')[2];
       }
     } else {
 
@@ -1911,8 +1923,10 @@ export default function Index() {
       if (collectionLimitFieldValue) {
         if (range === "min") {
           return collectionLimitFieldValue.split(',')[1];
-        } else {
+        } else if (range === "max") {
           return collectionLimitFieldValue.split(',')[2];
+        } else {
+          return collectionLimitFieldValue.split(',')[3];
         }
       } else {
         return 0;
@@ -1989,18 +2003,22 @@ export default function Index() {
       const vendorLimitValue = vendorLimit.value;
       if (range === "min") {
         return vendorLimitValue.split(',')[0];
-      } else {
+      } else if(range === "max") {
         return vendorLimitValue.split(',')[1];
+      } else {
+        return vendorLimitValue.split(',')[2];
       }
     } else {
       const productLimitFieldValue = allProductsData.find(product => product.node.vendor === id)?.node.productLimitField?.value;
 
       if (productLimitFieldValue) {
         if (range === "min") {
-          return productLimitFieldValue.split(',')[3];
-        } else {
           return productLimitFieldValue.split(',')[4];
-        } // Return the quantity limit from productLimitField if found and greater than 0
+        } else if (range === "max") {
+          return productLimitFieldValue.split(',')[5];
+        } else {
+          return productLimitFieldValue.split(',')[6];
+        }
       } else {
         return 0; // Return 0 if no quantity limit found
       }
@@ -2011,31 +2029,34 @@ export default function Index() {
   const getSkuQuantityLimit = (id, field = '') => {
     console.log('id in getSku ', id);
     console.log('field in getSku ', field);
-    
+  
     const skuLimit = skuLimitRows.find((item) => item.id === id);
-    
-    
-    if(skuLimit) {
-      if(Number(skuLimit[field]) > 0) {
-        return Number(skuLimit[field]);
+  
+    if (skuLimit) {
+      const fieldValue = Number(skuLimit[field]); 
+      if (fieldValue > 0) {
+        return fieldValue;
       } else {
         return 0;
       }
     } else {
       const existingSkuLimits = generalLimiters?.skuLimiters || [];
-      const sku = existingSkuLimits.find((item) => item.id === id); 
-      console.log('sku field value in getSku ', sku[field]);
-      if (sku) {
-        if(Number(sku[field]) > 0) {
-          return Number(sku[field]);
+      const sku = existingSkuLimits.find((item) => item.id === id);
+  
+      
+      if (sku && typeof sku[field] !== 'undefined') {
+        const skuFieldValue = Number(sku[field]);
+        console.log('sku field value in getSku ', skuFieldValue);
+        if (skuFieldValue > 0) {
+          return skuFieldValue;
         } else {
           return 0;
         }
       } else {
+        console.log('SKU or field is undefined or missing:', sku, field);
         return 0;
       }
-    } 
-    //return sku ? Number(sku[field]) : 0;
+    }
   };
 
   // Function to handle adding a new SKU limit row
@@ -2243,7 +2264,8 @@ export default function Index() {
                               )
                             },
                             { title: 'Min Limit' },
-                            { title: 'Max Limit' }
+                            { title: 'Max Limit' },
+                            {title: 'Multiple'}
                           ]}
                           itemCount={allProductsData.length}
                           selectable={false}
@@ -2295,6 +2317,7 @@ export default function Index() {
                                       value={getProductQuantityLimit(product.node.id, 'min')}
                                       label="Product Min Limit"
                                       type="number"
+                                      size='slim'
                                       onChange={(value) => { handleQuantityLimit(value, product.node.id, 'min') }}
                                       error={errorState[`${product.node.id}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
                                     />
@@ -2309,6 +2332,17 @@ export default function Index() {
                                       type="number"
                                       onChange={(value) => { handleQuantityLimit(value, product.node.id, 'max') }}
                                       error={errorState[`${product.node.id}_max`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                    />
+                                  </FormLayout>
+                                </IndexTable.Cell>
+                                <IndexTable.Cell>
+                                  <FormLayout>
+                                    <TextField
+                                      value={getProductQuantityLimit(product.node.id, 'multiple')}
+                                      label="Product Multiple Limit"
+                                      type="number"
+                                      onChange={(value) => { handleQuantityLimit(value, product.node.id, 'multiple') }}
+                                      error={errorState[`${product.node.id}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
                                     />
                                   </FormLayout>
                                 </IndexTable.Cell>
@@ -2343,7 +2377,7 @@ export default function Index() {
                                     <IndexTable.Cell>
                                       <FormLayout>
                                         <TextField
-                                          value={getVariantQunatity(variant.node.id, 'min')}
+                                          value={getVariantQuantity(variant.node.id, 'min')}
                                           label="Variant Min Limit"
                                           type="number"
                                           onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'min') }}
@@ -2354,7 +2388,7 @@ export default function Index() {
                                     <IndexTable.Cell>
                                       <FormLayout>
                                         <TextField
-                                          value={getVariantQunatity(variant.node.id, 'max')}
+                                          value={getVariantQuantity(variant.node.id, 'max')}
                                           label="Variant Max Limit"
                                           type="number"
                                           onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'max') }}
@@ -2362,6 +2396,17 @@ export default function Index() {
                                         />
                                       </FormLayout>
                                     </IndexTable.Cell>
+                                    <IndexTable.Cell>
+                                  <FormLayout>
+                                    <TextField
+                                      value={getVariantQuantity(variant.node.id, 'multiple')}
+                                      label="Variant Multiple Limit"
+                                      type="number"
+                                      onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'multiple') }}
+                                      error={errorState[`${variant.node.id}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                    />
+                                  </FormLayout>
+                                </IndexTable.Cell>
                                   </IndexTable.Row>
                                 ))
                               )}
@@ -2424,10 +2469,19 @@ export default function Index() {
                         />
                         <br />
                         <TextField
+                          label="Error Message for Product Multiple limit"
+                          value={errorMessages.productMultipleErrMsg}
+                          onChange={(value) => { handleErrorMessages("productMultipleErrMsg", value) }}
+                          placeholder="Quantity should be a multiple of {productMultiple} for {productName}."
+                          helpText="use {productMultiple} to include multiple limit and {productName} to include product name"
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
                           label="Error Message for Product Variant Minimum limit"
                           value={errorMessages.variantMinErrMsg}
                           onChange={(value) => { handleErrorMessages("variantMinErrMsg", value) }}
-                          placeholder="You can't select less than {productVariantMin} for this product variant {productName}."
+                          placeholder="You can't select less than {productVariantMin} for this {productName} variant."
                           helpText="use {productVariantMin} to include minimum limit and {productName} to include product name"
                           autoComplete="off"
                         />
@@ -2436,8 +2490,17 @@ export default function Index() {
                           label="Error Message for Product Variant Maximum limit"
                           value={errorMessages.variantMaxErrMsg}
                           onChange={(value) => { handleErrorMessages("variantMaxErrMsg", value) }}
-                          placeholder="Quantity limit reached, you can't select more than {productVariantMax} for {productName}."
+                          placeholder="Quantity limit reached, you can't select more than {productVariantMax} for this {productName} variant.."
                           helpText="use {productVariantMax} to include maximum limit and {productName} to include product name"
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
+                          label="Error Message for Variant Multiple limit"
+                          value={errorMessages.variantMultipleErrMsg}
+                          onChange={(value) => { handleErrorMessages("variantMultipleErrMsg", value) }}
+                          placeholder="Quantity should be a multiple of {variantMultiple} for this {productName} variant."
+                          helpText="use {variantMultiple} to include multiple limit and {productName} to include product name"
                           autoComplete="off"
                         />
                         <br />
@@ -2477,6 +2540,7 @@ export default function Index() {
                             },
                             { title: 'Min Limit' },
                             { title: 'Max Limit' },
+                            {title: 'Multiple'}
                           ]}
                           itemCount={categoriesData.length}
                           selectable={false}
@@ -2512,6 +2576,15 @@ export default function Index() {
                                   />
                                 </FormLayout>
                               </IndexTable.Cell>
+                              <FormLayout>
+                                  <TextField
+                                    value={getCategoryQuantityLimit(category['categoryName'], 'multiple')}
+                                    label="Category Multiple Limit"
+                                    type="number"
+                                    onChange={(value) => { handleQuantityLimit(value, category['categoryName'], 'multiple') }}
+                                    error={errorState[`${category['categoryName']}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                  />
+                                </FormLayout>
                             </IndexTable.Row>
                           ))}
                         </IndexTable>
@@ -2563,6 +2636,15 @@ export default function Index() {
                           autoComplete="off"
                         />
                         <br />
+                        <TextField
+                          label="Error Message for Category Multiple limit"
+                          value={errorMessages.categoryMultipleErrMsg}
+                          onChange={(value) => { handleErrorMessages("categoryMultipleErrMsg", value) }}
+                          placeholder="Quantity should be a multiple of {categoryMultiple} for the category {categoryName}."
+                          helpText="use {categoryMultiple} to include multiple limit and {categoryName} to include name"
+                          autoComplete="off"
+                        />
+                        <br />
                       </Card>
                     </>
                   )}
@@ -2598,6 +2680,7 @@ export default function Index() {
                             },
                             { title: 'Min Limit' },
                             { title: 'Max Limit' },
+                            {title: 'Multiple'}
                           ]}
                           itemCount={allCollectionsData.length}
                           selectable={false}
@@ -2631,6 +2714,17 @@ export default function Index() {
                                     type="number"
                                     onChange={(value) => { handleQuantityLimit(value, collection?.node?.title, 'max') }}
                                     error={errorState[`${collection?.node?.title}_max`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                  />
+                                </FormLayout>
+                              </IndexTable.Cell>
+                              <IndexTable.Cell>
+                                <FormLayout>
+                                  <TextField
+                                    value={getCollectionQuantityLimit(collection?.node?.title, 'multiple')}
+                                    label="Collection Mulitple Limit"
+                                    type="number"
+                                    onChange={(value) => { handleQuantityLimit(value, collection?.node?.title, 'multiple') }}
+                                    error={errorState[`${collection?.node?.title}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
                                   />
                                 </FormLayout>
                               </IndexTable.Cell>
@@ -2682,6 +2776,15 @@ export default function Index() {
                           onChange={(value) => { handleErrorMessages("collectionMaxErrMsg", value) }}
                           placeholder="Can't select more than {collectionMax} products from the collection {collectionName}."
                           helpText="use {collectionMax} to include maximum limit and {collectionName} to include name"
+                          autoComplete="off"
+                        />
+                        <br />
+                        <TextField
+                          label="Error Message for Collection Multiple limit"
+                          value={errorMessages.collectionMultipleErrMsg}
+                          onChange={(value) => { handleErrorMessages("collectionMultipleErrMsg", value) }}
+                          placeholder="Quantity should be a multiple of {collectionMultiple} for the collection {collectionName}."
+                          helpText="use {collectionMultiple} to include multiple limit and {collectionName} to include name"
                           autoComplete="off"
                         />
                         <br />
@@ -2950,6 +3053,7 @@ export default function Index() {
                             },
                             { title: 'Min Limit' },
                             { title: 'Max Limit' },
+                            {title: 'Multiple'}
                           ]}
                           itemCount={vendorsData.length}
                           selectable={false}
@@ -2982,6 +3086,17 @@ export default function Index() {
                                     type="number"
                                     onChange={(value) => { handleQuantityLimit(value, vendor['vendorName'], 'max') }}
                                     error={errorState[`${vendor['vendorName']}_max`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                  />
+                                </FormLayout>
+                              </IndexTable.Cell>
+                              <IndexTable.Cell>
+                                <FormLayout>
+                                  <TextField
+                                    value={getVendorQuantityLimit(vendor['vendorName'], 'multiple')}
+                                    label="Vendor Mulitple Limit"
+                                    type="number"
+                                    onChange={(value) => { handleQuantityLimit(value, vendor['vendorName'], 'multiple') }}
+                                    error={errorState[`${vendor['vendorName']}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
                                   />
                                 </FormLayout>
                               </IndexTable.Cell>
@@ -3035,6 +3150,15 @@ export default function Index() {
                           autoComplete="off"
                         />
                         <br />
+                        <TextField
+                          label="Error Message for vendor Multiple limit"
+                          value={errorMessages.vendorMultipleErrMsg}
+                          onChange={(value) => { handleErrorMessages("vendorMultipleErrMsg", value) }}
+                          placeholder="Quantity should be a multiple of {vendorMultiple} for the vendor {vendorName}."
+                          helpText="use {vendorMultiple} to include mulitple limit and {vendorName} to include name"
+                          autoComplete="off"
+                        />
+                        <br />
                       </Card>
                     </>
                   )}
@@ -3063,7 +3187,7 @@ export default function Index() {
                           itemCount={allProductsData.length}
                           selectable={false}
                         >
-                          {allProductsData.map((product, index) => (
+                          {fileteredSkuRows.map((product, index) => (
                             <>
                               {product?.node.variants?.edges.length > 0 && (
                                 product.node.variants.edges.map((variant, index) => (
@@ -3149,7 +3273,7 @@ export default function Index() {
                           label="Error Message for SKU Minimum limit"
                           value={errorMessages.skuMinErrMsg}
                           onChange={(value) => { handleErrorMessages("skuMinErrMsg", value) }}
-                          placeholder="You can't select less than {skumin} for this product {productName}."
+                          placeholder="You can't select less than {skuMin} for this product {productName}."
                           helpText="use {skuMin} to include minimum limit"
                           autoComplete="off"
                         />
@@ -3167,7 +3291,7 @@ export default function Index() {
                           label="Error Message for SKU Multiple limit"
                           value={errorMessages.skuMaxErrMsg}
                           onChange={(value) => { handleErrorMessages("skuMaxErrMsg", value) }}
-                          placeholder="You can only select multiple of {skumultiple} for {productName}."
+                          placeholder="You can only select multiple of {skuMultiple} for {productName}."
                           helpText="use {skuMultiple} to include multiple limit"
                           autoComplete="off"
                         />

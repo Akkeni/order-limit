@@ -27,12 +27,15 @@ function App() {
   const [limiters, setLimiters] = useState({
     productMin: 0,
     productMax: 0,
+    productMultiple: 0,
     vendorName: '',
     vendorMin: 0,
     vendorMax: 0,
+    vendorMultiple: 0,
     categoryName: '',
     categoryMin: 0,
     categoryMax: 0,
+    categoryMultiple: 0,
     plan: '',
   });
 
@@ -120,12 +123,13 @@ function App() {
 
         if (productData?.data?.product?.categoryLimitField?.value) {
 
-          const [categoryName, categoryMin, categoryMax] = productData?.data?.product?.categoryLimitField?.value.split(',');
+          const [categoryName, categoryMin, categoryMax, categoryMultiple] = productData?.data?.product?.categoryLimitField?.value.split(',');
 
           setLimiters(prevState => ({
             ...prevState,
             categoryMin: categoryMin ? Number(categoryMin) : 0,
             categoryMax: categoryMax ? Number(categoryMax) : 0,
+            categoryMultiple: categoryMultiple ? Number(categoryMultiple) : 0,
           }));
 
         }
@@ -139,12 +143,13 @@ function App() {
           vendorName: productData?.data?.product?.vendor
         }));
         if (productData?.data?.product?.metafield?.value) {
-          const [productMin, productMax, vendorName, vendorMin, vendorMax] = productData?.data?.product?.metafield?.value.split(',');
+          const [productMin, productMax, productMultiple, vendorName, vendorMin, vendorMax, vendorMultiple, productName] = productData?.data?.product?.metafield?.value.split(',');
           if (isNaN(vendorName)) {
             setLimiters(prevState => ({
               ...prevState,
               ['vendorMin']: vendorMin,
-              ['vendorMax']: vendorMax
+              ['vendorMax']: vendorMax,
+              ['vendorMultiple']: vendorMultiple,
             }));
           }
         }
@@ -152,12 +157,13 @@ function App() {
 
       //product limits
       if (productData?.data?.product?.metafield?.value) {
-        const [productMin, productMax, vendorName, vendorMin, vendorMax] = productData?.data?.product?.metafield?.value.split(',');
+        const [productMin, productMax, productMultiple, vendorName, vendorMin, vendorMax, vendorMultiple, productName] = productData?.data?.product?.metafield?.value.split(',');
 
         setLimiters(prevState => ({
           ...prevState,
           ['productMin']: productMin,
-          ['productMax']: productMax
+          ['productMax']: productMax,
+          ['productMultiple']: productMultiple,
         }));
 
       }
@@ -211,6 +217,12 @@ function App() {
                   type="number"
                   onChange={(value) => { handleLimiters(value, 'productMax') }}
                 />
+                <NumberField
+                  value={limiters?.productMultiple}
+                  label="Product Multiple Limit"
+                  type="number"
+                  onChange={(value) => { handleLimiters(value, 'productMultiple') }}
+                />
               </InlineStack>
             </Box>
           ) : (
@@ -236,12 +248,17 @@ function App() {
                     onChange={(value) => { handleLimiters(value, 'vendorMin') }}
 
                   />
-
                   <NumberField
                     value={limiters?.vendorMax}
                     label="vendor Max Limit"
                     type="number"
                     onChange={(value) => { handleLimiters(value, 'vendorMax') }}
+                  />
+                  <NumberField
+                    value={limiters?.vendorMultiple}
+                    label="vendor Multiple Limit"
+                    type="number"
+                    onChange={(value) => { handleLimiters(value, 'vendorMultiple') }}
                   />
                 </InlineStack>
               </BlockStack>
@@ -276,6 +293,13 @@ function App() {
                           label="Category Max Limit"
                           type="number"
                           onChange={(value) => { handleLimiters(value, 'categoryMax') }}
+
+                        />
+                        <NumberField
+                          value={limiters.categoryMultiple}
+                          label="Category Multiple Limit"
+                          type="number"
+                          onChange={(value) => { handleLimiters(value, 'categoryMultiple') }}
 
                         />
                       </InlineStack>

@@ -29,6 +29,7 @@ function App() {
     collectionName: '',
     collectionMin: 0,
     collectionMax: 0,
+    collectionMultiple: 0,
     plan: '',
   });
   const [loading, setLoading] = useState(true);
@@ -73,6 +74,7 @@ function App() {
           collectionName: collectionData?.collectionName ? collectionData?.collectionName : '',
           collectionMin: collectionData?.collectionMin ? Number(collectionData?.collectionMin) : 0,
           collectionMax: collectionData?.collectionMax ? Number(collectionData?.collectionMax) : 0,
+          collectionMultiple: collectionData?.collectionMultiple ? Number(collectionData?.collectionMultiple) : 0,
           plan: collectionData?.plan ? collectionData?.plan : false
         }));
 
@@ -134,6 +136,13 @@ function App() {
                 label="Collection Max Limit"
                 type="number"
                 onChange={(value) => { handleLimiters(value, 'collectionMax') }}
+
+              />
+              <NumberField
+                value={limiters.collectionMultiple}
+                label="Collection Multiple Limit"
+                type="number"
+                onChange={(value) => { handleLimiters(value, 'collectionMultiple') }}
 
               />
             </InlineStack>

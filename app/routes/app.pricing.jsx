@@ -185,6 +185,7 @@ export default function PricingPage() {
             features: [
                 "General limits price, weight",
                 "Product Wise Limit",
+                "SKU Wise Limit",
                 "Category Wise Limit",
                 "Collection Wise Limit",
                 "Vendor Wise Limit",
