@@ -141,7 +141,7 @@ export async function loader({ request }) {
 
 
     let allProductsData = await getAllProductsData(admin.graphql);
-    let allCustomerTags = await getAllCustomerTags(admin.graphql);
+    let {allCustomerTags, allCustomersData} = await getAllCustomerTags(admin.graphql);
 
     const collectionResponse = await admin.graphql(`query AllCollections {
       collections(first: 250) {
@@ -364,6 +364,7 @@ export async function loader({ request }) {
       existingLimiters,
       availableLocales,
       allCustomerTags,
+      allCustomersData
     });
 
 
@@ -383,9 +384,10 @@ export async function action({ request, params }) {
   try {
     const formData = await request.formData();
     const allProductsData = JSON.parse(formData.get('allProductsData'));
+    const allCustomersData = JSON.parse(formData.get('allCustomersData'));
 
     if (formData.get('deletePreviousData') === "true") {
-      await handleDeletePreviousData(admin, allProductsData);
+      await handleDeletePreviousData(admin, allProductsData, allCustomersData);
       await db.order_Limit.update({
         where: { shopName: session.shop },
         data: { hasToDelete: false }
@@ -408,6 +410,13 @@ export async function action({ request, params }) {
       const errorMessages = formData.get('errorMessages');
       const generalLimiters = formData.get('generalLimiters');
       const shopId = formData.get('shopId');
+      const generalLimitersParsed = JSON.parse(formData.get('generalLimiters'));
+      const customerTagLimiters = generalLimitersParsed?.customerTagLimiters ? generalLimitersParsed?.customerTagLimiters : [];
+      
+
+      if(customerTagLimiters) {
+        await createCustomerTagMetafield(customerTagLimiters, allCustomersData, admin);
+      }
 
       if (errorMessages || generalLimiters) {
         await saveErrorMessagesAndGeneralLimiters(admin, shopId, errorMessages, generalLimiters);
@@ -427,7 +436,7 @@ export async function action({ request, params }) {
   }
 }
 
-async function handleDeletePreviousData(admin, allProductsData) {
+async function handleDeletePreviousData(admin, allProductsData, allCustomersData) {
   const deleteMetafield = async (metafieldId) => {
     if (metafieldId) {
       await admin.graphql(
@@ -468,6 +477,16 @@ async function handleDeletePreviousData(admin, allProductsData) {
         for (let variant of product.node.variants.edges) {
           await deleteMetafield(variant.node[field]?.id);
         }
+      }
+    }
+  }
+
+  for (const customer of allCustomersData) {
+    const { metafield } = customer.node;
+
+    if (metafield) {
+      if(metafield?.id) {
+        await deleteMetafield(metafield?.id);
       }
     }
   }
@@ -578,6 +597,203 @@ async function saveErrorMessagesAndGeneralLimiters(admin, shopId, errorMessages,
       }
     }`, metafields);
 }
+
+// async function createCustomerTagMetafield(customerTagLimiters, allCustomersData, admin) {
+//   for (const limiter of customerTagLimiters) {
+//     const { customerTag, priceMin, priceMax, shopMin, shopMax } = limiter;
+    
+    
+//     for (const customer of allCustomersData) {
+//       const { tags, id: customerId } = customer.node;
+      
+//       if (tags.includes(customerTag)) {
+        
+//         const existingMetafieldResponse = await admin.graphql(`
+//           query GetCustomerMetafield($ownerId: ID!) {
+//             customer(id: $ownerId) {
+//               metafield(namespace: "customerTag", key: "customerTag") {
+//                 value
+//                 type
+//               }
+//             }
+//           }`, {
+//           variables: {
+//             ownerId: customerId,
+//           },
+//         });
+
+//         const existingMetafield = await existingMetafieldResponse.json();
+//         let existingMetafieldValue = { selectedCustomerTags: [] };
+
+//         if (existingMetafield?.data?.customer?.metafield?.value) {
+//           try {
+//             existingMetafieldValue = JSON.parse(existingMetafield.data.customer.metafield.value);
+//           } catch (error) {
+//             console.error("Failed to parse existing metafield value:", error);
+//           }
+//         }
+
+//          // Check if the customerTag already exists
+//         //  const tagExists = existingMetafieldValue.selectedCustomerTags.some(
+//         //   tag => tag.customerTag === customerTag
+//         // );
+
+//         // Create the new object based on the limiter
+//         const newLimiterObject = {
+//           customerTag,
+//           priceMin,
+//           priceMax,
+//           shopMin,
+//           shopMax,
+//         };
+
+//         // Find the index of the existing tag object if it exists
+//         const existingTagIndex = existingMetafieldValue.selectedCustomerTags.findIndex(
+//           tag => tag.customerTag === customerTag
+//         );
+
+//         if (existingTagIndex !== -1) {
+//           // Update the existing tag object
+//           existingMetafieldValue.selectedCustomerTags[existingTagIndex] = newLimiterObject;
+//         } else {
+//           // Append the new object to the existing metafield value if the tag does not exist
+//           existingMetafieldValue.selectedCustomerTags.push(newLimiterObject);
+//         }
+
+//         // Define the mutation query with the updated value
+//         const setMetafieldMutation = `
+//           mutation SetMetafield($ownerId: ID!, $value: String!) {
+//             metafieldsSet(metafields: [
+//               {
+//                 namespace: "customerTag",
+//                 key: "customerTag",
+//                 ownerId: $ownerId,
+//                 type: "string",
+//                 value: $value
+//               }
+//             ]) {
+//               metafields {
+//                 id
+//               }
+//             }
+//           }
+//         `;
+
+//         // Convert the metafield value to a string for the mutation
+//         const metafieldValueString = JSON.stringify(existingMetafieldValue);
+
+//         // Execute the mutation
+//         await admin.graphql(setMetafieldMutation, {
+//           variables: {
+//             ownerId: customerId,
+//             value: metafieldValueString,
+//           },
+//         });
+
+//         console.log(`Metafield updated for customer ID ${customerId} with tag ${customerTag}`);
+//       }
+//     }
+//   }  
+// }
+
+async function createCustomerTagMetafield(customerTagLimiters, allCustomersData, admin) {
+  for (const limiter of customerTagLimiters) {
+    const { customerTag, priceMin, priceMax, shopMin, shopMax } = limiter;
+    
+    for (const customer of allCustomersData) {
+      const { tags, id: customerId } = customer.node;
+      
+      if (tags.includes(customerTag)) {
+        const existingMetafieldResponse = await admin.graphql(`
+          query GetCustomerMetafield($ownerId: ID!) {
+            customer(id: $ownerId) {
+              metafield(namespace: "customerTag", key: "customerTag") {
+                value
+                type
+              }
+            }
+          }`, {
+          variables: {
+            ownerId: customerId,
+          },
+        });
+
+        const existingMetafield = await existingMetafieldResponse.json();
+        let existingMetafieldValue = { selectedCustomerTags: [] };
+
+        if (existingMetafield?.data?.customer?.metafield?.value) {
+          try {
+            existingMetafieldValue = JSON.parse(existingMetafield.data.customer.metafield.value);
+          } catch (error) {
+            console.error("Failed to parse existing metafield value:", error);
+          }
+        }
+
+        // Create the new object based on the limiter
+        const newLimiterObject = {
+          customerTag,
+          priceMin,
+          priceMax,
+          shopMin,
+          shopMax,
+        };
+
+        // Find the index of the existing tag object if it exists
+        const existingTagIndex = existingMetafieldValue.selectedCustomerTags.findIndex(
+          tag => tag.customerTag === customerTag
+        );
+
+        if (existingTagIndex !== -1) {
+          // Update only the fields that are not undefined
+          existingMetafieldValue.selectedCustomerTags[existingTagIndex] = {
+            ...existingMetafieldValue.selectedCustomerTags[existingTagIndex],
+            ...Object.fromEntries(
+              Object.entries(newLimiterObject).filter(
+                ([, value]) => value !== undefined
+              )
+            ),
+          };
+        } else {
+          // Append the new object to the existing metafield value if the tag does not exist
+          existingMetafieldValue.selectedCustomerTags.push(newLimiterObject);
+        }
+
+        // Define the mutation query with the updated value
+        const setMetafieldMutation = `
+          mutation SetMetafield($ownerId: ID!, $value: String!) {
+            metafieldsSet(metafields: [
+              {
+                namespace: "customerTag",
+                key: "customerTag",
+                ownerId: $ownerId,
+                type: "string",
+                value: $value
+              }
+            ]) {
+              metafields {
+                id
+              }
+            }
+          }
+        `;
+
+        // Convert the metafield value to a string for the mutation
+        const metafieldValueString = JSON.stringify(existingMetafieldValue);
+
+        // Execute the mutation
+        await admin.graphql(setMetafieldMutation, {
+          variables: {
+            ownerId: customerId,
+            value: metafieldValueString,
+          },
+        });
+
+        console.log(`Metafield updated for customer ID ${customerId} with tag ${customerTag}`);
+      }
+    }
+  }  
+}
+
 
 async function handleLimiters(admin, formData, limiter, allProductsData) {
   switch (limiter.type) {
@@ -825,6 +1041,7 @@ export default function Index() {
   const categoriesData = loaderData?.categoriesData ? loaderData?.categoriesData : [];
 
   const allCustomerTags = loaderData?.allCustomerTags ? loaderData?.allCustomerTags : [];
+  const allCustomersData = loaderData?.allCustomersData ? loaderData?.allCustomersData : [];
 
   const plan = loaderData?.plan;
 
@@ -896,8 +1113,8 @@ export default function Index() {
     weightMin: existingGeneralLimiters.weightMin || 0,
     weightMax: existingGeneralLimiters.weightMax || 0,
     weightUnit: existingGeneralLimiters.weightUnit || loaderData?.weightUnit,
-    shopMin: existingGeneralLimiters.shopMin || '',
-    shopMax: existingGeneralLimiters.shopMax || '',
+    shopMin: existingGeneralLimiters.shopMin || 0,
+    shopMax: existingGeneralLimiters.shopMax || 0,
     skuLimiters: existingGeneralLimiters.skuLimiters || [],
     customerTagLimiters: existingGeneralLimiters.customerTagLimiters || [],
   });
@@ -1086,7 +1303,7 @@ export default function Index() {
   const handleConfirm = () => {
     setIsSaving(true);
     const deletePreviousData = true;
-    submit({ deletePreviousData: deletePreviousData, allProductsData: JSON.stringify(loaderData?.allProductsData) }, { method: 'post' });
+    submit({ deletePreviousData: deletePreviousData, allProductsData: JSON.stringify(loaderData?.allProductsData), allCustomersData: JSON.stringify(allCustomersData) }, { method: 'post' });
     setShowConfirmation(false);
   };
 
@@ -1817,6 +2034,7 @@ export default function Index() {
         errorMessages: JSON.stringify(errorMessages),
         allCollectionsData: JSON.stringify(allCollectionsData),
         generalLimiters: JSON.stringify(generalLimiters),
+        allCustomersData: JSON.stringify(allCustomersData),
       },
       { method: 'post' }
     ).catch((error) => {
@@ -2861,20 +3079,20 @@ export default function Index() {
                             <IndexTable.Cell>
                               <FormLayout>
                                 <TextField
-                                  value={getStoreQuantityLimit(loaderData.shopId, "min")}
+                                  value={generalLimiters?.shopMin}
                                   label="Store Min Limit"
                                   type="number"
-                                  onChange={(value) => { handleQuantityLimit(value, loaderData.shopId, "min") }}
+                                  onChange={(value) => { handleGeneralLimiters("shopMin", value) }}
                                 />
                               </FormLayout>
                             </IndexTable.Cell>
                             <IndexTable.Cell>
                               <FormLayout>
                                 <TextField
-                                  value={getStoreQuantityLimit(loaderData.shopId, "max")}
+                                  value={generalLimiters?.shopMax}
                                   label="Store Max Limit"
                                   type="number"
-                                  onChange={(value) => { handleQuantityLimit(value, loaderData.shopId, "max") }}
+                                  onChange={(value) => { handleGeneralLimiters("shopMax", value) }}
                                 />
                               </FormLayout>
                             </IndexTable.Cell>

@@ -28,16 +28,16 @@ export const CustomerTagsTable = ({
               title: "Customer Tag",
             },
             {
-              title: "Price Min Limit",
+              title: "Total Amount Minimum",
             },
             {
-              title: "Price Max Limit",
+              title: "Total Amount Maximum",
             },
             {
-              title: "Store Min Limit",
+              title: "Total Quantity Minimum",
             },
             {
-              title: "Store Max Limit",
+              title: "Total Quantity Maximum",
             },
           ]}
           itemCount={allCustomerTags.length}

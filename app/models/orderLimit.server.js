@@ -269,6 +269,11 @@ export async function getAllCustomerTags(graphql) {
             cursor
             node {
               tags
+              id
+              metafield(namespace: "customerTag", key: "customerTag") {
+                value
+                id
+              }
             }
           }
           pageInfo {
@@ -297,12 +302,17 @@ export async function getAllCustomerTags(graphql) {
     hasNextPage = customerData?.data?.customers?.pageInfo?.hasNextPage;
   }
 
-  let allCustomerTags = [];
+  // Collect all unique customer tags
+  const allCustomerTags = [];
   allCustomersData.forEach(({ node }) => {
     allCustomerTags.push(...node.tags);
   });
 
-  return allCustomerTags;
+  // Return the results
+  return {
+    allCustomerTags,
+    allCustomersData,
+  };
 }
 
 

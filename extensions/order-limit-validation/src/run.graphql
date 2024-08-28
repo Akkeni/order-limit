@@ -35,13 +35,17 @@ query RunInput {
         }
       }
     }
+    buyerIdentity {
+      customer {
+       customerTagLimitField: metafield(namespace: "customerTag", key: "customerTag"){
+          value
+        }
+      }
+    }
   }
 
   shop {
-    storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
-      value
-    }
-     
+  
     generalLimitersField: metafield(namespace: "generalLimiters", key: "generalLimiters") {
       value
     }
