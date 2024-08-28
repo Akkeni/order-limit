@@ -187,6 +187,125 @@ export async function getAllProductsData(graphql) {
   return allProductsData;
 }
 
+// export async function getAllCustomerTags(graphql) {
+//   let allCustomersData = [];
+//   const resCustomer = await graphql(
+//     `query AllCustomers{
+//       customers(first:250) {
+//         __typename
+//         edges{
+//           cursor
+//           node {
+//             tags 
+//           }
+//         }
+//       }
+//     }`
+//   );
+//   const allData = await resCustomer.json();
+//   allCustomersData = allCustomersData.concat(allData?.data?.customers?.edges);
+
+ 
+//   let cursor = allCustomersData[allCustomersData.length - 1]?.cursor;
+
+//   while (true) {
+//     let customerResponse = await graphql(`
+//           query AllCustomers{
+//             customers(first:250) {
+//               __typename
+//               edges{
+//                 cursor
+//                 node {
+//                   tags
+//                 }
+//               }
+//               pageInfo {
+//                 hasNextPage
+//               }
+//             }
+//           }`,
+//       {
+//         variables: {
+//           after: cursor,
+//         },
+//       }
+//     );
+
+//     let customerData = await customerResponse.json();
+  
+//     allCustomersData = customerData.concat(customerData?.data?.customers?.edges);
+    
+//     if (customerData?.data?.customers?.pageInfo?.hasNextPage) {
+//       const customers = customerData?.data?.customers?.edges;
+//       if (customers) {
+//         cursor = customers[customers.length - 1]?.cursor;
+//       } else {
+//         break;
+//       }
+//     } else {
+//       break;
+//     }
+//   }
+
+//   let allCustomerTags = [];
+//   for(const tags of allCustomersData.node.tags) {
+//     allCustomerTags = allCustomerTags.concat(tags);
+//   }
+
+//   return allCustomerTags;
+// }
+
+export async function getAllCustomerTags(graphql) {
+  let allCustomersData = [];
+  let cursor = null;
+  let hasNextPage = true;
+
+  // Use a loop to handle pagination
+  while (hasNextPage) {
+    const resCustomer = await graphql(
+      `query AllCustomers($after: String) {
+        customers(first: 250, after: $after) {
+          edges {
+            cursor
+            node {
+              tags
+            }
+          }
+          pageInfo {
+            hasNextPage
+          }
+        }
+      }`,
+      {
+        variables: {
+          after: cursor,
+        },
+      }
+    );
+
+    const customerData = await resCustomer.json();
+    const edges = customerData?.data?.customers?.edges || [];
+
+    
+    allCustomersData.push(...edges);
+
+    
+    if (edges.length > 0) {
+      cursor = edges[edges.length - 1].cursor;
+    }
+
+    hasNextPage = customerData?.data?.customers?.pageInfo?.hasNextPage;
+  }
+
+  let allCustomerTags = [];
+  allCustomersData.forEach(({ node }) => {
+    allCustomerTags.push(...node.tags);
+  });
+
+  return allCustomerTags;
+}
+
+
 export async function deleteNonPlanData(graphql) {
 
   let allProductsData = await getAllProductsData(graphql);

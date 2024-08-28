@@ -33,12 +33,11 @@ import { ImageIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, M
 import { authenticate } from '../shopify.server';
 import db from '../db.server';
 import React from 'react';
-import { getAllProductsData, createFreePlanMetafields, deleteNonPlanData, createVendorWiseLimiter, createCollectionWiseLimiter, createCategoryWiseLimiter } from '../models/orderLimit.server';
+import { getAllProductsData, createFreePlanMetafields, deleteNonPlanData, createVendorWiseLimiter, createCollectionWiseLimiter, createCategoryWiseLimiter, getAllCustomerTags } from '../models/orderLimit.server';
 import { useAppBridge } from '@shopify/app-bridge-react';
 import '../resources/style.css';
 import { getSubscriptionStatus, createSubscriptionMetafield, deleteAppInstallationMetafields } from '../models/Subscription.server';
-
-
+import { CustomerTagsTable } from './customerTagsTable';
 
 //fetches the necessary data
 export async function loader({ request }) {
@@ -142,6 +141,7 @@ export async function loader({ request }) {
 
 
     let allProductsData = await getAllProductsData(admin.graphql);
+    let allCustomerTags = await getAllCustomerTags(admin.graphql);
 
     const collectionResponse = await admin.graphql(`query AllCollections {
       collections(first: 250) {
@@ -363,6 +363,7 @@ export async function loader({ request }) {
       plan,
       existingLimiters,
       availableLocales,
+      allCustomerTags,
     });
 
 
@@ -823,6 +824,8 @@ export default function Index() {
 
   const categoriesData = loaderData?.categoriesData ? loaderData?.categoriesData : [];
 
+  const allCustomerTags = loaderData?.allCustomerTags ? loaderData?.allCustomerTags : [];
+
   const plan = loaderData?.plan;
 
   const availableLocales = loaderData?.availableLocales;
@@ -896,6 +899,7 @@ export default function Index() {
     shopMin: existingGeneralLimiters.shopMin || '',
     shopMax: existingGeneralLimiters.shopMax || '',
     skuLimiters: existingGeneralLimiters.skuLimiters || [],
+    customerTagLimiters: existingGeneralLimiters.customerTagLimiters || [],
   });
 
 
@@ -905,7 +909,7 @@ export default function Index() {
 
   const collectionIds = [];
 
-  const tagOptions = (plan != "paidPlan") ? ['Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise'] : ['General', 'Product Wise', 'SKU Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise', 'Store Wise'];
+  const tagOptions = (plan != "paidPlan") ? ['Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise'] : ['General', 'Product Wise', 'SKU Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise', 'Store Wise', 'Customer Tag Wise'];
   const localeOptions = availableLocales.map((locale) => ({
     label: locale.name,
     value: locale.isoCode,
@@ -1129,20 +1133,7 @@ export default function Index() {
     }));
   }
 
-  // const handleSkuLimiters = (value, id, range = '') => {
-  //   const obj = {};
-  //   const name = 'sku';
-  //   obj['id'] = id === 'id' ? value : id;
-  //   obj['min'] = range === 'min' ? value : getSkuQuantityLimit(obj['id'], 'min');
-  //   obj['max'] = range === 'max' ? value : getSkuQuantityLimit(obj['id'], 'max');
-  //   obj['multiple'] = range === 'multiple' ? value : getSkuQuantityLimit(obj['id'], 'multiple');
-  //   let existingObjects = generalLimiters.skuLimiters;
-  //   existingObjects.concat(obj);
-  //   setGeneralLimiters(prevState => ({
-  //     ...prevState,
-  //     [name]: existingObjects
-  //   }));
-  // }
+  
 
   // Function to handle changes in SKU limit fields
   const handleSkuLimiters = (value, id, field = '') => {
@@ -1181,13 +1172,47 @@ export default function Index() {
     }));
   };
 
-  const handleExtensionChange = (value) => {
-    let name = "extensionMsg";
-    setErrorMessages(prevState => ({
-      ...prevState,
-      [name]: value
-    }));
-  }
+  const handleCustomerTagLimiters = (value, customerTag, field = '') => {
+    // Update generalLimiters directly
+    setGeneralLimiters((prevState) => {
+        
+        const existingIndex = prevState.customerTagLimiters.findIndex((row) => row.customerTag === customerTag);
+        let updatedCustomerTagLimiters;
+
+        if (existingIndex !== -1) {
+            
+            updatedCustomerTagLimiters = [...prevState.customerTagLimiters];
+            updatedCustomerTagLimiters[existingIndex] = {
+                ...updatedCustomerTagLimiters[existingIndex],
+                [field]: value,
+            };
+        } else {
+            updatedCustomerTagLimiters = [
+                ...prevState.customerTagLimiters,
+                {
+                    customerTag: customerTag,
+                    [field]: value,
+                },
+            ];
+        }
+
+        return {
+            ...prevState,
+            customerTagLimiters: updatedCustomerTagLimiters,
+        };
+    });
+
+    // Optional: Logging for debugging
+    console.log('Updated generalLimiters: ', generalLimiters);
+  };
+
+  // const handleExtensionChange = (value) => {
+  //   let name = "extensionMsg";
+  //   setErrorMessages(prevState => ({
+  //     ...prevState,
+  //     [name]: value
+  //   }));
+  // }
 
 
   const handleTagValueChange = (value) => {
@@ -2059,6 +2084,25 @@ export default function Index() {
     }
   };
 
+  const getCustomerTagQuantityLimit = (customerTag, field = '') => {
+    
+    const existingCustomerTagLimits = generalLimiters?.customerTagLimiters || [];
+    const customerTagValue = existingCustomerTagLimits.find((item) => item.customerTag === customerTag);
+  
+    if (customerTagValue && typeof customerTagValue[field] !== 'undefined') {
+      const customerTagFieldValue = Number(customerTagValue[field]);
+      console.log('sku field value in getSku ', customerTagFieldValue);
+      if (customerTagFieldValue > 0) {
+        return customerTagFieldValue;
+      } else {
+        return 0;
+      }
+    } else {
+      console.log('customerTag or field is undefined or missing:', customerTag, field);
+      return 0;
+    }
+  };
+
   // Function to handle adding a new SKU limit row
   // const handleAddSkuLimit = () => {
   //   const newSku = { id: '', min: '', max: '', multiple: '' };
@@ -2562,7 +2606,6 @@ export default function Index() {
                                     onChange={(value) => { handleQuantityLimit(value, category['categoryName'], 'min') }}
                                     error={errorState[`${category['categoryName']}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
                                   />
-
                                 </FormLayout>
                               </IndexTable.Cell>
                               <IndexTable.Cell>
@@ -2576,7 +2619,8 @@ export default function Index() {
                                   />
                                 </FormLayout>
                               </IndexTable.Cell>
-                              <FormLayout>
+                              <IndexTable.Cell>
+                                <FormLayout>
                                   <TextField
                                     value={getCategoryQuantityLimit(category['categoryName'], 'multiple')}
                                     label="Category Multiple Limit"
@@ -2585,6 +2629,7 @@ export default function Index() {
                                     error={errorState[`${category['categoryName']}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
                                   />
                                 </FormLayout>
+                              </IndexTable.Cell>
                             </IndexTable.Row>
                           ))}
                         </IndexTable>
@@ -2870,7 +2915,7 @@ export default function Index() {
                           label="Error Message for Store Minimum limit"
                           value={errorMessages.shopMinErrMsg}
                           onChange={(value) => { handleErrorMessages("shopMinErrMsg", value) }}
-                          placeholder="Minmum {shopMin} products are required for checkout"
+                          placeholder="Minmum {shopMin} products are required for checkout."
                           helpText="use {shopMin} to include minimum limit"
                           autoComplete="off"
                         />
@@ -3297,6 +3342,22 @@ export default function Index() {
                         />
                         <br />
                       </Card>
+                    </>
+                  )}
+
+                  {tagValue === "Customer Tag Wise" && (
+                    <>
+                    <CustomerTagsTable 
+                      allCustomerTags={allCustomerTags}
+                      searchValue={searchValue}
+                      handleErrorMessages={handleErrorMessages}
+                      getCustomerTagQuantityLimit={getCustomerTagQuantityLimit}
+                      handleCustomerTagLimiters={handleCustomerTagLimiters}
+                      localeOptions={localeOptions}
+                      selectedLocale={selectedLocale}
+                      handleLocaleChange={handleLocaleChange}
+                      errorMessages={errorMessages}
+                    />
                     </>
                   )}
 
