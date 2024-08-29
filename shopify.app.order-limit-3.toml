@@ -3,7 +3,7 @@
 client_id = "3ab151268aabaa04955221ac59b04edc"
 name = "CartControl: Order Limit(dev)"
 handle = "cartcontrol-order-limit-dev"
-application_url = "https://oo-yarn-confused-wedding.trycloudflare.com"
+application_url = "https://variance-accessories-deposit-headquarters.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_customers,read_products,read_publications,write_customers,write_p
 
 [auth]
 redirect_urls = [
-  "https://oo-yarn-confused-wedding.trycloudflare.com/auth/callback",
-  "https://oo-yarn-confused-wedding.trycloudflare.com/auth/shopify/callback",
-  "https://oo-yarn-confused-wedding.trycloudflare.com/api/auth/callback"
+  "https://variance-accessories-deposit-headquarters.trycloudflare.com/auth/callback",
+  "https://variance-accessories-deposit-headquarters.trycloudflare.com/auth/shopify/callback",
+  "https://variance-accessories-deposit-headquarters.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

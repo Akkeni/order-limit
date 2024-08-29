@@ -93,6 +93,7 @@ export default function HelpPage() {
                     <div>
                         <p> <b>Explanation for various limits supported by us: </b> </p>
                     </div>
+
                     <br />
 
                     <Banner title="General Limits (paid)" status="info">
@@ -104,6 +105,31 @@ export default function HelpPage() {
                                 <li><strong>Price Limit:</strong> Maximum and Minimum price allowed to checkout. It considers 'Total Amount'. If there is a difference in currency codes set by you and customer's cart then it will block the checkout and asks the user to change into the currency code set by you. Set to 0 for no restriction.</li>
                                 <li><strong>Weight Limit:</strong> Maximum and Minimum weight allowed to checkout. Set to 0 for no restriction.</li>
                                 <li><strong>Error Messages:</strong>Text field to enter your own error messages to be displayed in the cart. You can use the provided placeholders.</li>
+                            </ul>
+                        </div>
+                    </Banner>
+
+                    <br />
+
+                    <Banner title="SKU Wise Limits" status="info">
+                        <div>
+                            <p>
+                                This tab allows you to set limits based on specific SKUs. This
+                                feature is beneficial when different SKUs represent different
+                                product variations and you need to control the quantity of each
+                                SKU that can be purchased.
+                                If a limit is set at this level, it overrides any limits set at lower levels (Variant, Product, Category, Collection, Vendor, Store):
+                            </p>
+                            <ul>
+                                <li>
+                                <strong>SKU Limit:</strong> Maximum and Minimum quantity
+                                allowed for each SKU. Set to 0 for no limit.
+                                </li>
+                                <li>
+                                <strong>Error Messages:</strong> Text field to enter your own
+                                error messages to be displayed in the cart. You can use the
+                                provided placeholders.
+                                </li>
                             </ul>
                         </div>
                     </Banner>
@@ -175,6 +201,32 @@ export default function HelpPage() {
 
                     <br />
 
+                    <Banner title="Customer Tag Wise Limits (paid)" status="info">
+                        <div>
+                            <p>
+                                This tab allows you to set limits based on customer tags. If a
+                                customer has specific tags associated with their account, the
+                                limits configured for those tags will apply:
+                            </p>
+                            <ul>
+                                <li>
+                                <strong>Tag-Based Price/Store Limits:</strong> If a price or
+                                store limit is set for a specific tag, those limits will
+                                override the general limits for customers with the
+                                corresponding tag. This ensures personalized restrictions
+                                based on customer segmentation.
+                                </li>
+                                <li>
+                                <strong>Error Messages:</strong> Customize error messages to
+                                reflect the tag-based limits, providing a more tailored
+                                experience to tagged customers.
+                                </li>
+                            </ul>
+                        </div>
+                    </Banner>
+
+                    <br />
+
                     <Banner title="Store Wise Limits (paid)" status="info">
                         <div>
                             <p>
@@ -187,6 +239,17 @@ export default function HelpPage() {
                         </div>
                     </Banner>
 
+                    <br />
+
+                    <Banner title="Multiple Field" status="info">
+                        <div>
+                            <p>
+                                This field ensures that the selected product quantity must be a multiple of the specified number. For example, if the multiple is set to 5, the customer can only purchase quantities like 5, 10, 15, etc., of that product. This limit ensures that the quantity added to the cart adheres strictly to the defined multiple.
+                            </p>
+                        </div>
+                    </Banner>
+
+                    <br />
                     <br />
 
                     <br />

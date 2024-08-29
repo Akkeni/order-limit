@@ -303,12 +303,14 @@ export async function getAllCustomerTags(graphql) {
   }
 
   // Collect all unique customer tags
-  const allCustomerTags = [];
+  const uniqueCustomerTags = new Set();
   allCustomersData.forEach(({ node }) => {
-    allCustomerTags.push(...node.tags);
+    node.tags.forEach(tag => uniqueCustomerTags.add(tag));
   });
 
-  // Return the results
+  // Convert the Set back to an array
+  const allCustomerTags = Array.from(uniqueCustomerTags);
+
   return {
     allCustomerTags,
     allCustomersData,
@@ -319,6 +321,7 @@ export async function getAllCustomerTags(graphql) {
 export async function deleteNonPlanData(graphql) {
 
   let allProductsData = await getAllProductsData(graphql);
+  let { allCustomerTags, allCustomersData } = await getAllCustomerTags(graphql);
 
   const deleteMetafield = async (metafieldId) => {
     if (metafieldId) {
@@ -356,6 +359,16 @@ export async function deleteNonPlanData(graphql) {
         for (let variant of product.node.variants.edges) {
           await deleteMetafield(variant.node[field]?.id);
         }
+      }
+    }
+  }
+
+  for (const customer of allCustomersData) {
+    const { metafield } = customer.node;
+
+    if (metafield) {
+      if(metafield?.id) {
+        await deleteMetafield(metafield?.id);
       }
     }
   }

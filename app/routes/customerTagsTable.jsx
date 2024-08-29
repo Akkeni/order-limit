@@ -120,7 +120,7 @@ export const CustomerTagsTable = ({
       <br />
       <br />
 
-      <div style={{ width: "100%", overflow: "auto", marginLeft: "0.5rem" }}>
+      <div style={{ width: "100%", overflow: "auto", marginLeft: "0.5rem", paddingBottom: '0.5rem' }}>
         <div>
           <InlineStack gap="500">
             <div style={{ paddingLeft: "0.5rem" }}>
@@ -178,7 +178,7 @@ export const CustomerTagsTable = ({
           onChange={(value) => {
             handleErrorMessages("shopMinErrMsg", value);
           }}
-          placeholder="Minmum {shopMin} products are required for checkout."
+          placeholder="Minimum {shopMin} products are required for checkout."
           helpText="use {shopMin} to include store minimum limit"
           autoComplete="off"
         />
@@ -189,8 +189,8 @@ export const CustomerTagsTable = ({
           onChange={(value) => {
             handleErrorMessages("shopMaxErrMsg", value);
           }}
-          placeholder="Minmum {shopMin} products are required for checkout."
-          helpText="use {shopMin} to include store minimum limit"
+          placeholder="Cart exceeds {shopMax} products. Please remove some items."
+          helpText="use {shopMax} to include store maximum limit"
           autoComplete="off"
         />
         <br />

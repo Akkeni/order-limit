@@ -148,12 +148,13 @@ export default function PricingPage() {
                 <>
                     
                     <span className="text-with-icon">Product Wise Limit
-                        <Tooltip content={`You can set limits for up to ${freePlanLimiters.freePlanProductLimit} products across all categories, collections, and vendors.`}>
+                        <Tooltip content={`You can set limits for up to ${freePlanLimiters.freePlanProductLimit} products across SKU, product, category, collection, and vendor limits.`}>
                             {infoIcon}
                         </Tooltip>
                     </span>
                     
                 </>,
+                "SKU Wise Limit",
                 "Category Wise Limit",
                 "Collection Wise Limit",
                 "Vendor Wise Limit",
@@ -169,10 +170,12 @@ export default function PricingPage() {
             features: [
                 "General limits price, weight",
                 "Product Wise Limit",
+                "SKU Wise Limit",
                 "Category Wise Limit",
                 "Collection Wise Limit",
                 "Vendor Wise Limit",
                 "Store Wise Limit",
+                "Customer Tag Wise Limit"
             ]
         },
         {
@@ -190,6 +193,7 @@ export default function PricingPage() {
                 "Collection Wise Limit",
                 "Vendor Wise Limit",
                 "Store Wise Limit",
+                "Customer Tag Wise Limit"
             ]
         },
     ]

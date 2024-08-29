@@ -1063,7 +1063,7 @@ export default function Index() {
   const shopify = useAppBridge();
   const [searchValue, setSearchValue] = useState('');
   const [success, setSuccess] = useState(false);
-  const [tagValue, setTagValue] = useState((plan != "paidPlan") ? 'Product Wise' : 'General');
+  const [tagValue, setTagValue] = useState((plan != "paidPlan") ?  'SKU Wise' : 'General');
   const [quantityLimit, setQuantityLimit] = useState([]);
   const [variantQuantityLimits, setVariantQuantityLimits] = useState({});
 
@@ -1126,7 +1126,7 @@ export default function Index() {
 
   const collectionIds = [];
 
-  const tagOptions = (plan != "paidPlan") ? ['Product Wise', 'SKU Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise'] : ['General', 'Product Wise', 'SKU Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise', 'Store Wise', 'Customer Tag Wise'];
+  const tagOptions = (plan != "paidPlan") ? [ 'SKU Wise', 'Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise'] : ['General', 'SKU Wise', 'Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise', 'Store Wise', 'Customer Tag Wise'];
   const localeOptions = availableLocales.map((locale) => ({
     label: locale.name,
     value: locale.isoCode,
@@ -1387,6 +1387,7 @@ export default function Index() {
 
       if (value == '' || Number(value) == 0) {
         allow = true;
+        const prevValue = Number(getSkuQuantityLimit(id, field));
         const min = getSkuQuantityLimit(id, 'min');
         const max = getSkuQuantityLimit(id, 'max');
         const multiple = getSkuQuantityLimit(id, 'multiple');
@@ -1397,7 +1398,7 @@ export default function Index() {
         };
         console.log('sku max value in 0 ', Number(max));
         console.log('field value when 0 ', isValid[field]);
-        if (isValid[field]) {
+        if (isValid[field] && prevValue > 0) {
           handleCountOfTotalProductsWithLimits(1, false);
         }
       }
@@ -2362,13 +2363,14 @@ export default function Index() {
   
       
       if (sku && typeof sku[field] !== 'undefined') {
-        const skuFieldValue = Number(sku[field]);
-        console.log('sku field value in getSku ', skuFieldValue);
-        if (skuFieldValue > 0) {
-          return skuFieldValue;
-        } else {
-          return 0;
-        }
+        return sku[field];
+        // const skuFieldValue = Number(sku[field]);
+        // console.log('sku field value in getSku ', skuFieldValue);
+        // if (skuFieldValue > 0) {
+        //   return skuFieldValue;
+        // } else {
+        //   return 0;
+        // }
       } else {
         return 0;
       }
@@ -2647,37 +2649,59 @@ export default function Index() {
                                 </IndexTable.Cell>
                                 <IndexTable.Cell>
                                   <FormLayout>
-                                    <TextField
-                                      value={getProductQuantityLimit(product.node.id, 'min')}
-                                      label="Product Min Limit"
-                                      type="number"
-                                      size='slim'
-                                      onChange={(value) => { handleQuantityLimit(value, product.node.id, 'min') }}
-                                      error={errorState[`${product.node.id}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
-                                    />
-
+                                    <FormLayout.Group condensed>
+                                      <TextField
+                                        value={getProductQuantityLimit(product.node.id, 'min')}
+                                        label="Product Min Limit"
+                                        type="number"
+                                        onChange={(value) => {
+                                          handleQuantityLimit(value, product.node.id, 'min');
+                                        }}
+                                        error={
+                                          errorState[`${product.node.id}_min`]
+                                            ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.`
+                                            : ''
+                                        }
+                                      />
+                                    </FormLayout.Group>
                                   </FormLayout>
                                 </IndexTable.Cell>
                                 <IndexTable.Cell>
                                   <FormLayout>
-                                    <TextField
-                                      value={getProductQuantityLimit(product.node.id, 'max')}
-                                      label="Product Max Limit"
-                                      type="number"
-                                      onChange={(value) => { handleQuantityLimit(value, product.node.id, 'max') }}
-                                      error={errorState[`${product.node.id}_max`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
-                                    />
+                                    <FormLayout.Group condensed>
+                                      <TextField
+                                        value={getProductQuantityLimit(product.node.id, 'max')}
+                                        label="Product Max Limit"
+                                        type="number"
+                                        onChange={(value) => {
+                                          handleQuantityLimit(value, product.node.id, 'max');
+                                        }}
+                                        error={
+                                          errorState[`${product.node.id}_max`]
+                                            ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.`
+                                            : ''
+                                        }
+                                      />
+                                    </FormLayout.Group>
                                   </FormLayout>
                                 </IndexTable.Cell>
                                 <IndexTable.Cell>
                                   <FormLayout>
-                                    <TextField
-                                      value={getProductQuantityLimit(product.node.id, 'multiple')}
-                                      label="Product Multiple Limit"
-                                      type="number"
-                                      onChange={(value) => { handleQuantityLimit(value, product.node.id, 'multiple') }}
-                                      error={errorState[`${product.node.id}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
-                                    />
+                                    <FormLayout.Group condensed>
+                                      <TextField
+                                        value={getProductQuantityLimit(product.node.id, 'multiple')}
+                                        label="Product Multiple Limit"
+                                        type="number"
+                                        onChange={(value) => {
+                                          handleQuantityLimit(value, product.node.id, 'multiple');
+                                        }}
+                                        error={
+                                          errorState[`${product.node.id}_multiple`]
+                                            ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.`
+                                            : ''
+                                        }
+                                      />
+                                    </FormLayout.Group>
                                   </FormLayout>
                                 </IndexTable.Cell>
                               </IndexTable.Row>
@@ -2710,35 +2734,41 @@ export default function Index() {
                                     </IndexTable.Cell>
                                     <IndexTable.Cell>
                                       <FormLayout>
-                                        <TextField
-                                          value={getVariantQuantity(variant.node.id, 'min')}
-                                          label="Variant Min Limit"
-                                          type="number"
-                                          onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'min') }}
-                                          error={errorState[`${variant.node.id}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
-                                        />
+                                        <FormLayout.Group condensed>
+                                          <TextField
+                                            value={getVariantQuantity(variant.node.id, 'min')}
+                                            label="Variant Min Limit"
+                                            type="number"
+                                            onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'min') }}
+                                            error={errorState[`${variant.node.id}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                          />
+                                        </FormLayout.Group>
                                       </FormLayout>
                                     </IndexTable.Cell>
                                     <IndexTable.Cell>
                                       <FormLayout>
-                                        <TextField
-                                          value={getVariantQuantity(variant.node.id, 'max')}
-                                          label="Variant Max Limit"
-                                          type="number"
-                                          onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'max') }}
-                                          error={errorState[`${variant.node.id}_max`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
-                                        />
+                                        <FormLayout.Group condensed>
+                                          <TextField
+                                            value={getVariantQuantity(variant.node.id, 'max')}
+                                            label="Variant Max Limit"
+                                            type="number"
+                                            onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'max') }}
+                                            error={errorState[`${variant.node.id}_max`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                          />
+                                        </FormLayout.Group>
                                       </FormLayout>
                                     </IndexTable.Cell>
                                     <IndexTable.Cell>
                                   <FormLayout>
-                                    <TextField
-                                      value={getVariantQuantity(variant.node.id, 'multiple')}
-                                      label="Variant Multiple Limit"
-                                      type="number"
-                                      onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'multiple') }}
-                                      error={errorState[`${variant.node.id}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
-                                    />
+                                    <FormLayout.Group condensed>
+                                      <TextField
+                                        value={getVariantQuantity(variant.node.id, 'multiple')}
+                                        label="Variant Multiple Limit"
+                                        type="number"
+                                        onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'multiple') }}
+                                        error={errorState[`${variant.node.id}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                      />
+                                    </FormLayout.Group>
                                   </FormLayout>
                                 </IndexTable.Cell>
                                   </IndexTable.Row>
@@ -2758,7 +2788,7 @@ export default function Index() {
                       <br />
                       <br />
 
-                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem', paddingBottom: '0.5rem' }}>
                         <div>
                           <InlineStack gap="500">
                             <div style={{ paddingLeft: '0.5rem' }}>
@@ -2815,7 +2845,7 @@ export default function Index() {
                           label="Error Message for Product Variant Minimum limit"
                           value={errorMessages.variantMinErrMsg}
                           onChange={(value) => { handleErrorMessages("variantMinErrMsg", value) }}
-                          placeholder="You can't select less than {productVariantMin} for this {productName} variant."
+                          placeholder="You can't select less than {productVariantMin} for {productName} variant."
                           helpText="use {productVariantMin} to include minimum limit and {productName} to include product name"
                           autoComplete="off"
                         />
@@ -2824,7 +2854,7 @@ export default function Index() {
                           label="Error Message for Product Variant Maximum limit"
                           value={errorMessages.variantMaxErrMsg}
                           onChange={(value) => { handleErrorMessages("variantMaxErrMsg", value) }}
-                          placeholder="Quantity limit reached, you can't select more than {productVariantMax} for this {productName} variant.."
+                          placeholder="Quantity limit reached, you can't select more than {productVariantMax} for {productName} variant."
                           helpText="use {productVariantMax} to include maximum limit and {productName} to include product name"
                           autoComplete="off"
                         />
@@ -2833,8 +2863,8 @@ export default function Index() {
                           label="Error Message for Variant Multiple limit"
                           value={errorMessages.variantMultipleErrMsg}
                           onChange={(value) => { handleErrorMessages("variantMultipleErrMsg", value) }}
-                          placeholder="Quantity should be a multiple of {variantMultiple} for this {productName} variant."
-                          helpText="use {variantMultiple} to include multiple limit and {productName} to include product name"
+                          placeholder="Quantity should be a multiple of {productVariantMultiple} for {productName} variant."
+                          helpText="use {productVariantMultiple} to include multiple limit and {productName} to include product name"
                           autoComplete="off"
                         />
                         <br />
@@ -2927,7 +2957,7 @@ export default function Index() {
                       <br />
                       <br />
 
-                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem', paddingBottom: '0.5rem' }}>
                         <div>
                           <InlineStack gap="500">
                             <div style={{ paddingLeft: '0.5rem' }}>
@@ -3070,7 +3100,7 @@ export default function Index() {
                       <br />
                       <br />
 
-                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem', paddingBottom: '0.5rem' }}>
                         <div>
                           <InlineStack gap="500">
                             <div style={{ paddingLeft: '0.5rem' }}>
@@ -3175,7 +3205,7 @@ export default function Index() {
                       <br />
                       <br />
 
-                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem', paddingBottom: '0.5rem' }}>
                         <div>
                           <InlineStack gap="500">
                             <div style={{ paddingLeft: '0.5rem' }}>
@@ -3291,7 +3321,7 @@ export default function Index() {
                       <br />
                       <br />
 
-                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem', paddingBottom: '0.5rem' }}>
                         <div>
                           <InlineStack gap="500">
                             <div style={{ paddingLeft: '0.5rem' }}>
@@ -3441,7 +3471,7 @@ export default function Index() {
                       </Card>
                       <br />
                       <br />
-                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem', paddingBottom: '0.5rem' }}>
                         <div>
                           <InlineStack gap="500">
                             <div style={{ paddingLeft: '0.5rem' }}>
@@ -3581,7 +3611,7 @@ export default function Index() {
                       <br />
                       <br />
 
-                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem' }}>
+                      <div style={{ width: '100%', overflow: 'auto', marginLeft: '0.5rem', paddingBottom: '0.5rem' }}>
                         <div>
                           <InlineStack gap="500">
                             <div style={{ paddingLeft: '0.5rem' }}>
@@ -3620,7 +3650,7 @@ export default function Index() {
                           label="Error Message for SKU Maximum limit"
                           value={errorMessages.skuMaxErrMsg}
                           onChange={(value) => { handleErrorMessages("skuMaxErrMsg", value) }}
-                          placeholder="Quantity limit reached, you can't select more than {skuMax} for {productName}."
+                          placeholder="Quantity limit reached, you can't select more than {skuMax} for this product {productName}."
                           helpText="use {skuMax} to include maximum limit"
                           autoComplete="off"
                         />
@@ -3629,7 +3659,7 @@ export default function Index() {
                           label="Error Message for SKU Multiple limit"
                           value={errorMessages.skuMaxErrMsg}
                           onChange={(value) => { handleErrorMessages("skuMaxErrMsg", value) }}
-                          placeholder="You can only select multiple of {skuMultiple} for {productName}."
+                          placeholder="Quantity should be a multiple of {skuMultiple} for this product {productName}."
                           helpText="use {skuMultiple} to include multiple limit"
                           autoComplete="off"
                         />
