@@ -598,103 +598,6 @@ async function saveErrorMessagesAndGeneralLimiters(admin, shopId, errorMessages,
     }`, metafields);
 }
 
-// async function createCustomerTagMetafield(customerTagLimiters, allCustomersData, admin) {
-//   for (const limiter of customerTagLimiters) {
-//     const { customerTag, priceMin, priceMax, shopMin, shopMax } = limiter;
-    
-    
-//     for (const customer of allCustomersData) {
-//       const { tags, id: customerId } = customer.node;
-      
-//       if (tags.includes(customerTag)) {
-        
-//         const existingMetafieldResponse = await admin.graphql(`
-//           query GetCustomerMetafield($ownerId: ID!) {
-//             customer(id: $ownerId) {
-//               metafield(namespace: "customerTag", key: "customerTag") {
-//                 value
-//                 type
-//               }
-//             }
-//           }`, {
-//           variables: {
-//             ownerId: customerId,
-//           },
-//         });
-
-//         const existingMetafield = await existingMetafieldResponse.json();
-//         let existingMetafieldValue = { selectedCustomerTags: [] };
-
-//         if (existingMetafield?.data?.customer?.metafield?.value) {
-//           try {
-//             existingMetafieldValue = JSON.parse(existingMetafield.data.customer.metafield.value);
-//           } catch (error) {
-//             console.error("Failed to parse existing metafield value:", error);
-//           }
-//         }
-
-//          // Check if the customerTag already exists
-//         //  const tagExists = existingMetafieldValue.selectedCustomerTags.some(
-//         //   tag => tag.customerTag === customerTag
-//         // );
-
-//         // Create the new object based on the limiter
-//         const newLimiterObject = {
-//           customerTag,
-//           priceMin,
-//           priceMax,
-//           shopMin,
-//           shopMax,
-//         };
-
-//         // Find the index of the existing tag object if it exists
-//         const existingTagIndex = existingMetafieldValue.selectedCustomerTags.findIndex(
-//           tag => tag.customerTag === customerTag
-//         );
-
-//         if (existingTagIndex !== -1) {
-//           // Update the existing tag object
-//           existingMetafieldValue.selectedCustomerTags[existingTagIndex] = newLimiterObject;
-//         } else {
-//           // Append the new object to the existing metafield value if the tag does not exist
-//           existingMetafieldValue.selectedCustomerTags.push(newLimiterObject);
-//         }
-
-//         // Define the mutation query with the updated value
-//         const setMetafieldMutation = `
-//           mutation SetMetafield($ownerId: ID!, $value: String!) {
-//             metafieldsSet(metafields: [
-//               {
-//                 namespace: "customerTag",
-//                 key: "customerTag",
-//                 ownerId: $ownerId,
-//                 type: "string",
-//                 value: $value
-//               }
-//             ]) {
-//               metafields {
-//                 id
-//               }
-//             }
-//           }
-//         `;
-
-//         // Convert the metafield value to a string for the mutation
-//         const metafieldValueString = JSON.stringify(existingMetafieldValue);
-
-//         // Execute the mutation
-//         await admin.graphql(setMetafieldMutation, {
-//           variables: {
-//             ownerId: customerId,
-//             value: metafieldValueString,
-//           },
-//         });
-
-//         console.log(`Metafield updated for customer ID ${customerId} with tag ${customerTag}`);
-//       }
-//     }
-//   }  
-// }
 
 async function createCustomerTagMetafield(customerTagLimiters, allCustomersData, admin) {
   for (const limiter of customerTagLimiters) {
@@ -788,7 +691,7 @@ async function createCustomerTagMetafield(customerTagLimiters, allCustomersData,
           },
         });
 
-        console.log(`Metafield updated for customer ID ${customerId} with tag ${customerTag}`);
+       
       }
     }
   }  
@@ -1354,9 +1257,7 @@ export default function Index() {
 
   // Function to handle changes in SKU limit fields
   const handleSkuLimiters = (value, id, field = '') => {
-    console.log('value in sku', value);
-    console.log('id in sku', id);
-    console.log('field in handle sku', field);
+   
 
     let allow = false;
 
@@ -1396,8 +1297,7 @@ export default function Index() {
           max: Number(min) === 0 && Number(multiple) === 0,
           multiple: Number(min) === 0 && Number(max) === 0,
         };
-        console.log('sku max value in 0 ', Number(max));
-        console.log('field value when 0 ', isValid[field]);
+       
         if (isValid[field] && prevValue > 0) {
           handleCountOfTotalProductsWithLimits(1, false);
         }
@@ -1427,8 +1327,7 @@ export default function Index() {
       return;
     }
     
-    
-    console.log('generalLimiters ', generalLimiters);
+   
     
     if(allow) {
 
@@ -1492,8 +1391,7 @@ export default function Index() {
         };
     });
 
-    // Optional: Logging for debugging
-    console.log('Updated generalLimiters: ', generalLimiters);
+    
   };
 
   // const handleExtensionChange = (value) => {
@@ -1640,8 +1538,7 @@ export default function Index() {
     setCategoryCounts(updatedCategoryCounts);
     setCollectionCounts(updatedCollectionCounts);
   
-    // console.log('count exist in useEffect ', countOfExistingTotalProductsWithLimits);
-    // console.log('count total in useEffect ', countOfTotalProductsWithLimits);
+    
   
   }, [loaderData]);
   
@@ -1668,12 +1565,7 @@ export default function Index() {
 
   }, [loaderData]);
 
-  // const [count, setCount] = useState({
-  //   productCount: Object.keys(productLimitCounts).length,
-  //   categoryCount: Object.keys(categoryCounts).length,
-  //   collectionCount: Object.keys(collectionCounts).length,
-  //   vendorCount: Object.keys(vendorCounts).length,
-  // });
+  
 
 
   const handleCount = (name, increment = true) => {
@@ -1940,8 +1832,7 @@ export default function Index() {
     return true;
   };
 
-  // console.log('count total', countOfTotalProductsWithLimits);
-  // console.log('count existing', countOfExistingTotalProductsWithLimits);
+ 
 
   const handleQuantityLimit = async (value, id, range = '') => {
     let limitValue = '';
@@ -2354,8 +2245,7 @@ export default function Index() {
 
   // Function to get SKU quantity limit
   const getSkuQuantityLimit = (id, field = '') => {
-    //console.log('id in getSku ', id);
-    //console.log('field in getSku ', field);
+    
   
     
       const existingSkuLimits = generalLimiters?.skuLimiters || [];
@@ -2364,13 +2254,7 @@ export default function Index() {
       
       if (sku && typeof sku[field] !== 'undefined') {
         return sku[field];
-        // const skuFieldValue = Number(sku[field]);
-        // console.log('sku field value in getSku ', skuFieldValue);
-        // if (skuFieldValue > 0) {
-        //   return skuFieldValue;
-        // } else {
-        //   return 0;
-        // }
+        
       } else {
         return 0;
       }
@@ -2383,26 +2267,19 @@ export default function Index() {
   
     if (customerTagValue && typeof customerTagValue[field] !== 'undefined') {
       const customerTagFieldValue = Number(customerTagValue[field]);
-      console.log('sku field value in getSku ', customerTagFieldValue);
+     
       if (customerTagFieldValue > 0) {
         return customerTagFieldValue;
       } else {
         return 0;
       }
     } else {
-      console.log('customerTag or field is undefined or missing:', customerTag, field);
+     
       return 0;
     }
   };
 
-  // Function to handle adding a new SKU limit row
-  // const handleAddSkuLimit = () => {
-  //   const newSku = { id: '', min: '', max: '', multiple: '' };
-  //   setSkuLimitRows([...skuLimitRows, newSku]);
-  // };
-
-  // console.log('allproductsdata ', allProductsData.find((item) => item.node.id === "gid://shopify/Product/8614183305468"));
-
+  
   if (isSaving) {
     return (
       <div style={{
