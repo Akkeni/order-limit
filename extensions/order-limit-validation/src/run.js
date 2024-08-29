@@ -59,52 +59,52 @@ export function run(input) {
     }
 
     const checkCustomerTagPriceLimit = () => {
-      
-        const customerTagLimitField = input.cart.buyerIdentity?.customer?.customerTagLimitField;
-        const totalAmount = Number(input.cart?.cost?.totalAmount?.amount);
-        const appliedCurrencyCode = generalLimiters?.currencyCode;
 
-        if (customerTagLimitField) {
-          const customerTagLimitFieldValue = JSON.parse(customerTagLimitField.value);
-          // Extract the selected customer tags from the parsed metafield value
-          const selectedCustomerTags = customerTagLimitFieldValue.selectedCustomerTags || [];
+      const customerTagLimitField = input.cart.buyerIdentity?.customer?.customerTagLimitField;
+      const totalAmount = Number(input.cart?.cost?.totalAmount?.amount);
+      const appliedCurrencyCode = generalLimiters?.currencyCode;
 
-          // Loop through each customer tag limit object to apply the appropriate rules
-          for (const tagLimit of selectedCustomerTags) {
-            const { priceMin, priceMax, shopMin, shopMax } = tagLimit;
+      if (customerTagLimitField) {
+        const customerTagLimitFieldValue = JSON.parse(customerTagLimitField.value);
+        // Extract the selected customer tags from the parsed metafield value
+        const selectedCustomerTags = customerTagLimitFieldValue.selectedCustomerTags || [];
 
-            // Convert values to numbers for comparison
-            const priceMinValue = Number(priceMin);
-            const priceMaxValue = Number(priceMax);
-            
-            if(priceMinValue > 0 || priceMaxValue > 0) {
-              isCustomerTagPriceLimitSet = true;
-            }
+        // Loop through each customer tag limit object to apply the appropriate rules
+        for (const tagLimit of selectedCustomerTags) {
+          const { priceMin, priceMax, shopMin, shopMax } = tagLimit;
 
-            // Check against price limits
-            if (totalAmount < priceMinValue && priceMinValue > 0) {
-              errors.push({
-                localizedMessage: errorMessagesFieldValue?.priceMinErrMsg && currentLocale === selectedLocale
-                  ? errorMessagesFieldValue.priceMinErrMsg.replace("{priceMin}", priceMinValue).replace("{currencyCode}", appliedCurrencyCode)
-                  : `Minimum amount ${priceMinValue} ${appliedCurrencyCode} is required for checkout.`,
-                target: "cart",
-              });
-              return true;
+          // Convert values to numbers for comparison
+          const priceMinValue = Number(priceMin);
+          const priceMaxValue = Number(priceMax);
 
-            } else if (totalAmount > priceMaxValue && priceMaxValue > 0) {
-              errors.push({
-                localizedMessage: errorMessagesFieldValue?.priceMaxErrMsg && currentLocale === selectedLocale
-                  ? errorMessagesFieldValue.priceMaxErrMsg.replace("{priceMax}", priceMaxValue).replace("{currencyCode}", appliedCurrencyCode)
-                  : `Cart exceeds amount ${priceMaxValue} ${appliedCurrencyCode}, please remove some items.`,
-                target: "cart",
-              });
-              return true;
+          if (priceMinValue > 0 || priceMaxValue > 0) {
+            isCustomerTagPriceLimitSet = true;
+          }
 
-            } else {
-              return false;
-            }
+          // Check against price limits
+          if (totalAmount < priceMinValue && priceMinValue > 0) {
+            errors.push({
+              localizedMessage: errorMessagesFieldValue?.priceMinErrMsg && currentLocale === selectedLocale
+                ? errorMessagesFieldValue.priceMinErrMsg.replace("{priceMin}", priceMinValue).replace("{currencyCode}", appliedCurrencyCode)
+                : `Minimum amount ${priceMinValue} ${appliedCurrencyCode} is required for checkout.`,
+              target: "cart",
+            });
+            return true;
+
+          } else if (totalAmount > priceMaxValue && priceMaxValue > 0) {
+            errors.push({
+              localizedMessage: errorMessagesFieldValue?.priceMaxErrMsg && currentLocale === selectedLocale
+                ? errorMessagesFieldValue.priceMaxErrMsg.replace("{priceMax}", priceMaxValue).replace("{currencyCode}", appliedCurrencyCode)
+                : `Cart exceeds amount ${priceMaxValue} ${appliedCurrencyCode}, please remove some items.`,
+              target: "cart",
+            });
+            return true;
+
+          } else {
+            return false;
           }
         }
+      }
     }
 
     const checkPriceLimit = () => {
@@ -223,11 +223,11 @@ export function run(input) {
       return false;
     };
 
-    if ( checkCustomerTagPriceLimit() || checkPriceLimit() || checkWeightLimit()) {
+    if (checkCustomerTagPriceLimit() || checkPriceLimit() || checkWeightLimit()) {
       return { errors };
     }
 
-    
+
     const checkMultipleLimit = (quantity, multiple) => {
       if (Number(multiple) > 0) {
         return (!(quantity % Number(multiple) == 0));
@@ -284,11 +284,11 @@ export function run(input) {
         const { product } = merchandise;
         const productName = product?.title;
 
-        
+
         //check sku limit
         if (merchandise.__typename === "ProductVariant") {
           const sku = merchandise?.sku;
-          
+
           if (sku) {
             const isSkuExist = skuLimiters.find((item) => item.id === sku);
             if (isSkuExist) {
@@ -323,10 +323,10 @@ export function run(input) {
             }
           }
         }
-        
+
 
         //variant limit check
-        if (!isSkuLimitSet) { 
+        if (!isSkuLimitSet) {
           if (merchandise.productVariantLimitField) {
             //const productName = product?.title;
             const [productVariantMin, productVariantMax, productVariantMultiple] = merchandise.productVariantLimitField.value.split(',').map(Number);
@@ -359,7 +359,7 @@ export function run(input) {
             }
           }
         }
-        
+
 
         if (!isVariantLimitSet && !isSkuLimitSet) {
           if (product.productLimitField) {
@@ -496,7 +496,7 @@ export function run(input) {
           // Check if product has vendor information
           if (product.productLimitField) {
             const [productMin, productMax, productMultiple, vendorName, vendorMin, vendorMax, vendorMultiple, productName] = product.productLimitField.value.split(',');
-            
+
             if (vendorName) {
 
               if (Number(vendorMin) > 0 || Number(vendorMax) > 0 || Number(vendorMultiple) > 0) {
@@ -549,7 +549,7 @@ export function run(input) {
           const shopMinValue = Number(shopMin);
           const shopMaxValue = Number(shopMax);
 
-          if(shopMinValue > 0 || shopMaxValue > 0) {
+          if (shopMinValue > 0 || shopMaxValue > 0) {
             isCustomerTagStoreLimitSet = true;
           }
 
@@ -580,7 +580,7 @@ export function run(input) {
       if (generalLimiters) {
         const storeMin = Number(generalLimiters?.shopMin);
         const storeMax = Number(generalLimiters?.shopMax);
-        
+
         const totalQuantity = input.cart.lines.reduce((acc, curr) => acc + curr.quantity, 0);
 
 
