@@ -1126,7 +1126,7 @@ export default function Index() {
 
   const collectionIds = [];
 
-  const tagOptions = (plan != "paidPlan") ? ['Product Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise'] : ['General', 'Product Wise', 'SKU Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise', 'Store Wise', 'Customer Tag Wise'];
+  const tagOptions = (plan != "paidPlan") ? ['Product Wise', 'SKU Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise'] : ['General', 'Product Wise', 'SKU Wise', 'Category Wise', 'Collection Wise', 'Vendor Wise', 'Store Wise', 'Customer Tag Wise'];
   const localeOptions = availableLocales.map((locale) => ({
     label: locale.name,
     value: locale.isoCode,
@@ -1354,39 +1354,111 @@ export default function Index() {
 
   // Function to handle changes in SKU limit fields
   const handleSkuLimiters = (value, id, field = '') => {
-    console.log('value ', value);
-    console.log('id ', id);
-    console.log('field ', field);
-    setSkuLimitRows((prevRows) => {
-        const existingIndex = prevRows.findIndex((sku) => sku.id === id);
+    console.log('value in sku', value);
+    console.log('id in sku', id);
+    console.log('field in handle sku', field);
+
+    let allow = false;
+
+    if (plan != "paidPlan") {
+
+      const existingSkuLimiters = generalLimiters?.skuLimiters;
+
+      const skuLimiter = existingSkuLimiters.find((item) => item.id === id);
+      let exist = false;
+
+      if(Number(value) > 0) {
+        if(Number(skuLimiter?.min) > 0 || Number(skuLimiter?.max > 0) || Number(skuLimiter?.multiple) > 0 ) {
+          exist = true;
+        }
+
+        if(!exist) {
+          const checkTotal = countOfTotalProductsWithLimits + 1;
+          if ( checkTotal <= freePlanlimiters.products ) {
+            allow = true;
+            handleCountOfTotalProductsWithLimits(1);
+          }
+        }
+  
+        if(exist) {
+          allow = true;
+        }
+      }
+
+      if (value == '' || Number(value) == 0) {
+        allow = true;
+        const min = getSkuQuantityLimit(id, 'min');
+        const max = getSkuQuantityLimit(id, 'max');
+        const multiple = getSkuQuantityLimit(id, 'multiple');
+        const isValid = {
+          min: Number(max) === 0 && Number(multiple) === 0,
+          max: Number(min) === 0 && Number(multiple) === 0,
+          multiple: Number(min) === 0 && Number(max) === 0,
+        };
+        console.log('sku max value in 0 ', Number(max));
+        console.log('field value when 0 ', isValid[field]);
+        if (isValid[field]) {
+          handleCountOfTotalProductsWithLimits(1, false);
+        }
+      }
+
+      
+    
+    } else {
+      allow = true;
+    }
+
+    setErrorState({});
+
+    if (!allow) {
+      setErrorState(prevState => {
+        // Create a new state object with all keys set to false
+        const newState = Object.keys(prevState).reduce((acc, key) => {
+          acc[key] = false;
+          return acc;
+        }, {});
+
+        // Set the specific field's error state
+        newState[`${id}_${field}`] = true;
+
+        return newState;
+      });
+      return;
+    }
+    
+    
+    console.log('generalLimiters ', generalLimiters);
+    
+    if(allow) {
+
+      setGeneralLimiters((prevState) => {
+          
+        const existingIndex = prevState.skuLimiters.findIndex((row) => row.id === id);
+        let updatedSkuLimiters;
 
         if (existingIndex !== -1) {
-            // If the SKU with the given id exists, update the corresponding field
-            const updatedRows = [...prevRows];
-            updatedRows[existingIndex] = {
-                ...updatedRows[existingIndex],
-                [field]: value
+            
+            updatedSkuLimiters = [...prevState.skuLimiters];
+            updatedSkuLimiters[existingIndex] = {
+                ...updatedSkuLimiters[existingIndex],
+                [field]: value,
             };
-            return updatedRows;
         } else {
-            // If the SKU with the given id does not exist, create a new SKU object
-            return [
-                ...prevRows,
+            updatedSkuLimiters = [
+                ...prevState.skuLimiters,
                 {
                     id: id,
-                    [field]: value // Only set the field that is being changed
-                }
+                    [field]: value,
+                },
             ];
         }
-    });
 
-    console.log('skuLimitRows ', skuLimitRows);
-    console.log('generalLimiters ', generalLimiters);
-
-    setGeneralLimiters((prevState) => ({
-      ...prevState,
-      skuLimiters: skuLimitRows,
-    }));
+        return {
+            ...prevState,
+            skuLimiters: updatedSkuLimiters,
+        };
+      });
+    }
   };
 
   const handleCustomerTagLimiters = (value, customerTag, field = '') => {
@@ -1529,6 +1601,17 @@ export default function Index() {
           collectionCounts[collectionName]++;
         }
       }
+    });
+
+    const skuLimiters = generalLimiters?.skuLimiters;
+
+    skuLimiters.forEach(item => {
+      const {id, min, max, multiple} = item;
+
+      if(Number(min) > 0 || Number(max) > 0 || Number(multiple) > 0) {
+        totalCount += 1;
+      }
+
     });
   
     // Update the total count of products with limits directly
@@ -2270,19 +2353,10 @@ export default function Index() {
 
   // Function to get SKU quantity limit
   const getSkuQuantityLimit = (id, field = '') => {
-    console.log('id in getSku ', id);
-    console.log('field in getSku ', field);
+    //console.log('id in getSku ', id);
+    //console.log('field in getSku ', field);
   
-    const skuLimit = skuLimitRows.find((item) => item.id === id);
-  
-    if (skuLimit) {
-      const fieldValue = Number(skuLimit[field]); 
-      if (fieldValue > 0) {
-        return fieldValue;
-      } else {
-        return 0;
-      }
-    } else {
+    
       const existingSkuLimits = generalLimiters?.skuLimiters || [];
       const sku = existingSkuLimits.find((item) => item.id === id);
   
@@ -2296,10 +2370,8 @@ export default function Index() {
           return 0;
         }
       } else {
-        console.log('SKU or field is undefined or missing:', sku, field);
         return 0;
       }
-    }
   };
 
   const getCustomerTagQuantityLimit = (customerTag, field = '') => {
@@ -3470,6 +3542,7 @@ export default function Index() {
                                               label="SKU Min Limit"
                                               type="number"
                                               onChange={(value) => handleSkuLimiters(value, variant.node.sku, 'min')}
+                                              error={errorState[`${variant.node.sku}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
                                             />
                                           </FormLayout>
                                         </IndexTable.Cell>
@@ -3480,6 +3553,7 @@ export default function Index() {
                                               label="SKU Max Limit"
                                               type="number"
                                               onChange={(value) => handleSkuLimiters(value, variant.node.sku, 'max')}
+                                              error={errorState[`${variant.node.sku}_max`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
                                             />
                                           </FormLayout>
                                         </IndexTable.Cell>
@@ -3490,6 +3564,7 @@ export default function Index() {
                                               label="Multiple"
                                               type="number"
                                               onChange={(value) => handleSkuLimiters(value, variant.node.sku, 'multiple')}
+                                              error={errorState[`${variant.node.sku}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
                                             />
                                           </FormLayout>
                                         </IndexTable.Cell>
