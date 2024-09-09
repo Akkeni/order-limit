@@ -1615,8 +1615,8 @@ export default function Index() {
 
       const exists = quantityLimit.some(item => {
         if (item.id === id) {
-          const [value1, value2] = item.value.split(',').map(Number);
-          if (value1 > 0 || value2 > 0) {
+          const [value1, value2, value3] = item.value.split(',').map(Number);
+          if (value1 > 0 || value2 > 0 || value3 > 0) {
             return true;
           } else {
             return false;
@@ -1646,8 +1646,8 @@ export default function Index() {
 
               const reseted = quantityLimit.some(item => {
                 if (item.id === id) {
-                  const [value1, value2] = item.value.split(',').map(Number);
-                  if (value1 == 0 && value2 == 0) {
+                  const [value1, value2, value3] = item.value.split(',').map(Number);
+                  if (value1 == 0 && value2 == 0 && value3 == 0) {
                     return true;
                   } else {
                     return false;
@@ -1707,8 +1707,8 @@ export default function Index() {
           } else {
             const reseted = quantityLimit.some(item => {
               if (item.id === id) {
-                const [value1, value2] = item.value.split(',').map(Number);
-                if (value1 == 0 && value2 == 0) {
+                const [value1, value2, value3] = item.value.split(',').map(Number);
+                if (value1 == 0 && value2 == 0 && value3 == 0) {
                   return true;
                 } else {
                   return false;
@@ -1751,8 +1751,8 @@ export default function Index() {
           } else {
             const reseted = quantityLimit.some(item => {
               if (item.id === id) {
-                const [value1, value2] = item.value.split(',').map(Number);
-                if (value1 == 0 && value2 == 0) {
+                const [value1, value2, value3] = item.value.split(',').map(Number);
+                if (value1 == 0 && value2 == 0 && value3 == 0) {
                   return true;
                 } else {
                   return false;
@@ -1794,8 +1794,8 @@ export default function Index() {
           } else {
             const reseted = quantityLimit.some(item => {
               if (item.id === id) {
-                const [value1, value2] = item.value.split(',').map(Number);
-                if (value1 == 0 && value2 == 0) {
+                const [value1, value2, value3] = item.value.split(',').map(Number);
+                if (value1 == 0 && value2 == 0 && value3 == 0) {
                   return true;
                 } else {
                   return false;
