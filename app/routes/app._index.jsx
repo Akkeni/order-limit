@@ -1969,7 +1969,7 @@ export default function Index() {
   };
 
   const handleProductCount = (tagValue, id, shouldIncrement) => {
-    let countOfProducts;
+    let countOfProducts = 0;
     switch (tagValue) {
       case 'Category Wise':
         countOfProducts = categoriesData.find(item => item.categoryName === id)?.quantityLimit;
