@@ -187,73 +187,7 @@ export async function getAllProductsData(graphql) {
   return allProductsData;
 }
 
-// export async function getAllCustomerTags(graphql) {
-//   let allCustomersData = [];
-//   const resCustomer = await graphql(
-//     `query AllCustomers{
-//       customers(first:250) {
-//         __typename
-//         edges{
-//           cursor
-//           node {
-//             tags 
-//           }
-//         }
-//       }
-//     }`
-//   );
-//   const allData = await resCustomer.json();
-//   allCustomersData = allCustomersData.concat(allData?.data?.customers?.edges);
 
- 
-//   let cursor = allCustomersData[allCustomersData.length - 1]?.cursor;
-
-//   while (true) {
-//     let customerResponse = await graphql(`
-//           query AllCustomers{
-//             customers(first:250) {
-//               __typename
-//               edges{
-//                 cursor
-//                 node {
-//                   tags
-//                 }
-//               }
-//               pageInfo {
-//                 hasNextPage
-//               }
-//             }
-//           }`,
-//       {
-//         variables: {
-//           after: cursor,
-//         },
-//       }
-//     );
-
-//     let customerData = await customerResponse.json();
-  
-//     allCustomersData = customerData.concat(customerData?.data?.customers?.edges);
-    
-//     if (customerData?.data?.customers?.pageInfo?.hasNextPage) {
-//       const customers = customerData?.data?.customers?.edges;
-//       if (customers) {
-//         cursor = customers[customers.length - 1]?.cursor;
-//       } else {
-//         break;
-//       }
-//     } else {
-//       break;
-//     }
-//   }
-
-//   let allCustomerTags = [];
-//   for(const tags of allCustomersData.node.tags) {
-//     allCustomerTags = allCustomerTags.concat(tags);
-//   }
-
-//   return allCustomerTags;
-// }
 
 export async function getAllCustomerTags(graphql) {
   let allCustomersData = [];

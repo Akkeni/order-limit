@@ -20,7 +20,7 @@ import {
 import { json } from "@remix-run/node";
 import { useLoaderData, useNavigate, useActionData, useSubmit } from "@remix-run/react";
 import { authenticate, MONTHLY_PLAN, ANNUAL_PLAN } from "../shopify.server";
-import { createPlanNameMetafield } from '../models/Subscription.server';
+import { createPlanNameMetafield, getSubscriptionStatus } from '../models/Subscription.server';
 import '../resources/style.css';
 import {
     CheckCircleIcon,
@@ -31,6 +31,11 @@ import { useState, useEffect, useCallback } from "react";
 export async function loader({ request }) {
     const { admin, billing } = await authenticate.admin(request);
 
+    const subscription = await getSubscriptionStatus(admin.graphql);
+    
+
+    const activeSubscriptions = subscription.data.app.installation.activeSubscriptions;
+
     const monthlyPlanAmount = process.env.MONTHLY_PLAN_AMOUNT;
     const annualPlanAmount = process.env.ANNUAL_PLAN_AMOUNT;
     const discountPercentage = process.env.DISCOUNT_PERCENT;
@@ -40,6 +45,7 @@ export async function loader({ request }) {
     let expire = 'true';
     let currentDateStr = new Date();
     let endDateStr = '';
+    endDateStr = activeSubscriptions[0]?.currentPeriodEnd ? activeSubscriptions[0]?.currentPeriodEnd : '';
 
     try {
 
@@ -136,24 +142,28 @@ export default function PricingPage() {
         <Icon source={InfoIcon} tone="subdued"  className="icon small-icon"  />
     );
 
+
+
+
     let planData = [
         {
             title: "Free",
-            description: "Free plan",
+            description:  <>
+                    
+            <span className="text-with-icon">Free Plan
+                <Tooltip content={`You can set limits for up to ${freePlanLimiters.freePlanProductLimit} products across SKU, product, category, collection, and vendor limits.`}>
+                    {infoIcon}
+                </Tooltip>
+            </span>
+            
+        </>,
             price: "0",
             action: "Subscribe",
             name: "Free Subscription",
             url: "/app",
             features: [
-                <>
-                    
-                    <span className="text-with-icon">Product Wise Limit
-                        <Tooltip content={`You can set limits for up to ${freePlanLimiters.freePlanProductLimit} products across SKU, product, category, collection, and vendor limits.`}>
-                            {infoIcon}
-                        </Tooltip>
-                    </span>
-                    
-                </>,
+                "Product Wise Limit",
+               
                 "SKU Wise Limit",
                 "Category Wise Limit",
                 "Collection Wise Limit",
@@ -287,7 +297,7 @@ export default function PricingPage() {
                 {plan.name == "Free Subscription" && expire == 'false' && (
                     <Banner title="Subscripiton end date" status="info">
                         <p>
-                            You cancelled the recurring charges. Your access to paid plan features will end on {endDate}, from which 'free plan' will be activated.
+                            You cancelled the recurring charges. Your access to paid plan features will end on {endDate.slice(0, 10)}, from which 'free plan' will be activated.
                         </p>
                     </Banner>
                 )}
@@ -305,12 +315,12 @@ export default function PricingPage() {
                         >
                             {plan.name == "Monthly Subscription" && (
                                 <p>
-                                    You're currently on Monthly plan.
+                                    You're currently on Monthly plan. It will be renewed on {endDate.slice(0, 10)}
                                 </p>
                             )}
                             {plan.name == "Annual Subscription" && (
                                 <p>
-                                    You're currently on Annual plan.
+                                    You're currently on Annual plan. It will be renewed on {endDate.slice(0, 10)}
                                 </p>
                             )}
                             {plan.name == "Free plan" && (
