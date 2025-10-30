@@ -86,7 +86,6 @@ export async function createEndPeriodMetafield(graphql, value) {
     }
   `);
 
-  console.log('value in create end period meta field ', value);
 
   const appIdQueryData = await appIdQuery.json();
   const appInstallationID = appIdQueryData.data.currentAppInstallation.id;

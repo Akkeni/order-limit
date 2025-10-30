@@ -61,7 +61,6 @@ export async function loader({ request }) {
       shopName: session.shop
     }
   });
-  console.log('order limit in loader ', orderLimit);
   try {
 
     let needsConfirmation = false;
@@ -380,16 +379,13 @@ export async function loader({ request }) {
 
 export async function action({ request, params }) {
   const { admin, session } = await authenticate.admin(request);
-  console.log('params in action ', params);
   try {
     const formData = await request.formData();
     const allProductsData = JSON.parse(formData.get('allProductsData'));
     const allCustomersData = JSON.parse(formData.get('allCustomersData'));
 
     if (formData.get('deletePreviousData') === "true") {
-      console.log('deleting previous data ')
       await handleDeletePreviousData(admin, allProductsData, allCustomersData);
-      console.log('seeting shop name to false ', session.shop);
       await db.order_Limit.update({
         where: { shopName: session.shop },
         data: { hasToDelete: false }
@@ -448,7 +444,6 @@ async function handleDeletePreviousData(admin, allProductsData, allCustomersData
     {fieldName: 'categoryNameField', namespace: "categoryName", key: "categoryName"},
     {fieldName: 'collectionLimitField', namespace: "collectionLimit", key: "collectionLimit"}
   ];
-  console.log('deleting previous metafield data ', allProductsData);
   for (let product of allProductsData) {
     for (let field of fields) {
       await deleteMetafield({ownerId: product.node?.id, namespace: field.namespace, key: field.key}, admin.graphql);
@@ -1165,9 +1160,7 @@ export default function Index() {
 
   const fetchVariantQuantityLimit = async (productId) => {
     try {
-      console.log('product id in fetch variant quantiy limit ', productId);
       const limit = await getProductVariantQuantityLimit(productId);
-      console.log('limit in fetch variant quatity limit ', limit)
       setVariantQuantityLimits(prevState => ({
         ...prevState,
         [productId]: limit
@@ -1180,7 +1173,6 @@ export default function Index() {
   useEffect(() => {
     allProductsData.forEach((product) => {
       product.node.variants.edges.forEach((variant) => {
-        console.log('variant in getting all products data ', variant);
         fetchVariantQuantityLimit(variant.node.id);
       });
     });
@@ -1189,7 +1181,6 @@ export default function Index() {
 
   const handleConfirm = () => {
     setIsSaving(true);
-    console.log('clicking on confirm and now deleting the data ');
     const deletePreviousData = true;
     submit({ deletePreviousData: deletePreviousData, allProductsData: JSON.stringify(loaderData?.allProductsData), allCustomersData: JSON.stringify(allCustomersData) }, { method: 'post' });
     setShowConfirmation(false);
@@ -1202,7 +1193,6 @@ export default function Index() {
   };
 
   useEffect(() => {
-    console.log('action data in use effect ', actionData);
     if (actionData?.deleted) {
       setIsSaving(false);
       navigate('/app');
@@ -1390,7 +1380,6 @@ export default function Index() {
 
 
   const handleTagValueChange = (value) => {
-    console.log('handle tag value ', value);
     setTagValue(value);
   };
 
@@ -1431,12 +1420,9 @@ export default function Index() {
       const node = item.node;
 
       if (node.productLimitField && node.productLimitField.value) {
-        console.log('product limit fiedl ', node?.productLimitField)
         const productLimitValues = node.productLimitField.value.split(',');
         const productLimits = productLimitValues.slice(0, 3).map(Number);
-        console.log('product limit values ', productLimitValues)
         const vendorName = productLimitValues[3];
-        console.log('vendor name ', vendorName)
         const vendorLimits = productLimitValues.slice(4, 7).map(Number);
         const productName = productLimitValues[5];
 
@@ -1451,9 +1437,7 @@ export default function Index() {
         if (vendorLimits.some(value => value !== 0)) {
           if (!vendorCounts[vendorName]) {
             vendorCounts[vendorName] = 0;
-            console.log('vendors data ', vendorsData);
             const countOfProductsInVendor = vendorsData.find((item) => item.vendorName === vendorName)?.quantityLimit;
-            console.log('count of products in vendor ', countOfProductsInVendor)
             totalCount += Number(countOfProductsInVendor);
           }
           vendorCounts[vendorName]++;
@@ -1470,7 +1454,6 @@ export default function Index() {
           if (!categoryCounts[categoryName]) {
             categoryCounts[categoryName] = 0;
             const countOfProductsInCategory = categoriesData.find((item) => item.categoryName === categoryName)?.quantityLimit;
-            console.log('count of products in category ', countOfProductsInCategory)
             totalCount += countOfProductsInCategory;
           }
           categoryCounts[categoryName]++;
@@ -1487,7 +1470,6 @@ export default function Index() {
           if (!collectionCounts[collectionName]) {
             collectionCounts[collectionName] = 0;
             const countOfProductsInCollection = allCollectionsData.find((item) => item.node?.title === collectionName)?.node?.productsCount?.count;
-            console.log('count of products in conllenction ', countOfProductsInCollection)
             totalCount += countOfProductsInCollection;
           }
           collectionCounts[collectionName]++;
@@ -1505,7 +1487,6 @@ export default function Index() {
       }
 
     });
-    console.log('total count in count existing limits ', totalCount);
     // Update the total count of products with limits directly
     setCountOfTotalProductsWithLimits(totalCount);
     setCountOfExistingTotalProductsWithLimits(totalCount);
@@ -2046,7 +2027,6 @@ export default function Index() {
   const getProductVariantQuantityLimit = async (productId, range) => {
 
     try {
-      console.log('quantity limit ', quantityLimit);
       const productLimit = quantityLimit.find(item => item.id === productId);
       if (productLimit) {
         return productLimit.value; // Return the quantity limit if found and greater than 0

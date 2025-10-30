@@ -26,13 +26,10 @@ export const loader = async ({ request, params }) => {
             createdAt.setDate(createdAt.getDate() + trialDays);
             const currentDate = new Date();
 
-            console.log('current date ', currentDate);
-            console.log('created at + trial ', createdAt);
             //create end date only after trial period ends
             if (currentDate > createdAt) {
 
                 const endPeriodDate = activeSubscriptions[0].currentPeriodEnd;
-                console.log('creating end period metafield with date ', endPeriodDate);
                 await createEndPeriodMetafield(admin.graphql, endPeriodDate);
             } else {
                 await deleteNonPlanData(admin.graphql);
@@ -60,7 +57,6 @@ export const loader = async ({ request, params }) => {
             });
 
             const subscription = billingCheck.appSubscriptions[0];
-            console.log('subuscription to cancel ', subscription);
             const cancelledSubscription = await billing.cancel({
                 subscriptionId: subscription.id,
                 isTest: true,
@@ -72,7 +68,6 @@ export const loader = async ({ request, params }) => {
         console.log("Error while cancelling the subscription ", error);
         // Handle reauth
         const reauthUrl = error?.headers?.get?.('x-shopify-api-request-failure-reauthorize-url');
-        console.log('reauth url ', reauthUrl);
         if (reauthUrl) {
         return redirect(reauthUrl);
         }
