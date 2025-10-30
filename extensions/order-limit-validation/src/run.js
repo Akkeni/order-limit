@@ -308,14 +308,14 @@ export function run(input) {
               } else if (checkMaxLimit(quantity, Number(isSkuExist?.max))) {
                 errors.push({
                   localizedMessage: errorMessagesFieldValue?.skuMaxErrMsg && currentLocale === selectedLocale
-                    ? errorMessagesFieldValue.skuMaxErrMsg.replace("{skuMax}", Number(isSkuExist?.max)).replace(" {productName}", productName)
+                    ? errorMessagesFieldValue.skuMaxErrMsg.replace("{skuMax}", Number(isSkuExist?.max)).replace("{productName}", productName)
                     : `Quantity limit reached, you can't select more than ${Number(isSkuExist?.max)} for this product ${productName}.`,
                   target: "cart",
                 });
               } else if (checkMinLimit(quantity, Number(isSkuExist?.min))) {
                 errors.push({
                   localizedMessage: errorMessagesFieldValue?.skuMinErrMsg && currentLocale === selectedLocale
-                    ? errorMessagesFieldValue.skuMinErrMsg.replace("{skuMin}", Number(isSkuExist?.min)).replace(" {productName}", productName)
+                    ? errorMessagesFieldValue.skuMinErrMsg.replace("{skuMin}", Number(isSkuExist?.min)).replace("{productName}", productName)
                     : `You can't select less than ${Number(isSkuExist?.min)} for this product ${productName}.`,
                   target: "cart",
                 });
@@ -338,21 +338,21 @@ export function run(input) {
             if (checkMaxLimit(quantity, productVariantMax)) {
               errors.push({
                 localizedMessage: errorMessagesFieldValue?.variantMaxErrMsg && currentLocale === selectedLocale
-                  ? errorMessagesFieldValue.variantMaxErrMsg.replace("{productVariantMax}", productVariantMax).replace(" {productName}", productName)
+                  ? errorMessagesFieldValue.variantMaxErrMsg.replace("{productVariantMax}", productVariantMax).replace("{productName}", productName)
                   : `Quantity limit reached, you can't select more than ${productVariantMax} for ${productName} variant.`,
                 target: "cart",
               });
             } else if (checkMinLimit(quantity, productVariantMin)) {
               errors.push({
                 localizedMessage: errorMessagesFieldValue?.variantMinErrMsg && currentLocale === selectedLocale
-                  ? errorMessagesFieldValue.variantMinErrMsg.replace("{productVariantMin}", productVariantMin).replace(" {productName}", productName)
+                  ? errorMessagesFieldValue.variantMinErrMsg.replace("{productVariantMin}", productVariantMin).replace("{productName}", productName)
                   : `You can't select less than ${productVariantMin} for ${productName} variant.`,
                 target: "cart",
               });
             } else if (checkMultipleLimit(quantity, productVariantMultiple)) {
               errors.push({
                 localizedMessage: errorMessagesFieldValue?.variantMultipleErrMsg && currentLocale === selectedLocale
-                  ? errorMessagesFieldValue.variantMultipleErrMsg.replace("{productVariantMultiple}", productVariantMultiple).replace(" {productName}", productName)
+                  ? errorMessagesFieldValue.variantMultipleErrMsg.replace("{productVariantMultiple}", productVariantMultiple).replace("{productName}", productName)
                   : `Quantity should be a multiple of ${productVariantMultiple} for ${productName} variant.`,
                 target: "cart",
               });

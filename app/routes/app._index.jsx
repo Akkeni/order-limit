@@ -33,7 +33,7 @@ import { ImageIcon, ChevronLeftIcon, ChevronRightIcon, SelectIcon, SearchIcon, M
 import { authenticate } from '../shopify.server';
 import db from '../db.server';
 import React from 'react';
-import { getAllProductsData, createFreePlanMetafields, deleteNonPlanData, createVendorWiseLimiter, createCollectionWiseLimiter, createCategoryWiseLimiter, getAllCustomerTags } from '../models/orderLimit.server';
+import { getAllProductsData, createFreePlanMetafields, deleteNonPlanData, createVendorWiseLimiter, createCollectionWiseLimiter, createCategoryWiseLimiter, getAllCustomerTags, deleteMetafield } from '../models/orderLimit.server';
 import { useAppBridge } from '@shopify/app-bridge-react';
 import '../resources/style.css';
 import { getSubscriptionStatus, createSubscriptionMetafield, deleteAppInstallationMetafields } from '../models/Subscription.server';
@@ -61,7 +61,7 @@ export async function loader({ request }) {
       shopName: session.shop
     }
   });
-
+  console.log('order limit in loader ', orderLimit);
   try {
 
     let needsConfirmation = false;
@@ -380,14 +380,16 @@ export async function loader({ request }) {
 
 export async function action({ request, params }) {
   const { admin, session } = await authenticate.admin(request);
-
+  console.log('params in action ', params);
   try {
     const formData = await request.formData();
     const allProductsData = JSON.parse(formData.get('allProductsData'));
     const allCustomersData = JSON.parse(formData.get('allCustomersData'));
 
     if (formData.get('deletePreviousData') === "true") {
+      console.log('deleting previous data ')
       await handleDeletePreviousData(admin, allProductsData, allCustomersData);
+      console.log('seeting shop name to false ', session.shop);
       await db.order_Limit.update({
         where: { shopName: session.shop },
         data: { hasToDelete: false }
@@ -437,45 +439,23 @@ export async function action({ request, params }) {
 }
 
 async function handleDeletePreviousData(admin, allProductsData, allCustomersData) {
-  const deleteMetafield = async (metafieldId) => {
-    if (metafieldId) {
-      await admin.graphql(
-        `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-          metafieldDelete(input: $input) {
-            userErrors {
-              field
-              message
-            }
-          }
-        }`,
-        {
-          variables: {
-            input: {
-              id: metafieldId
-            }
-          }
-        }
-      );
-    }
-  };
-
   const fields = [
-    'productLimitField',
-    'categoryLimitField',
-    'productVariantLimitField',
-    'productStatusField',
-    'categoryStatusField',
-    'categoryNameField',
-    'collectionLimitField'
+    {fieldName: 'productLimitField', namespace:'productLimit', key:'productLimit'},
+    {fieldName: 'categoryLimitField', namespace:'categoryLimit', key:'categoryLimit'},
+    {fieldName: 'productVariantLimitField', namespace: "productLimit", key: "productLimit"},
+    {fieldName: 'productStatusField', namespace: "productStatus", key: "productStatus"},
+    {fieldName: 'categoryStatusField', namespace: "categoryStatus", key: "categoryStatus"},
+    {fieldName: 'categoryNameField', namespace: "categoryName", key: "categoryName"},
+    {fieldName: 'collectionLimitField', namespace: "collectionLimit", key: "collectionLimit"}
   ];
-
+  console.log('deleting previous metafield data ', allProductsData);
   for (let product of allProductsData) {
     for (let field of fields) {
-      await deleteMetafield(product.node[field]?.id);
+      await deleteMetafield({ownerId: product.node?.id, namespace: field.namespace, key: field.key}, admin.graphql);
 
-      if (field === 'productVariantLimitField') {
+      if (field?.fieldName === 'productVariantLimitField') {
         for (let variant of product.node.variants.edges) {
-          await deleteMetafield(variant.node[field]?.id);
+          await deleteMetafield({ownerId: variant.node?.id, namespace: field.namespace, key: field.key}, admin.graphql);
         }
       }
     }
@@ -483,12 +463,10 @@ async function handleDeletePreviousData(admin, allProductsData, allCustomersData
 
   for (const customer of allCustomersData) {
     const { metafield } = customer.node;
-
-    if (metafield) {
-      if (metafield?.id) {
-        await deleteMetafield(metafield?.id);
-      }
+    if (metafield?.id) {
+      await deleteMetafield({ownerId: customer.node.id, namespace: 'customerTag', key: 'customerTag'}, admin.graphql);
     }
+    
   }
 
   const response = await admin.graphql(`{
@@ -525,19 +503,22 @@ async function handleDeletePreviousData(admin, allProductsData, allCustomersData
   }`);
 
   const data = await response.json();
-  const storeFieldIds = [
-    data?.data?.shop?.storeLimitField?.id,
-    data?.data?.shop?.priceLimitField?.id,
-    data?.data?.shop?.weightLimitField?.id,
-    data?.data?.shop?.errorMsgsField?.id,
-    data?.data?.shop?.generalLimitersField?.id
-  ];
+  const shop = data?.data?.shop;
 
+  const storeFieldIds = [
+    {ownerId: shop?.id, namespace: 'storeLimit', key: 'storeLimit'},
+    {ownerId: shop?.id, namespace: 'generalLimiters', key: 'generalLimiters'},
+    {ownerId: shop?.id, namespace: 'errorMsgs', key: 'errorMsgs'},
+    {ownerId: shop?.id, namespace: 'weightLimit', key: 'weightLimit'},
+    {ownerId: shop?.id, namespace: 'priceLimit', key: 'priceLimit'}
+  ];
+ 
   for (const id of storeFieldIds) {
     if (id) {
-      await deleteMetafield(id);
+      await deleteMetafield(id, admin.graphql);
     }
   }
+  return;
 }
 
 async function handleGraphqlMutation(admin, mutationName, variables) {
@@ -1184,7 +1165,9 @@ export default function Index() {
 
   const fetchVariantQuantityLimit = async (productId) => {
     try {
+      console.log('product id in fetch variant quantiy limit ', productId);
       const limit = await getProductVariantQuantityLimit(productId);
+      console.log('limit in fetch variant quatity limit ', limit)
       setVariantQuantityLimits(prevState => ({
         ...prevState,
         [productId]: limit
@@ -1197,6 +1180,7 @@ export default function Index() {
   useEffect(() => {
     allProductsData.forEach((product) => {
       product.node.variants.edges.forEach((variant) => {
+        console.log('variant in getting all products data ', variant);
         fetchVariantQuantityLimit(variant.node.id);
       });
     });
@@ -1205,6 +1189,7 @@ export default function Index() {
 
   const handleConfirm = () => {
     setIsSaving(true);
+    console.log('clicking on confirm and now deleting the data ');
     const deletePreviousData = true;
     submit({ deletePreviousData: deletePreviousData, allProductsData: JSON.stringify(loaderData?.allProductsData), allCustomersData: JSON.stringify(allCustomersData) }, { method: 'post' });
     setShowConfirmation(false);
@@ -1217,6 +1202,7 @@ export default function Index() {
   };
 
   useEffect(() => {
+    console.log('action data in use effect ', actionData);
     if (actionData?.deleted) {
       setIsSaving(false);
       navigate('/app');
@@ -1404,6 +1390,7 @@ export default function Index() {
 
 
   const handleTagValueChange = (value) => {
+    console.log('handle tag value ', value);
     setTagValue(value);
   };
 
@@ -1444,11 +1431,13 @@ export default function Index() {
       const node = item.node;
 
       if (node.productLimitField && node.productLimitField.value) {
+        console.log('product limit fiedl ', node?.productLimitField)
         const productLimitValues = node.productLimitField.value.split(',');
-        const productLimits = productLimitValues.slice(0, 2).map(Number);
-        const vendorName = productLimitValues[2];
-
-        const vendorLimits = productLimitValues.slice(3, 5).map(Number);
+        const productLimits = productLimitValues.slice(0, 3).map(Number);
+        console.log('product limit values ', productLimitValues)
+        const vendorName = productLimitValues[3];
+        console.log('vendor name ', vendorName)
+        const vendorLimits = productLimitValues.slice(4, 7).map(Number);
         const productName = productLimitValues[5];
 
         if (productLimits.some(value => value !== 0)) {
@@ -1462,8 +1451,10 @@ export default function Index() {
         if (vendorLimits.some(value => value !== 0)) {
           if (!vendorCounts[vendorName]) {
             vendorCounts[vendorName] = 0;
+            console.log('vendors data ', vendorsData);
             const countOfProductsInVendor = vendorsData.find((item) => item.vendorName === vendorName)?.quantityLimit;
-            totalCount += countOfProductsInVendor;
+            console.log('count of products in vendor ', countOfProductsInVendor)
+            totalCount += Number(countOfProductsInVendor);
           }
           vendorCounts[vendorName]++;
         }
@@ -1479,6 +1470,7 @@ export default function Index() {
           if (!categoryCounts[categoryName]) {
             categoryCounts[categoryName] = 0;
             const countOfProductsInCategory = categoriesData.find((item) => item.categoryName === categoryName)?.quantityLimit;
+            console.log('count of products in category ', countOfProductsInCategory)
             totalCount += countOfProductsInCategory;
           }
           categoryCounts[categoryName]++;
@@ -1495,6 +1487,7 @@ export default function Index() {
           if (!collectionCounts[collectionName]) {
             collectionCounts[collectionName] = 0;
             const countOfProductsInCollection = allCollectionsData.find((item) => item.node?.title === collectionName)?.node?.productsCount?.count;
+            console.log('count of products in conllenction ', countOfProductsInCollection)
             totalCount += countOfProductsInCollection;
           }
           collectionCounts[collectionName]++;
@@ -1512,7 +1505,7 @@ export default function Index() {
       }
 
     });
-
+    console.log('total count in count existing limits ', totalCount);
     // Update the total count of products with limits directly
     setCountOfTotalProductsWithLimits(totalCount);
     setCountOfExistingTotalProductsWithLimits(totalCount);
@@ -1568,44 +1561,44 @@ export default function Index() {
 
 
 
-  const handleCount = (name, increment = true) => {
-    setCount((prevCount) => ({
-      ...prevCount,
-      [name]: increment ? prevCount[name] + 1 : prevCount[name] - 1,
-    }));
-  };
+  // const handleCount = (name, increment = true) => {
+  //   setCount((prevCount) => ({
+  //     ...prevCount,
+  //     [name]: increment ? prevCount[name] + 1 : prevCount[name] - 1,
+  //   }));
+  // };
 
 
 
-  const handleCountDec = () => {
-    let name = '';
-    switch (tagValue) {
-      case "Product Wise":
-        name = "productCount";
-        break;
-      case "Collection Wise":
-        name = "collectionCount";
-        break;
-      case "Category Wise":
-        name = "categoryCount";
-        break;
-      case "Vendor Wise":
-        name = "vendorCount";
-        break;
-      default:
-        break;
-    }
+  // const handleCountDec = () => {
+  //   let name = '';
+  //   switch (tagValue) {
+  //     case "Product Wise":
+  //       name = "productCount";
+  //       break;
+  //     case "Collection Wise":
+  //       name = "collectionCount";
+  //       break;
+  //     case "Category Wise":
+  //       name = "categoryCount";
+  //       break;
+  //     case "Vendor Wise":
+  //       name = "vendorCount";
+  //       break;
+  //     default:
+  //       break;
+  //   }
 
-    if (name) {
-      handleCount(name, false);
-    }
-  };
+  //   if (name) {
+  //     handleCount(name, false);
+  //   }
+  // };
 
 
-  const deleteLimit = (idToDelete) => {
-    setQuantityLimit(prevLimits => prevLimits.filter(obj => obj.id !== idToDelete));
-    setQuantityLimit(prevLimits => prevLimits.filter(obj => obj.value !== '0,0'));
-  };
+  // const deleteLimit = (idToDelete) => {
+  //   setQuantityLimit(prevLimits => prevLimits.filter(obj => obj.id !== idToDelete));
+  //   setQuantityLimit(prevLimits => prevLimits.filter(obj => obj.value !== '0,0'));
+  // };
 
 
   const checkAvailableLimits = async (id, value, range) => {
@@ -2053,11 +2046,13 @@ export default function Index() {
   const getProductVariantQuantityLimit = async (productId, range) => {
 
     try {
+      console.log('quantity limit ', quantityLimit);
       const productLimit = quantityLimit.find(item => item.id === productId);
       if (productLimit) {
         return productLimit.value; // Return the quantity limit if found and greater than 0
       } else {
         const lastNumberId = productId.match(/\d+$/)[0];
+        if (!lastNumberId) return;
         const response = await fetch(`/api/getVariantLimit/${lastNumberId}`);
         const responseData = await response.json();
         const productVariantLimitField = responseData?.productVariantLimitField;
@@ -2278,6 +2273,10 @@ export default function Index() {
       return 0;
     }
   };
+
+  const showErrorMessage = () => {
+    return `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` 
+  }
 
 
   if (isSaving) {
@@ -2536,7 +2535,7 @@ export default function Index() {
                                         }}
                                         error={
                                           errorState[`${product.node.id}_min`]
-                                            ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.`
+                                            ? showErrorMessage()
                                             : ''
                                         }
                                       />
@@ -2555,7 +2554,7 @@ export default function Index() {
                                         }}
                                         error={
                                           errorState[`${product.node.id}_max`]
-                                            ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.`
+                                            ? showErrorMessage()
                                             : ''
                                         }
                                       />
@@ -2574,7 +2573,7 @@ export default function Index() {
                                         }}
                                         error={
                                           errorState[`${product.node.id}_multiple`]
-                                            ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.`
+                                            ? showErrorMessage()
                                             : ''
                                         }
                                       />
@@ -2617,7 +2616,7 @@ export default function Index() {
                                             label="Variant Min Limit"
                                             type="number"
                                             onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'min') }}
-                                            error={errorState[`${variant.node.id}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                            error={errorState[`${variant.node.id}_min`] ? showErrorMessage() : ''}
                                           />
                                         </FormLayout.Group>
                                       </FormLayout>
@@ -2630,7 +2629,7 @@ export default function Index() {
                                             label="Variant Max Limit"
                                             type="number"
                                             onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'max') }}
-                                            error={errorState[`${variant.node.id}_max`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                            error={errorState[`${variant.node.id}_max`] ? showErrorMessage() : ''}
                                           />
                                         </FormLayout.Group>
                                       </FormLayout>
@@ -2643,7 +2642,7 @@ export default function Index() {
                                             label="Variant Multiple Limit"
                                             type="number"
                                             onChange={(value) => { handleQuantityLimit(value, variant.node.id, 'multiple') }}
-                                            error={errorState[`${variant.node.id}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                            error={errorState[`${variant.node.id}_multiple`] ? showErrorMessage() : ''}
                                           />
                                         </FormLayout.Group>
                                       </FormLayout>
@@ -2801,7 +2800,7 @@ export default function Index() {
                                     label="Category Min Limit"
                                     type="number"
                                     onChange={(value) => { handleQuantityLimit(value, category['categoryName'], 'min') }}
-                                    error={errorState[`${category['categoryName']}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                    error={errorState[`${category['categoryName']}_min`] ? showErrorMessage() : ''}
                                   />
                                 </FormLayout>
                               </IndexTable.Cell>
@@ -2812,7 +2811,7 @@ export default function Index() {
                                     label="Category Max Limit"
                                     type="number"
                                     onChange={(value) => { handleQuantityLimit(value, category['categoryName'], 'max') }}
-                                    error={errorState[`${category['categoryName']}_max`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                    error={errorState[`${category['categoryName']}_max`] ? showErrorMessage() : ''}
                                   />
                                 </FormLayout>
                               </IndexTable.Cell>
@@ -2823,7 +2822,7 @@ export default function Index() {
                                     label="Category Multiple Limit"
                                     type="number"
                                     onChange={(value) => { handleQuantityLimit(value, category['categoryName'], 'multiple') }}
-                                    error={errorState[`${category['categoryName']}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                    error={errorState[`${category['categoryName']}_multiple`] ? showErrorMessage() : ''}
                                   />
                                 </FormLayout>
                               </IndexTable.Cell>
@@ -2942,7 +2941,7 @@ export default function Index() {
                                     label="Collection Min Limit"
                                     type="number"
                                     onChange={(value) => { handleQuantityLimit(value, collection?.node?.title, 'min') }}
-                                    error={errorState[`${collection?.node?.title}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                    error={errorState[`${collection?.node?.title}_min`] ? showErrorMessage() : ''}
 
                                   />
 
@@ -2955,7 +2954,7 @@ export default function Index() {
                                     label="Collection Max Limit"
                                     type="number"
                                     onChange={(value) => { handleQuantityLimit(value, collection?.node?.title, 'max') }}
-                                    error={errorState[`${collection?.node?.title}_max`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                    error={errorState[`${collection?.node?.title}_max`] ? showErrorMessage() : ''}
                                   />
                                 </FormLayout>
                               </IndexTable.Cell>
@@ -2966,7 +2965,7 @@ export default function Index() {
                                     label="Collection Mulitple Limit"
                                     type="number"
                                     onChange={(value) => { handleQuantityLimit(value, collection?.node?.title, 'multiple') }}
-                                    error={errorState[`${collection?.node?.title}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                    error={errorState[`${collection?.node?.title}_multiple`] ? showErrorMessage() : ''}
                                   />
                                 </FormLayout>
                               </IndexTable.Cell>
@@ -3315,7 +3314,7 @@ export default function Index() {
                                     label="Vendor Min Limit"
                                     type="number"
                                     onChange={(value) => { handleQuantityLimit(value, vendor['vendorName'], 'min') }}
-                                    error={errorState[`${vendor['vendorName']}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                    error={errorState[`${vendor['vendorName']}_min`] ? showErrorMessage() : ''}
                                   />
 
                                 </FormLayout>
@@ -3327,7 +3326,7 @@ export default function Index() {
                                     label="Vendor Max Limit"
                                     type="number"
                                     onChange={(value) => { handleQuantityLimit(value, vendor['vendorName'], 'max') }}
-                                    error={errorState[`${vendor['vendorName']}_max`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                    error={errorState[`${vendor['vendorName']}_max`] ? showErrorMessage() : ''}
                                   />
                                 </FormLayout>
                               </IndexTable.Cell>
@@ -3338,7 +3337,7 @@ export default function Index() {
                                     label="Vendor Mulitple Limit"
                                     type="number"
                                     onChange={(value) => { handleQuantityLimit(value, vendor['vendorName'], 'multiple') }}
-                                    error={errorState[`${vendor['vendorName']}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                    error={errorState[`${vendor['vendorName']}_multiple`] ? showErrorMessage() : ''}
                                   />
                                 </FormLayout>
                               </IndexTable.Cell>
@@ -3449,7 +3448,7 @@ export default function Index() {
                                               label="SKU Min Limit"
                                               type="number"
                                               onChange={(value) => handleSkuLimiters(value, variant.node.sku, 'min')}
-                                              error={errorState[`${variant.node.sku}_min`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                              error={errorState[`${variant.node.sku}_min`] ? showErrorMessage() : ''}
                                             />
                                           </FormLayout>
                                         </IndexTable.Cell>
@@ -3460,7 +3459,7 @@ export default function Index() {
                                               label="SKU Max Limit"
                                               type="number"
                                               onChange={(value) => handleSkuLimiters(value, variant.node.sku, 'max')}
-                                              error={errorState[`${variant.node.sku}_max`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                              error={errorState[`${variant.node.sku}_max`] ? showErrorMessage() : ''}
                                             />
                                           </FormLayout>
                                         </IndexTable.Cell>
@@ -3471,7 +3470,7 @@ export default function Index() {
                                               label="Multiple"
                                               type="number"
                                               onChange={(value) => handleSkuLimiters(value, variant.node.sku, 'multiple')}
-                                              error={errorState[`${variant.node.sku}_multiple`] ? `You have ${freePlanlimiters.products - countOfTotalProductsWithLimits} products remaining under the free plan.` : ''}
+                                              error={errorState[`${variant.node.sku}_multiple`] ? showErrorMessage() : ''}
                                             />
                                           </FormLayout>
                                         </IndexTable.Cell>

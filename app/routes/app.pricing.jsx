@@ -150,8 +150,11 @@ export default function PricingPage() {
             title: "Free",
             description:  <>
                     
-            <span className="text-with-icon">Free Plan
-                <Tooltip content={`You can set limits for up to ${freePlanLimiters.freePlanProductLimit} products across SKU, product, category, collection, and vendor limits.`}>
+            <span className="text-with-icon" style={{display: "flex"}}>Free Plan
+                <Tooltip 
+                    content={`You can set limits for up to ${freePlanLimiters.freePlanProductLimit} products across SKU, product, category, collection, and vendor limits.`}
+                    margin="0"
+                >
                     {infoIcon}
                 </Tooltip>
             </span>
@@ -283,6 +286,7 @@ export default function PricingPage() {
                                 You will be notified once you are current access to paid features is completed.
                             </p>
                         </Banner>
+                        <br />
                     </>
                 )}
 

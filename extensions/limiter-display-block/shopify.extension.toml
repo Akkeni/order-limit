@@ -1,9 +1,12 @@
-api_version = "2024-04"
+api_version = "2025-07"
 
 [[extensions]]
 # Change the merchant-facing name of the extension in locales/en.default.json
 name = "t:name"
 handle = "limiter-display-block"
+
+uid = "613db194-7b96-9d13-6370-c2733da6075dad7f2b50"
+
 type = "ui_extension"
 
 [[extensions.targeting]]

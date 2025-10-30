@@ -251,126 +251,118 @@ export async function getAllCustomerTags(graphql) {
   };
 }
 
+// --- Helper: Delete metafield by ownerId + namespace + key
+export const deleteMetafield = async (details, graphql) => {
+  if (!details) return;
+
+  try {
+    const res = await graphql(
+      `#graphql
+        mutation metafieldsDelete($metafields: [MetafieldIdentifierInput!]!) {
+          metafieldsDelete(metafields: $metafields) {
+            deletedMetafields { key namespace ownerId }
+            userErrors { field message }
+          }
+        }`,
+      {
+        variables: {
+          metafields: [
+            {
+              ownerId: details.ownerId,
+              namespace: details.namespace,
+              key: details.key,
+            },
+          ],
+        },
+      }
+    );
+
+    const json = await res.json();
+    const errors = json?.data?.metafieldsDelete?.userErrors;
+    if (errors?.length) {
+      console.log("metafieldsDelete userErrors:", errors);
+    }
+  } catch (err) {
+    console.log("Error deleting metafield:", err);
+  }
+  return;
+};
 
 export async function deleteNonPlanData(graphql) {
 
   let allProductsData = await getAllProductsData(graphql);
   let { allCustomerTags, allCustomersData } = await getAllCustomerTags(graphql);
 
-  const deleteMetafield = async (metafieldId) => {
-    if (metafieldId) {
-      await graphql(
-        `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-            metafieldDelete(input: $input) {
-              userErrors {
-                field
-                message
-              }
-            }
-          }`,
-        {
-          variables: {
-            input: {
-              id: metafieldId
-            }
-          }
-        }
-      );
-    }
-  };
-
   const fields = [
-    'productLimitField',
-    'productVariantLimitField',
-    'categoryLimitField',
-    'collectionLimitField'
+    {fieldName: 'productLimitField', namespace: 'productLimit', key: 'productLimit'},
+    {fieldName: 'productVariantLimitField', namespace: 'productLimit', key: 'productLimit'},
+    {fieldName: 'categoryLimitField', namespace: 'categoryLimit', key: 'categoryLimit'},
+    {fieldName:'collectionLimitField', namespace: 'collectionLimit', key: 'collectionLimit' },
   ];
 
+  // Delete metafields from products and variants
   for (let product of allProductsData) {
     for (let field of fields) {
-      await deleteMetafield(product.node[field]?.id);
-      if (field === 'productVariantLimitField') {
+      await deleteMetafield({key: field.key, namespace: field.namespace,  ownerId: product.node.id}, graphql);
+      if (field?.fieldName === 'productVariantLimitField') {
         for (let variant of product.node.variants.edges) {
-          await deleteMetafield(variant.node[field]?.id);
+          await deleteMetafield({ownerId: variant.node?.id, namespace: field.namespace, key: field.key}, graphql);
         }
       }
     }
   }
 
+  // Delete metafields from customers
   for (const customer of allCustomersData) {
     const { metafield } = customer.node;
-
-    if (metafield) {
-      if(metafield?.id) {
-        await deleteMetafield(metafield?.id);
-      }
+    if (metafield?.id) {
+      await deleteMetafield({ownerId: customer.node.id, namespace: 'customerTag', key: 'customerTag'}, graphql);
     }
   }
 
+  // Delete shop-level metafields
   const response = await graphql(
-    `{
+    `#graphql
+      {
         shop {
           id
           name
           currencyCode
           weightUnit
-          priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") {
-            id
-            value
-          }
-          weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") {
-            id
-            value
-          }
-          storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
-            id
-            value
-          }
-          generalLimitersField: metafield(namespace: "generalLimiters", key: "generalLimiters"){
-            id
-            value
-          }
-          errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs") {
-            id 
-            value 
-          }
+          priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") { id }
+          weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") { id }
+          storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") { id }
+          generalLimitersField: metafield(namespace: "generalLimiters", key: "generalLimiters"){ id }
+          errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs") { id }
         }
-      }
-    `);
-
+      }`
+  );
 
   const data = await response.json();
+  const shop = data?.data?.shop;
 
   const storeFieldIds = [
-    data?.data?.shop?.storeLimitField?.id,
-    data?.data?.shop?.generalLimitersField?.id,
-    data?.data?.shop?.errorMsgsField?.id,
+    {ownerId: shop?.id, namespace: 'storeLimit', key: 'storeLimit'},
+    {ownerId: shop?.id, namespace: 'generalLimiters', key: 'generalLimiters'},
+    {ownerId: shop?.id, namespace: 'errorMsgs', key: 'errorMsgs'},
   ];
 
-  for (const id of storeFieldIds) {
-    if (id) {
-      await deleteMetafield(id);
-    }
+  for (const detail of storeFieldIds) {
+    if (detail) await deleteMetafield(detail, graphql);
   }
 
+  // Recreate default generalLimiters metafield
   const generalLimiters = JSON.stringify({
-    currencyCode: data?.data?.shop?.currencyCode,
-    weightUnit: data?.data?.shop?.weightUnit,
-    plan: false
+    currencyCode: shop?.currencyCode,
+    weightUnit: shop?.weightUnit,
+    plan: false,
   });
 
-  const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+  const mutationQuery = `#graphql
+    mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
       metafieldsSet(metafields: $metafields) {
-        metafields {
-          id
-          namespace
-          key
-          value
-        }
-        userErrors {
-          field
-          message
-        }
+        metafields { id namespace key value }
+        userErrors { field message }
       }
     }`;
 
@@ -390,9 +382,7 @@ export async function deleteNonPlanData(graphql) {
   };
 
   await graphql(mutationQuery, metafields);
-
   return null;
-
 }
 
 export async function createFreePlanMetafields(graphql, existingLimiters) {
