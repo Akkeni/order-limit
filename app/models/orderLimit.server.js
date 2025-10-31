@@ -14,6 +14,7 @@ export async function getAllProductsData(graphql) {
                 edges {
                   node {
                     id
+                    sku
                     image {
                       url
                     }
@@ -30,15 +31,15 @@ export async function getAllProductsData(graphql) {
               category {
                 name
               }
-                totalInventory
-                productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
-                        id
-                        value
-                    }
-        		productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
-                    id
+              totalInventory
+              productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+                id
+                value
+              }
+        		  productStatusField: metafield(namespace: "productStatus", key: "productStatus") {
+                id
           			value
-        		}
+        		  }
               categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
                 id
                 value
@@ -47,14 +48,14 @@ export async function getAllProductsData(graphql) {
                 id
                 value
               }
-                categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
-                    id
-                    value
-                }
-                collectionLimitField: metafield(namespace: "collectionLimit", key: "collectionLimit") {
-                  id
-                  value
-                }
+              categoryNameField: metafield(namespace: "categoryName", key: "categoryName") {
+                id
+                value
+              }
+              collectionLimitField: metafield(namespace: "collectionLimit", key: "collectionLimit") {
+                id
+                value
+              }
         			priceRangeV2 {
         				maxVariantPrice {
             				amount
@@ -62,14 +63,14 @@ export async function getAllProductsData(graphql) {
         				minVariantPrice {
            				 amount
         				}
-                    }
-                images(first: 1) {
-                    edges {
-                        node {
-                            url
-                        }
-                    }
+              }
+              images(first: 1) {
+                edges {
+                  node {
+                    url
+                  }
                 }
+              }
             }
           }
         }
@@ -96,6 +97,7 @@ export async function getAllProductsData(graphql) {
                     edges {
                       node {
                         id
+                        sku
                         image {
                           url
                         }
@@ -185,114 +187,182 @@ export async function getAllProductsData(graphql) {
   return allProductsData;
 }
 
+
+
+export async function getAllCustomerTags(graphql) {
+  let allCustomersData = [];
+  let cursor = null;
+  let hasNextPage = true;
+
+  // Use a loop to handle pagination
+  while (hasNextPage) {
+    const resCustomer = await graphql(
+      `query AllCustomers($after: String) {
+        customers(first: 250, after: $after) {
+          edges {
+            cursor
+            node {
+              tags
+              id
+              metafield(namespace: "customerTag", key: "customerTag") {
+                value
+                id
+              }
+            }
+          }
+          pageInfo {
+            hasNextPage
+          }
+        }
+      }`,
+      {
+        variables: {
+          after: cursor,
+        },
+      }
+    );
+
+    const customerData = await resCustomer.json();
+    const edges = customerData?.data?.customers?.edges || [];
+
+    
+    allCustomersData.push(...edges);
+
+    
+    if (edges.length > 0) {
+      cursor = edges[edges.length - 1].cursor;
+    }
+
+    hasNextPage = customerData?.data?.customers?.pageInfo?.hasNextPage;
+  }
+
+  // Collect all unique customer tags
+  const uniqueCustomerTags = new Set();
+  allCustomersData.forEach(({ node }) => {
+    node.tags.forEach(tag => uniqueCustomerTags.add(tag));
+  });
+
+  // Convert the Set back to an array
+  const allCustomerTags = Array.from(uniqueCustomerTags);
+
+  return {
+    allCustomerTags,
+    allCustomersData,
+  };
+}
+
+// --- Helper: Delete metafield by ownerId + namespace + key
+export const deleteMetafield = async (details, graphql) => {
+  if (!details) return;
+
+  try {
+    const res = await graphql(
+      `#graphql
+        mutation metafieldsDelete($metafields: [MetafieldIdentifierInput!]!) {
+          metafieldsDelete(metafields: $metafields) {
+            deletedMetafields { key namespace ownerId }
+            userErrors { field message }
+          }
+        }`,
+      {
+        variables: {
+          metafields: [
+            {
+              ownerId: details.ownerId,
+              namespace: details.namespace,
+              key: details.key,
+            },
+          ],
+        },
+      }
+    );
+
+    const json = await res.json();
+    const errors = json?.data?.metafieldsDelete?.userErrors;
+    if (errors?.length) {
+      console.log("metafieldsDelete userErrors:", errors);
+    }
+  } catch (err) {
+    console.log("Error deleting metafield:", err);
+  }
+  return;
+};
+
 export async function deleteNonPlanData(graphql) {
 
   let allProductsData = await getAllProductsData(graphql);
-
-  const deleteMetafield = async (metafieldId) => {
-    if (metafieldId) {
-      await graphql(
-        `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-            metafieldDelete(input: $input) {
-              userErrors {
-                field
-                message
-              }
-            }
-          }`,
-        {
-          variables: {
-            input: {
-              id: metafieldId
-            }
-          }
-        }
-      );
-    }
-  };
+  let { allCustomerTags, allCustomersData } = await getAllCustomerTags(graphql);
 
   const fields = [
-    'productLimitField',
-    'productVariantLimitField',
-    'categoryLimitField',
-    'collectionLimitField'
+    {fieldName: 'productLimitField', namespace: 'productLimit', key: 'productLimit'},
+    {fieldName: 'productVariantLimitField', namespace: 'productLimit', key: 'productLimit'},
+    {fieldName: 'categoryLimitField', namespace: 'categoryLimit', key: 'categoryLimit'},
+    {fieldName:'collectionLimitField', namespace: 'collectionLimit', key: 'collectionLimit' },
   ];
 
+  // Delete metafields from products and variants
   for (let product of allProductsData) {
     for (let field of fields) {
-      await deleteMetafield(product.node[field]?.id);
-      if (field === 'productVariantLimitField') {
+      await deleteMetafield({key: field.key, namespace: field.namespace,  ownerId: product.node.id}, graphql);
+      if (field?.fieldName === 'productVariantLimitField') {
         for (let variant of product.node.variants.edges) {
-          await deleteMetafield(variant.node[field]?.id);
+          await deleteMetafield({ownerId: variant.node?.id, namespace: field.namespace, key: field.key}, graphql);
         }
       }
     }
   }
 
+  // Delete metafields from customers
+  for (const customer of allCustomersData) {
+    const { metafield } = customer.node;
+    if (metafield?.id) {
+      await deleteMetafield({ownerId: customer.node.id, namespace: 'customerTag', key: 'customerTag'}, graphql);
+    }
+  }
+
+  // Delete shop-level metafields
   const response = await graphql(
-    `{
+    `#graphql
+      {
         shop {
           id
           name
           currencyCode
           weightUnit
-          priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") {
-            id
-            value
-          }
-          weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") {
-            id
-            value
-          }
-          storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
-            id
-            value
-          }
-          generalLimitersField: metafield(namespace: "generalLimiters", key: "generalLimiters"){
-            id
-            value
-          }
-          errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs") {
-            id 
-            value 
-          }
+          priceLimitField: metafield(namespace: "priceLimit", key: "priceLimit") { id }
+          weightLimitField: metafield(namespace: "weightLimit", key: "weightLimit") { id }
+          storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") { id }
+          generalLimitersField: metafield(namespace: "generalLimiters", key: "generalLimiters"){ id }
+          errorMsgsField: metafield(namespace: "errorMsgs", key: "errorMsgs") { id }
         }
-      }
-    `);
-
+      }`
+  );
 
   const data = await response.json();
+  const shop = data?.data?.shop;
 
   const storeFieldIds = [
-    data?.data?.shop?.storeLimitField?.id,
-    data?.data?.shop?.generalLimitersField?.id,
-    data?.data?.shop?.errorMsgsField?.id,
+    {ownerId: shop?.id, namespace: 'storeLimit', key: 'storeLimit'},
+    {ownerId: shop?.id, namespace: 'generalLimiters', key: 'generalLimiters'},
+    {ownerId: shop?.id, namespace: 'errorMsgs', key: 'errorMsgs'},
   ];
 
-  for (const id of storeFieldIds) {
-    if (id) {
-      await deleteMetafield(id);
-    }
+  for (const detail of storeFieldIds) {
+    if (detail) await deleteMetafield(detail, graphql);
   }
 
+  // Recreate default generalLimiters metafield
   const generalLimiters = JSON.stringify({
-    currencyCode: data?.data?.shop?.currencyCode,
-    weightUnit: data?.data?.shop?.weightUnit,
-    plan: false
+    currencyCode: shop?.currencyCode,
+    weightUnit: shop?.weightUnit,
+    plan: false,
   });
 
-  const mutationQuery = `mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+  const mutationQuery = `#graphql
+    mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
       metafieldsSet(metafields: $metafields) {
-        metafields {
-          id
-          namespace
-          key
-          value
-        }
-        userErrors {
-          field
-          message
-        }
+        metafields { id namespace key value }
+        userErrors { field message }
       }
     }`;
 
@@ -312,9 +382,7 @@ export async function deleteNonPlanData(graphql) {
   };
 
   await graphql(mutationQuery, metafields);
-
   return null;
-
 }
 
 export async function createFreePlanMetafields(graphql, existingLimiters) {
@@ -458,8 +526,8 @@ export async function createVendorWiseLimiter(graphql, allProductsData, limiter)
 
   for (const id of productIds) {
     let value = '';
-    let allValues = limiter.value.split(',').slice(3, 5);
-    let vendorValue = `${allValues[0]},${allValues[1]}`;
+    let allValues = limiter.value.split(',').slice(4, 7);
+    let vendorValue = `${allValues[0]},${allValues[1]},${allValues[2]}`;
 
     const productResponse = await graphql(
       `{
@@ -479,12 +547,12 @@ export async function createVendorWiseLimiter(graphql, allProductsData, limiter)
     const productLimitFieldValue = product?.productLimitField?.value;
 
     if (productLimitFieldValue) {
-      const [productMin, productMax, vendorName, vendorMin, vendorMax] = productLimitFieldValue.split(',');
+      const [productMin, productMax, productMultiple, vendorName, vendorMin, vendorMax, vendorMulitple, productName] = productLimitFieldValue.split(',');
 
-      value = `${productMin},${productMax},${limiter.id},${vendorValue},${product.title}`;
+      value = `${productMin},${productMax},${productMultiple},${limiter.id},${vendorValue},${product.title}`;
     } else {
       // If there is no previous metafield value, construct a new value
-      value = `0,0,${limiter.id},${vendorValue},${product.title}`;
+      value = `0,0,0,${limiter.id},${vendorValue},${product.title}`;
     }
 
     const variables = {

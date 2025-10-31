@@ -13,3 +13,8 @@ database.sqlite
 
 package-lock.json
 yarn.lock
+.env
+.env.order-limit-prod
+.env.order-limit-2
+.env.order-limit-3
+.env.order-limit

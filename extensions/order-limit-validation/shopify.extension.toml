@@ -1,9 +1,10 @@
-api_version = "2024-01"
+api_version = "2025-07"
 
 [[extensions]]
 handle = "order-limit-validation"
 name = "t:name"
 description = "t:description"
+uid = "a2dc42df-b537-833f-db59-aac1c7ca828c1d2ad542"
 type = "function"
 
   [[extensions.targeting]]

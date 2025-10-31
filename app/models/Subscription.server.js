@@ -1,3 +1,5 @@
+import { deleteMetafield } from "./orderLimit.server";
+
 export async function getSubscriptionStatus(graphql) {
   const result = await graphql(
     `
@@ -74,6 +76,7 @@ export async function createSubscriptionMetafield(graphql, value) {
 }
 
 export async function createEndPeriodMetafield(graphql, value) {
+  try {
   const appIdQuery = await graphql(`
     #graphql
     query {
@@ -83,7 +86,6 @@ export async function createEndPeriodMetafield(graphql, value) {
     }
   `);
 
- 
 
   const appIdQueryData = await appIdQuery.json();
   const appInstallationID = appIdQueryData.data.currentAppInstallation.id;
@@ -120,6 +122,10 @@ export async function createEndPeriodMetafield(graphql, value) {
 
   const data = await appMetafield.json();
   return;
+  } catch (error) {
+    console.log('Error while creating end period meta field ', error);
+    return;
+  }
 }
 
 export async function createPlanNameMetafield(graphql, value) {
@@ -171,28 +177,6 @@ export async function createPlanNameMetafield(graphql, value) {
 
 export async function deletePlanNameMetafield(graphql) {
 
-  const deleteMetafield = async (metafieldId) => {
-    if (metafieldId) {
-      await graphql(
-        `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-            metafieldDelete(input: $input) {
-              userErrors {
-                field
-                message
-              }
-            }
-          }`,
-        {
-          variables: {
-            input: {
-              id: metafieldId
-            }
-          }
-        }
-      );
-    }
-  };
-
   const appQueryResponse = await graphql(`query appInstallation {
     currentAppInstallation {
       id
@@ -205,39 +189,16 @@ export async function deletePlanNameMetafield(graphql) {
 
   const appQeryData = await appQueryResponse.json();
   const id = appQeryData?.data?.currentAppInstallation?.planNameMetaField?.id ? appQeryData?.data?.currentAppInstallation?.planNameMetaField?.id : '';
+  const ownerId = appQeryData?.data?.currentAppInstallation?.id;
 
-
-  if (id) {
-    await deleteMetafield(id);
+  if (ownerId) {
+    await deleteMetafield({ownerId, namespace: "planName", key: "planName"}, graphql);
   }
 
   return;
 }
 
 export async function deleteAppInstallationMetafields(graphql) {
-
-  const deleteMetafield = async (metafieldId) => {
-    if (metafieldId) {
-      await graphql(
-        `mutation metafieldDelete($input: MetafieldDeleteInput!) {
-            metafieldDelete(input: $input) {
-              userErrors {
-                field
-                message
-              }
-            }
-          }`,
-        {
-          variables: {
-            input: {
-              id: metafieldId
-            }
-          }
-        }
-      );
-    }
-  };
-
   const appQueryResponse = await graphql(`query appInstallation {
     currentAppInstallation {
       id
@@ -257,15 +218,16 @@ export async function deleteAppInstallationMetafields(graphql) {
   }`);
 
   const appQeryData = await appQueryResponse.json();
+  const ownerId = appQeryData?.data?.currentAppInstallation?.id;
   const ids = [
-    appQeryData?.data?.currentAppInstallation?.planMetaField?.id,
-    appQeryData?.data?.currentAppInstallation?.endDateMetaField?.id,
-    appQeryData?.data?.currentAppInstallation?.freePlanLimitersMetaField?.id
+    {ownerId, namespace: "hasPlan", key: "hasPlan"},
+    {ownerId, namespace: "endDate", key: "endDate"},
+    {ownerId, namespace: "freePlanLimiters", key: "freePlanLimiters"}
   ];
 
   for (const id of ids) {
     if (id) {
-      await deleteMetafield(id);
+      await deleteMetafield(id, graphql);
     }
   }
 

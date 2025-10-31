@@ -13,7 +13,7 @@ import {
   Button,
 } from '@shopify/ui-extensions-react/admin';
 import { useEffect, useMemo, useState } from "react";
-import { getLimiters, updateLimiters, getExistingCollectionLimits } from "./utils";
+import { getLimiters, updateLimiters, getExistingCollectionLimits, getExistingProductLimits } from "./utils";
 
 // The target used here must match the target used in the extension's toml file (./shopify.extension.toml)
 const TARGET = 'admin.collection-details.block.render';
@@ -29,6 +29,7 @@ function App() {
     collectionName: '',
     collectionMin: 0,
     collectionMax: 0,
+    collectionMultiple: 0,
     plan: '',
   });
   const [loading, setLoading] = useState(true);
@@ -36,10 +37,7 @@ function App() {
   const collectionId = data.selected[0].id;
 
   const freePlanLimiters = {
-    products: 0,
-    categories: 0,
-    collections: 0,
-    vendors: 0,
+    products: 0
   };
 
 
@@ -53,19 +51,19 @@ function App() {
         const existingLimiters = collectionData?.freePlanLimiters;
 
         if (collectionData.plan === false) {
-          freePlanLimiters.products = existingLimiters.find((item) => item.typeName == 'products')?.value || 0;
-          freePlanLimiters.categories = existingLimiters.find((item) => item.typeName == 'categories')?.value || 0;
-          freePlanLimiters.collections = existingLimiters.find((item) => item.typeName == 'collections')?.value || 0;
-          freePlanLimiters.vendors = existingLimiters.find((item) => item.typeName == 'vendors')?.value || 0;
+          freePlanLimiters.products = existingLimiters.find((item) => item.typeName == 'products')?.value;
         }
 
         if (freePlanLimiters) {
 
-          const existingCollectionLimit = await getExistingCollectionLimits();
-          if (Number(freePlanLimiters.collections) > Object.keys(existingCollectionLimit).length && Number(freePlanLimiters.collections) > 0) {
+          const existingProductsLimit = await getExistingProductLimits(collectionId);
+          
+          if (Number(freePlanLimiters.products) >= existingProductsLimit && Number(freePlanLimiters.products) > 0) {
             setIsAllow(true);
           }
         }
+
+        
 
         if (collectionData.plan) {
           setIsAllow(true);
@@ -76,6 +74,7 @@ function App() {
           collectionName: collectionData?.collectionName ? collectionData?.collectionName : '',
           collectionMin: collectionData?.collectionMin ? Number(collectionData?.collectionMin) : 0,
           collectionMax: collectionData?.collectionMax ? Number(collectionData?.collectionMax) : 0,
+          collectionMultiple: collectionData?.collectionMultiple ? Number(collectionData?.collectionMultiple) : 0,
           plan: collectionData?.plan ? collectionData?.plan : false
         }));
 
@@ -103,7 +102,7 @@ function App() {
 
   return (
     // The AdminBlock component provides an API for setting the title of the Block extension wrapper.
-    <AdminBlock title="Order Limit app limiters">
+    <AdminBlock title="CartControl: Order Limit app limiters">
 
       {loading && (
         <Text>
@@ -113,7 +112,7 @@ function App() {
 
       {!loading && !limiters?.plan && !isAllow && (
         <Text as="p" tone="critical">
-          You used allowed collection wise limits. To continue please select a plan or set existing limits to 0.
+          You used allowed Product limits. To continue please select a plan or set existing limits to 0.
         </Text>
       )}
 
@@ -137,6 +136,13 @@ function App() {
                 label="Collection Max Limit"
                 type="number"
                 onChange={(value) => { handleLimiters(value, 'collectionMax') }}
+
+              />
+              <NumberField
+                value={limiters.collectionMultiple}
+                label="Collection Multiple Limit"
+                type="number"
+                onChange={(value) => { handleLimiters(value, 'collectionMultiple') }}
 
               />
             </InlineStack>

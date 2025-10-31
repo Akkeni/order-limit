@@ -30,9 +30,6 @@ model Order_Limit {
   hasToDelete   Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  //typeId        String?
-  //quantityLimit Int
-  //status        String
 }
 
 model Limiters {

@@ -1,6 +1,6 @@
 export async function updateCollectionLimit(productId, limiters) {
 
-  const collectionValue = limiters?.collectionName + ',' + limiters?.collectionMin + ',' + limiters?.collectionMax;
+  const collectionValue = limiters?.collectionName + ',' + limiters?.collectionMin + ',' + limiters?.collectionMax + ',' + limiters?.collectionMultiple;
 
   return await makeGraphQLQuery(
     `mutation SetMetafield($namespace: String!, $ownerId: ID!, $key: String!, $type: String!, $value: String!) {
@@ -95,14 +95,17 @@ export async function getLimiters(collectionId) {
 
   for (const edge of allProductsData) {
     const collectionData = await getCollection(collectionId, edge?.node?.id);
-
+    
     if (collectionData?.data?.collection?.hasProduct) {
       limiters['collectionName'] = collectionData?.data?.collection?.title;
       if (edge?.node?.collectionLimitField?.value) {
-        const [collectionName, collectionMin, collectionMax] = edge?.node?.collectionLimitField?.value.split(',');
-        limiters['collectionMin'] = collectionMin;
-        limiters['collectionMax'] = collectionMax;
-        break;
+        const [collectionName, collectionMin, collectionMax, collectionMultiple] = edge?.node?.collectionLimitField?.value.split(',');
+        if(collectionName === collectionData?.data?.collection?.title) {
+          limiters['collectionMin'] = collectionMin;
+          limiters['collectionMax'] = collectionMax;
+          limiters['collectionMultiple'] = collectionMultiple;
+          break;
+        }
       }
     }
   }
@@ -129,6 +132,143 @@ async function makeGraphQLQuery(query, variables) {
   }
 
   return await res.json();
+}
+
+function getAllProductsInCategory(categoryName, allProductsData) {
+  let quantityLimit = 0;
+  let obj = {};
+  for (const edge of allProductsData) {
+    const productCategory = edge.node.category ? edge.node.category.name : null;
+    // If the product category matches the current category, increment the count
+    if (productCategory === categoryName) {
+      quantityLimit++;
+    }
+  }
+  obj['categoryName'] = categoryName;
+  obj['quantityLimit'] = quantityLimit;
+  return quantityLimit;
+}
+
+function getAllProductsInVendor(vendorName, allProductsData) {
+        let quantityLimit = 0;
+        let name = vendorName;
+        let obj = {};
+        for (const edge of allProductsData) {
+          const productVendor = edge.node?.vendor ? edge.node?.vendor : null;
+          // If the product vendor matches the current vendor, increment the count
+          if (productVendor === name) {
+            quantityLimit++;
+          }
+        }
+        obj['vendorName'] = name;
+        obj['quantityLimit'] = quantityLimit;
+        return quantityLimit;
+}
+
+function getAllProductsInCollection(collectionName, allCollectionsData) {
+
+  const countOfProducts = allCollectionsData.find((item) => item.node?.title === collectionName)?.node?.productsCount?.count;
+  return countOfProducts;
+}
+
+export async function getExistingProductLimits(collectionId) {
+  let totalProductsCount = 0;
+  
+  let productLimitCounts = {};
+  let vendorCounts = {};
+  let categoryCounts = {};
+  let collectionCounts = {};
+
+  const collectionData  = await makeGraphQLQuery (`query AllCollections {
+    collections(first: 250) {
+      edges {
+        node {
+          id
+          title
+          productsCount {
+            count
+          }
+        }
+      }
+    }
+  }`, {});
+
+  const currentCollection =  await makeGraphQLQuery(
+    `query collection {
+            collection(id: "${collectionId}") {
+              id
+              title
+              productsCount {
+                  count
+              }
+            }
+        }`,
+    {}
+  );
+
+  const allCollectionsData = collectionData?.data?.collections?.edges;
+  const allProductsData = await getAllProductsData();
+
+  const currentCollectionName = currentCollection?.data?.collection?.title;
+  const productsInCurrentCollection = getAllProductsInCollection(currentCollectionName, allCollectionsData);
+
+  allProductsData.forEach(item => {
+    const node = item.node;
+
+    if (node.productLimitField && node.productLimitField.value) {
+      const productLimitValues = node.productLimitField.value.split(',');
+      const productLimits = productLimitValues.slice(0, 2).map(Number);
+      const vendorName = productLimitValues[2];
+      const vendorLimits = productLimitValues.slice(3, 5).map(Number);
+      const productName = productLimitValues[5];
+
+      if (productLimits.some(value => value !== 0)) {
+        if (!productLimitCounts[productName]) {
+          productLimitCounts[productName] = 0;
+          totalProductsCount = totalProductsCount + 1;
+        }
+        productLimitCounts[productName]++;
+      }
+
+      if (vendorLimits.some(value => value !== 0)) {
+        if (!vendorCounts[vendorName]) {
+          vendorCounts[vendorName] = 0;
+          totalProductsCount = totalProductsCount + getAllProductsInVendor(vendorName, allProductsData);
+        }
+        vendorCounts[vendorName]++;
+      }
+    }
+
+    if (node.categoryLimitField && node.categoryLimitField.value) {
+      const categoryValues = node.categoryLimitField.value.split(',');
+      const categoryName = categoryValues[0].trim();
+      const categoryLimits = categoryValues.slice(1).map(Number);
+
+      if (categoryLimits.some(value => value !== 0)) {
+        if (!categoryCounts[categoryName]) {
+          categoryCounts[categoryName] = 0;
+          totalProductsCount = totalProductsCount + getAllProductsInCategory(categoryName, allProductsData);
+        }
+        categoryCounts[categoryName]++;
+      }
+    }
+
+    if (node.collectionLimitField && node.collectionLimitField.value) {
+      const collectionValues = node.collectionLimitField.value.split(',');
+      const collectionName = collectionValues[0].trim();
+      const collectionLimits = collectionValues.slice(1).map(Number);
+
+      if (collectionLimits.some(value => value !== 0)) {
+        if (!collectionCounts[collectionName]) {
+          collectionCounts[collectionName] = 0;
+          totalProductsCount = totalProductsCount +  getAllProductsInCollection(collectionName, allCollectionsData);
+        }
+        collectionCounts[collectionName]++;
+      }
+    }
+  });
+
+  return (totalProductsCount + productsInCurrentCollection);
 }
 
 export async function getExistingCollectionLimits() {
@@ -164,11 +304,23 @@ async function getAllProductsData() {
             edges {
                 cursor
                 node {
+                  id
+                  vendor
+                  category {
+                    name
+                  }
+                  productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
                     id
-                    collectionLimitField: metafield(namespace: "collectionLimit", key: "collectionLimit") {
-                        id
-                        value
-                    }
+                    value
+                  }
+                  categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+                    id
+                    value
+                  }
+                  collectionLimitField: metafield(namespace: "collectionLimit", key: "collectionLimit") {
+                    id
+                    value
+                  }
                 }    
             }
         }
@@ -188,6 +340,18 @@ async function getAllProductsData() {
                 cursor
                 node {
                   id
+                  vendor
+                  category {
+                    name
+                  }
+                  productLimitField: metafield(namespace: "productLimit", key: "productLimit") {
+                    id
+                    value
+                  }
+                  categoryLimitField: metafield(namespace: "categoryLimit", key: "categoryLimit") {
+                    id
+                    value
+                  }
                   collectionLimitField: metafield(namespace: "collectionLimit", key: "collectionLimit") {
                     id
                     value

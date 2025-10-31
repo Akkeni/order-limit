@@ -12,7 +12,7 @@ query RunInput {
       merchandise {
         __typename
         ... on ProductVariant {
-
+          sku
           weight
           weightUnit
           productVariantLimitField: metafield(namespace: "productLimit", key: "productLimit") {
@@ -35,13 +35,17 @@ query RunInput {
         }
       }
     }
+    buyerIdentity {
+      customer {
+       customerTagLimitField: metafield(namespace: "customerTag", key: "customerTag"){
+          value
+        }
+      }
+    }
   }
 
   shop {
-    storeLimitField: metafield(namespace: "storeLimit", key: "storeLimit") {
-      value
-    }
-     
+  
     generalLimitersField: metafield(namespace: "generalLimiters", key: "generalLimiters") {
       value
     }
@@ -51,5 +55,10 @@ query RunInput {
   }
   buyerJourney {
     step
+  }
+  localization {
+    language {
+      isoCode
+    }
   }
 }

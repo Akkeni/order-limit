@@ -93,26 +93,13 @@ export default function HelpPage() {
                     <div>
                         <p> <b>Explanation for various limits supported by us: </b> </p>
                     </div>
-                    <br />
-
-                    <Banner title="Store Wise Limits (paid)" status="info">
-                        <div>
-                            <p>
-                                This tab allows you to set overall limits for your entire store. These limits apply to all products and categories within the store. Here's how it works:
-                            </p>
-                            <ul>
-                                <li><strong>Store Limit:</strong> Maximum and Minimum number of products allowed to checkout. Considers all the products quantity from the cart. Set to 0 for no limit.</li>
-                                <li><strong>Error Messages:</strong> Text field to enter your own error messages to be displayed in the cart. You can use the provided placeholders.</li>
-                            </ul>
-                        </div>
-                    </Banner>
 
                     <br />
 
                     <Banner title="General Limits (paid)" status="info">
                         <div>
                             <p>
-                                This tab allows you to set general limits that apply to all products in the cart, regardless of category or collection:
+                                This tab allows you to set general limits that apply to all products in the cart, regardless of Product limit, Category limit, Collection limit, Vendor limit, Store limit:
                             </p>
                             <ul>
                                 <li><strong>Price Limit:</strong> Maximum and Minimum price allowed to checkout. It considers 'Total Amount'. If there is a difference in currency codes set by you and customer's cart then it will block the checkout and asks the user to change into the currency code set by you. Set to 0 for no restriction.</li>
@@ -124,52 +111,35 @@ export default function HelpPage() {
 
                     <br />
 
-                    <Banner title="Vendor Wise Limits" status="info">
+                    <Banner title="SKU Wise Limits" status="info">
                         <div>
                             <p>
-                                This tab allows you to set limits for individual vendors. These limits control how many products can be added to cart from each vendor:
+                                This tab allows you to set limits based on specific SKUs. This
+                                feature is beneficial when different SKUs represent different
+                                product variations and you need to control the quantity of each
+                                SKU that can be purchased.
+                                If a limit is set at this level, it overrides any limits set at lower levels (Variant, Product, Category, Collection, Vendor, Store):
                             </p>
                             <ul>
-                                <li><strong>Vedor Limit:</strong> Maximum and Minimum number of products from the vendor. Set to 0 for no limit.</li>
-                                <li><strong>Error Messages:</strong> Text field to enter your own error messages to be displayed in the cart. You can use the provided placeholders.</li>
+                                <li>
+                                <strong>SKU Limit:</strong> Maximum and Minimum quantity
+                                allowed for each SKU. Set to 0 for no limit.
+                                </li>
+                                <li>
+                                <strong>Error Messages:</strong> Text field to enter your own
+                                error messages to be displayed in the cart. You can use the
+                                provided placeholders.
+                                </li>
                             </ul>
                         </div>
                     </Banner>
 
                     <br />
-
-                    <Banner title="Collection Wise Limits" status="info">
-                        <div>
-                            <p>
-                                This tab allows you to set limits for individual collections. These limits control how many products can be added to cart in each collection:
-                            </p>
-                            <ul>
-                                <li><strong>Collection Limit:</strong> Maximum and Minimum number of products in a collection. Set to 0 for no limit.</li>
-                                <li><strong>Error Messages:</strong> Text field to enter your own error messages to be displayed in the cart. You can use the provided placeholders.</li>
-                            </ul>
-                        </div>
-                    </Banner>
-
-                    <br />
-
-                    <Banner title="Category Wise Limits" status="info">
-                        <div>
-                            <p>
-                                This tab allows you to set limits for individual categories. These limits control how many products can be added to each category:
-                            </p>
-                            <ul>
-                                <li><strong>Category Limit:</strong> Maximum and Minimum quantity of products within each category. Set to 0 for no restriction.</li>
-                                <li><strong>Error Messages:</strong>Text field to enter your own error messages to be displayed in the cart. You can use the provided placeholders.</li>
-                            </ul>
-                        </div>
-                    </Banner>
-
-                    <br />
-
+                    
                     <Banner title="Product Wise Limits" status="info">
                         <div>
                             <p>
-                                This tab allows you to set limits on individual products or their variants. Here's how it works:
+                                This tab allows you to set limits on individual products or their variants. If a limit is set at this level, it overrides any limits set at lower levels (Category, Collection, Vendor, Store). Here's how it works:
                             </p>
                             <ul>
                                 <li><strong>Product Limit:</strong> Maximum and Minimum number of that particular product allowed to checkout. Set to 0 for no limit.</li>
@@ -187,6 +157,101 @@ export default function HelpPage() {
                     </Banner>
 
                     <br />
+
+                    <Banner title="Category Wise Limits" status="info">
+                        <div>
+                            <p>
+                            This tab allows you to set limits for individual categories. If no product in the cart has a variant or product limit set, these category limits control the number of products that can be added to the cart from each category:
+                            </p>
+                            <ul>
+                                <li><strong>Category Limit:</strong> Maximum and Minimum quantity of products within each category. Set to 0 for no restriction.</li>
+                                <li><strong>Error Messages:</strong>Text field to enter your own error messages to be displayed in the cart. You can use the provided placeholders.</li>
+                            </ul>
+                        </div>
+                    </Banner>
+
+                    <br />
+
+
+                    <Banner title="Collection Wise Limits" status="info">
+                        <div>
+                            <p>
+                                This tab allows you to set limits for individual collections. If no product in the cart has a variant or product or category limit set, these limits control how many products can be added to cart in each collection:
+                            </p>
+                            <ul>
+                                <li><strong>Collection Limit:</strong> Maximum and Minimum number of products in a collection. Set to 0 for no limit.</li>
+                                <li><strong>Error Messages:</strong> Text field to enter your own error messages to be displayed in the cart. You can use the provided placeholders.</li>
+                            </ul>
+                        </div>
+                    </Banner>
+
+                    <br />
+
+                    <Banner title="Vendor Wise Limits" status="info">
+                        <div>
+                            <p>
+                                This tab allows you to set limits for individual vendors. If no product in the cart has a variant or product or category or collection limit set, these limits control how many products can be added to cart from each vendor:
+                            </p>
+                            <ul>
+                                <li><strong>Vendor Limit:</strong> Maximum and Minimum number of products from the vendor. Set to 0 for no limit.</li>
+                                <li><strong>Error Messages:</strong> Text field to enter your own error messages to be displayed in the cart. You can use the provided placeholders.</li>
+                            </ul>
+                        </div>
+                    </Banner>
+
+                    <br />
+
+                    <Banner title="Customer Tag Wise Limits (paid)" status="info">
+                        <div>
+                            <p>
+                                This tab allows you to set limits based on customer tags. If a
+                                customer has specific tags associated with their account, the
+                                limits configured for those tags will apply:
+                            </p>
+                            <ul>
+                                <li>
+                                <strong>Tag-Based Price/Store Limits:</strong> If a price or
+                                store limit is set for a specific tag, those limits will
+                                override the general limits for customers with the
+                                corresponding tag. This ensures personalized restrictions
+                                based on customer segmentation.
+                                </li>
+                                <li>
+                                <strong>Error Messages:</strong> Customize error messages to
+                                reflect the tag-based limits, providing a more tailored
+                                experience to tagged customers.
+                                </li>
+                            </ul>
+                        </div>
+                    </Banner>
+
+                    <br />
+
+                    <Banner title="Store Wise Limits (paid)" status="info">
+                        <div>
+                            <p>
+                                This tab allows you to set overall limits for your entire store. These limits apply to all products and categories within the store. If no product in the cart has a variant or product or category or collection or vendor limit set, these limits will be applied. Here's how it works:
+                            </p>
+                            <ul>
+                                <li><strong>Store Limit:</strong> Maximum and Minimum number of products allowed to checkout. Considers all the products quantity from the cart. Set to 0 for no limit.</li>
+                                <li><strong>Error Messages:</strong> Text field to enter your own error messages to be displayed in the cart. You can use the provided placeholders.</li>
+                            </ul>
+                        </div>
+                    </Banner>
+
+                    <br />
+
+                    <Banner title="Multiple Field" status="info">
+                        <div>
+                            <p>
+                                This field ensures that the selected product quantity must be a multiple of the specified number. For example, if the multiple is set to 5, the customer can only purchase quantities like 5, 10, 15, etc., of that product. This limit ensures that the quantity added to the cart adheres strictly to the defined multiple.
+                            </p>
+                        </div>
+                    </Banner>
+
+                    <br />
+                    <br />
+
                     <br />
 
                 </Card>
